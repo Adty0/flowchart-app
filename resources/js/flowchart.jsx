@@ -375,7 +375,9 @@ export default function FlowchartEditor() {
     const payload = {
       student_name: studentName.trim() || 'Siswa Mandiri',
       class_name: studentClass.trim() || '10 RPL 1',
+      case_key: selectedCaseKey,
       diagram_data: {
+        case_key: selectedCaseKey,
         nodes: nodes.map(({ id, type, position, data }) => ({
           id,
           type,

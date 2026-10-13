@@ -39,6 +39,7 @@ class FlowchartController extends Controller
         $validated = $request->validate([
             'student_name' => 'nullable|string|max:100',
             'class_name'   => 'nullable|string|max:50',
+            'case_key'     => 'nullable|string|max:50',
             'diagram_data' => 'required',
         ]);
 
@@ -50,7 +51,8 @@ class FlowchartController extends Controller
             $diagram = ['nodes' => [], 'edges' => []];
         }
 
-        $assessment = $this->evaluateDiagram($diagram);
+        $caseKey = $validated['case_key'] ?? ($diagram['case_key'] ?? 'luas_segitiga');
+        $assessment = $this->evaluateDiagram($diagram, $caseKey);
 
         $submission = FlowchartSubmission::create([
             'user_id'      => $user ? $user->id : null,
@@ -83,6 +85,7 @@ class FlowchartController extends Controller
         $validated = $request->validate([
             'student_name' => 'nullable|string|max:100',
             'class_name'   => 'nullable|string|max:50',
+            'case_key'     => 'nullable|string|max:50',
             'diagram_data' => 'required',
         ]);
 
@@ -94,7 +97,8 @@ class FlowchartController extends Controller
             $diagram = ['nodes' => [], 'edges' => []];
         }
 
-        $assessment = $this->evaluateDiagram($diagram);
+        $caseKey = $validated['case_key'] ?? ($diagram['case_key'] ?? 'luas_segitiga');
+        $assessment = $this->evaluateDiagram($diagram, $caseKey);
 
         $submission = FlowchartSubmission::create([
             'user_id'      => $user ? $user->id : null,
@@ -116,86 +120,309 @@ class FlowchartController extends Controller
     }
 
     /**
-     * Logika penilaian diagram flowchart otomatis.
+     * Logika penilaian diagram flowchart otomatis berdasarkan jenis simbol dan kesesuaian teks logika.
      */
-    private function evaluateDiagram(array $diagram): array
+    private function evaluateDiagram(array $diagram, string $caseKey = 'luas_segitiga'): array
     {
         $nodes = $diagram['nodes'] ?? [];
         $edges = $diagram['edges'] ?? [];
 
-        $types = array_column($nodes, 'type');
-        $labels = array_map(function ($node) {
-            $label = $node['data']['label'] ?? '';
-            return strtolower(trim($label));
-        }, $nodes);
+        // Deteksi kasus secara cerdas jika kasus bebas tapi teksnya condong ke kasus tertentu
+        if ($caseKey === 'bebas' || empty($caseKey)) {
+            $allLabels = strtolower(implode(' ', array_map(fn($n) => $n['data']['label'] ?? '', $nodes)));
+            if (str_contains($allLabels, 'alas') || str_contains($allLabels, 'tinggi') || str_contains($allLabels, 'segitiga')) {
+                $caseKey = 'luas_segitiga';
+            } elseif (str_contains($allLabels, '75') || str_contains($allLabels, 'lulus') || str_contains($allLabels, 'remedial')) {
+                $caseKey = 'kelulusan';
+            }
+        }
+
+        $terminators = [];
+        $ioNodes = [];
+        $processNodes = [];
+        $decisionNodes = [];
+
+        foreach ($nodes as $node) {
+            $type = $node['type'] ?? '';
+            $rawLabel = trim($node['data']['label'] ?? '');
+            $cleanLabel = strtolower($rawLabel);
+            $item = ['raw' => $rawLabel, 'clean' => $cleanLabel];
+
+            if ($type === 'terminator') $terminators[] = $item;
+            elseif ($type === 'io') $ioNodes[] = $item;
+            elseif ($type === 'process') $processNodes[] = $item;
+            elseif ($type === 'decision') $decisionNodes[] = $item;
+        }
 
         $feedback = [];
         $score = 0;
 
-        // 1. Simbol Mulai (Terminator)
-        $hasStart = in_array('terminator', $types, true) && (
-            in_array('mulai', $labels, true) ||
-            in_array('start', $labels, true) ||
-            count(array_filter($labels, fn($l) => str_contains($l, 'mulai') || str_contains($l, 'start'))) > 0
-        );
+        // ====================================================================
+        // 1. EVALUASI TERMINATOR (Mulai & Selesai) - 20 Poin
+        // ====================================================================
+        $hasStart = false;
+        $hasEnd = false;
+        foreach ($terminators as $t) {
+            if (str_contains($t['clean'], 'mulai') || str_contains($t['clean'], 'start') || $t['clean'] === 'mulai') {
+                $hasStart = true;
+            }
+            if (str_contains($t['clean'], 'selesai') || str_contains($t['clean'], 'end') || str_contains($t['clean'], 'stop') || $t['clean'] === 'selesai') {
+                $hasEnd = true;
+            }
+        }
 
         if ($hasStart) {
-            $score += 20;
-            $feedback[] = '✅ Simbol Mulai (Terminator) sudah tersedia dengan tepat.';
+            $score += 10;
+            $feedback[] = '✅ Simbol Mulai (Terminator) dengan teks "Mulai" sudah tepat.';
         } else {
-            $feedback[] = '⚠️ Tambahkan simbol Terminator dengan teks "Mulai".';
+            $feedback[] = '⚠️ Tambahkan simbol Terminator dengan teks "Mulai" sebagai penanda awal alur.';
         }
-
-        // 2. Simbol Selesai (Terminator)
-        $hasEnd = in_array('terminator', $types, true) && (
-            in_array('selesai', $labels, true) ||
-            in_array('end', $labels, true) ||
-            count(array_filter($labels, fn($l) => str_contains($l, 'selesai') || str_contains($l, 'end'))) > 0
-        );
 
         if ($hasEnd) {
-            $score += 20;
-            $feedback[] = '✅ Simbol Selesai (Terminator) sudah tersedia dengan tepat.';
+            $score += 10;
+            $feedback[] = '✅ Simbol Selesai (Terminator) dengan teks "Selesai" sudah tepat.';
         } else {
-            $feedback[] = '⚠️ Tambahkan simbol Terminator dengan teks "Selesai".';
+            $feedback[] = '⚠️ Tambahkan simbol Terminator dengan teks "Selesai" sebagai penanda akhir program.';
         }
 
-        // 3. Simbol Proses / Input-Output
-        $hasProcessOrIO = in_array('process', $types, true) || in_array('io', $types, true);
-        if ($hasProcessOrIO) {
-            $score += 20;
-            $feedback[] = '✅ Simbol Proses atau Input-Output sudah disertakan.';
+        // ====================================================================
+        // 2. EVALUASI KESESUAIAN TEKS SESUAI STUDI KASUS (55 Poin)
+        // ====================================================================
+        if ($caseKey === 'luas_segitiga') {
+            // STUDI KASUS 1: LUAS SEGITIGA
+            // A. Teks Input Alas & Tinggi (15 Poin)
+            $hasInputAlas = false;
+            $hasInputTinggi = false;
+            $hasDefaultIO = false;
+
+            foreach ($ioNodes as $io) {
+                $lbl = $io['clean'];
+                if ($lbl === 'baca / cetak data' || $lbl === 'input data' || empty($lbl)) {
+                    $hasDefaultIO = true;
+                }
+                if (str_contains($lbl, 'alas') || preg_match('/\b(alas|a)\b/i', $lbl)) {
+                    $hasInputAlas = true;
+                }
+                if (str_contains($lbl, 'tinggi') || preg_match('/\b(tinggi|t)\b/i', $lbl)) {
+                    $hasInputTinggi = true;
+                }
+            }
+
+            if ($hasInputAlas && $hasInputTinggi) {
+                $score += 15;
+                $feedback[] = '✅ Teks Input tepat: Terdeteksi masukan data alas dan tinggi segitiga.';
+            } elseif ($hasInputAlas || $hasInputTinggi) {
+                $score += 8;
+                $feedback[] = '⚠️ Teks Input belum lengkap: Pastikan memasukkan kedua nilai sekaligus (Alas DAN Tinggi).';
+            } else {
+                if ($hasDefaultIO) {
+                    $feedback[] = '⚠️ Teks simbol Input/Output masih berupa contoh bawaan. Ganti dengan teks nyata: "Input Alas dan Tinggi".';
+                } else {
+                    $feedback[] = '⚠️ Tambahkan simbol Input/Output (Jajar Genjang) dengan teks masukan: "Input Alas dan Tinggi".';
+                }
+            }
+
+            // B. Teks Output Luas (15 Poin)
+            $hasOutputLuas = false;
+            foreach ($ioNodes as $io) {
+                $lbl = $io['clean'];
+                if (str_contains($lbl, 'luas') && !str_contains($lbl, '=')) {
+                    $hasOutputLuas = true;
+                    break;
+                } elseif (str_contains($lbl, 'cetak') || str_contains($lbl, 'tampil') || str_contains($lbl, 'output') || str_contains($lbl, 'print') || str_contains($lbl, 'hasil')) {
+                    if (str_contains($lbl, 'luas') || count($ioNodes) > 1) {
+                        $hasOutputLuas = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($hasOutputLuas) {
+                $score += 15;
+                $feedback[] = '✅ Teks Output tepat: Terdeteksi pencetakan/keluaran hasil nilai luas segitiga.';
+            } else {
+                $feedback[] = '⚠️ Tambahkan simbol Input/Output untuk mencetak hasil, contoh: "Tampilkan Luas" atau "Cetak Hasil Luas".';
+            }
+
+            // C. Teks Proses Rumus Luas (25 Poin)
+            $hasValidFormula = false;
+            $hasPartialFormula = false;
+
+            foreach ($processNodes as $proc) {
+                $lbl = $proc['clean'];
+                $hasMult = (str_contains($lbl, 'alas') && str_contains($lbl, 'tinggi')) || (str_contains($lbl, 'a') && str_contains($lbl, 't') && str_contains($lbl, '*'));
+                $hasHalf = str_contains($lbl, '0.5') || str_contains($lbl, '1/2') || str_contains($lbl, '/ 2') || str_contains($lbl, '/2');
+
+                if (($hasMult && $hasHalf) || str_contains($lbl, '0.5 * alas * tinggi') || str_contains($lbl, '0.5*alas*tinggi') || str_contains($lbl, 'alas * tinggi / 2') || (str_contains($lbl, 'luas') && str_contains($lbl, '='))) {
+                    $hasValidFormula = true;
+                    break;
+                } elseif (str_contains($lbl, 'luas') || str_contains($lbl, 'alas') || str_contains($lbl, 'tinggi')) {
+                    $hasPartialFormula = true;
+                }
+            }
+
+            if ($hasValidFormula) {
+                $score += 25;
+                $feedback[] = '✅ Teks Proses tepat: Rumus perhitungan luas (Luas = 0.5 × Alas × Tinggi) sudah sesuai.';
+            } elseif ($hasPartialFormula) {
+                $score += 12;
+                $feedback[] = '⚠️ Teks Proses belum memuat rumus lengkap. Tuliskan rumus perhitungan: "Luas = 0.5 * alas * tinggi" atau "Luas = alas * tinggi / 2".';
+            } elseif (count($processNodes) > 0) {
+                $score += 5;
+                $feedback[] = '⚠️ Teks simbol Proses masih berupa placeholder bawaan. Tuliskan rumus nyata: "Luas = 0.5 * alas * tinggi".';
+            } else {
+                $feedback[] = '⚠️ Tambahkan simbol Proses (Persegi Panjang) dengan rumus: "Luas = 0.5 * alas * tinggi".';
+            }
+
+        } elseif ($caseKey === 'kelulusan') {
+            // STUDI KASUS 2: KELULUSAN
+            // A. Teks Input Nilai Ujian (18 Poin)
+            $hasInputNilai = false;
+            foreach ($ioNodes as $io) {
+                $lbl = $io['clean'];
+                if (str_contains($lbl, 'nilai') || str_contains($lbl, 'ujian') || str_contains($lbl, 'skor') || str_contains($lbl, 'score') || str_contains($lbl, 'angka')) {
+                    $hasInputNilai = true;
+                    break;
+                }
+            }
+
+            if ($hasInputNilai) {
+                $score += 18;
+                $feedback[] = '✅ Teks Input tepat: Terdeteksi pembacaan masukan nilai ujian siswa.';
+            } else {
+                $feedback[] = '⚠️ Teks Input belum sesuai: Tuliskan masukan untuk nilai ujian (contoh: "Input Nilai Ujian").';
+            }
+
+            // B. Teks Keputusan / Percabangan Syarat Nilai (22 Poin)
+            $hasValidDecision = false;
+            $hasPartialDecision = false;
+
+            foreach ($decisionNodes as $dec) {
+                $lbl = $dec['clean'];
+                if (str_contains($lbl, '75') || str_contains($lbl, '>= 75') || str_contains($lbl, '>=75') || (str_contains($lbl, 'nilai') && (str_contains($lbl, '>') || str_contains($lbl, '>=')))) {
+                    $hasValidDecision = true;
+                    break;
+                } elseif (str_contains($lbl, '?') || str_contains($lbl, 'lulus') || str_contains($lbl, 'kkm') || str_contains($lbl, 'syarat')) {
+                    $hasPartialDecision = true;
+                }
+            }
+
+            if ($hasValidDecision) {
+                $score += 22;
+                $feedback[] = '✅ Teks Keputusan tepat: Terdeteksi pengujian syarat kelulusan (Apakah Nilai >= 75?).';
+            } elseif ($hasPartialDecision) {
+                $score += 10;
+                $feedback[] = '⚠️ Teks Keputusan belum menyebutkan batas KKM nilai 75. Tuliskan syarat lengkap (contoh: "Apakah Nilai >= 75?").';
+            } elseif (count($decisionNodes) > 0) {
+                $score += 5;
+                $feedback[] = '⚠️ Teks Keputusan masih berupa placeholder "Kondisi?". Ubah dengan kondisi syarat: "Nilai >= 75?".';
+            } else {
+                $feedback[] = '⚠️ Tambahkan simbol Keputusan (Belah Ketupat) untuk memeriksa kondisi kelulusan: "Nilai >= 75?".';
+            }
+
+            // C. Teks Output Lulus / Remedial (15 Poin)
+            $hasOutputLulus = false;
+            $hasOutputRemedial = false;
+
+            foreach ($ioNodes as $io) {
+                $lbl = $io['clean'];
+                if (str_contains($lbl, 'lulus') && !str_contains($lbl, 'tidak lulus')) {
+                    $hasOutputLulus = true;
+                }
+                if (str_contains($lbl, 'remedial') || str_contains($lbl, 'tidak lulus') || str_contains($lbl, 'gagal')) {
+                    $hasOutputRemedial = true;
+                }
+            }
+
+            if ($hasOutputLulus && $hasOutputRemedial) {
+                $score += 15;
+                $feedback[] = '✅ Teks Output tepat: Terdeteksi pencetakan kedua status (LULUS dan REMEDIAL).';
+            } elseif ($hasOutputLulus || $hasOutputRemedial) {
+                $score += 10;
+                $feedback[] = '⚠️ Teks Output baru memuat salah satu cabang. Pastikan mencetak kedua kemungkinan: "LULUS" dan "REMEDIAL".';
+            } else {
+                $feedback[] = '⚠️ Tambahkan simbol Input/Output untuk mencetak hasil seleksi: "Cetak LULUS" dan "Cetak REMEDIAL".';
+            }
+
         } else {
-            $feedback[] = '⚠️ Tambahkan setidaknya satu langkah Proses atau Input/Output.';
+            // STUDI KASUS MANDIRI / BEBAS
+            $meaningfulIO = 0;
+            foreach ($ioNodes as $io) {
+                $lbl = $io['clean'];
+                if (!empty($lbl) && $lbl !== 'baca / cetak data' && $lbl !== 'input data') {
+                    $meaningfulIO++;
+                }
+            }
+
+            if ($meaningfulIO > 0) {
+                $score += 25;
+                $feedback[] = "✅ Teks Input/Output bermakna: Memuat instruksi data masukan/keluaran yang jelas ($meaningfulIO simbol).";
+            } elseif (count($ioNodes) > 0) {
+                $score += 10;
+                $feedback[] = '⚠️ Teks pada simbol Input/Output masih berupa placeholder. Tuliskan nama variabel atau data yang diproses.';
+            } else {
+                $feedback[] = '💡 Tips: Tambahkan simbol Input/Output untuk membaca masukan atau mencetak hasil.';
+            }
+
+            $meaningfulProcess = 0;
+            foreach ($processNodes as $proc) {
+                $lbl = $proc['clean'];
+                if (!empty($lbl) && $lbl !== 'langkah perhitungan...' && $lbl !== 'hitung data') {
+                    $meaningfulProcess++;
+                }
+            }
+
+            if ($meaningfulProcess > 0) {
+                $score += 20;
+                $feedback[] = "✅ Teks Proses bermakna: Memuat langkah komputasi data yang spesifik ($meaningfulProcess langkah).";
+            } elseif (count($processNodes) > 0) {
+                $score += 10;
+                $feedback[] = '⚠️ Teks pada simbol Proses masih berupa teks contoh. Tuliskan rumus atau instruksi nyata.';
+            }
+
+            if (count($decisionNodes) > 0) {
+                $hasValidDecision = false;
+                foreach ($decisionNodes as $dec) {
+                    $lbl = $dec['clean'];
+                    if (!empty($lbl) && $lbl !== 'kondisi ?' && $lbl !== 'kondisi?') {
+                        $hasValidDecision = true;
+                        break;
+                    }
+                }
+                if ($hasValidDecision) {
+                    $score += 10;
+                    $feedback[] = '✅ Teks Keputusan bermakna: Memuat kondisi percabangan yang spesifik.';
+                } else {
+                    $feedback[] = '⚠️ Teks pada simbol Keputusan masih berupa contoh "Kondisi?". Ubah dengan pertanyaan syarat.';
+                }
+            }
         }
 
-        // 4. Garis penghubung / alir
-        if (count($edges) > 0) {
-            $score += 20;
-            $feedback[] = '✅ Garis alir (konektor panah) sudah menghubungkan simbol.';
-        } else {
-            $feedback[] = '⚠️ Hubungkan simbol menggunakan garis panah penghubung.';
-        }
-
-        // 5. Validitas koneksi
+        // ====================================================================
+        // 3. EVALUASI GARIS ALIR & KONEKTOR PANAH (25 Poin)
+        // ====================================================================
         $nodeIds = array_column($nodes, 'id');
-        $validEdges = count(array_filter(
-            $edges,
-            fn($edge) => in_array($edge['source'] ?? null, $nodeIds, true)
-                      && in_array($edge['target'] ?? null, $nodeIds, true)
-        ));
+        $validEdges = 0;
+        foreach ($edges as $edge) {
+            $src = $edge['source'] ?? null;
+            $tgt = $edge['target'] ?? null;
+            if ($src && $tgt && in_array($src, $nodeIds, true) && in_array($tgt, $nodeIds, true) && $src !== $tgt) {
+                $validEdges++;
+            }
+        }
 
         if (count($edges) > 0 && $validEdges === count($edges)) {
-            $score += 20;
-            $feedback[] = '✅ Semua konektor memiliki hubungan yang valid antar simbol.';
+            $score += 25;
+            $feedback[] = '✅ Alur konektor panah terhubung dengan runtut dan valid dari awal hingga akhir.';
         } elseif (count($edges) > 0) {
-            $feedback[] = '⚠️ Ada beberapa garis penghubung yang belum terhubung ke simbol yang sah.';
+            $score += 12;
+            $feedback[] = '⚠️ Terdapat beberapa garis penghubung yang belum terpasang ke simbol yang sah.';
         } else {
-            $feedback[] = '⚠️ Pastikan seluruh simbol terhubung dari awal hingga akhir.';
+            $feedback[] = '⚠️ Hubungkan simbol-simbol di atas menggunakan garis panah penghubung.';
         }
 
         return [
-            'score' => min(100, $score),
+            'score'    => min(100, max(0, $score)),
             'feedback' => $feedback,
         ];
     }

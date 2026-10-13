@@ -32,7 +32,7 @@
                 </div>
                 <div>
                     <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>Portal Guru: Rekapitulasi Nilai Per Kelas</span>
+                        <span>Rekapitulasi Nilai Flowchart</span>
                         <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Pendidik</span>
                     </h1>
                     <p class="text-xs text-slate-500">
