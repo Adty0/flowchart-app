@@ -55,7 +55,7 @@ const TerminatorNode = ({ data, id }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-amber-500 !border-2 !border-white !shadow-sm"
       />
       <div className="bg-amber-50 border-2 border-amber-400 text-amber-950 rounded-full px-5 py-2.5 min-w-[150px] text-center shadow-sm hover:shadow-md transition-all flex flex-col items-center">
         <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-amber-700 tracking-wider uppercase">
@@ -73,12 +73,12 @@ const TerminatorNode = ({ data, id }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3 !h-3 !bg-amber-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-amber-500 !border-2 !border-white !shadow-sm"
       />
       <button
         type="button"
         onClick={() => data.onDeleteNode?.(id)}
-        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md hidden group-hover:flex transition-transform hover:scale-110"
+        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md flex sm:hidden group-hover:flex transition-transform hover:scale-110 z-10"
         title="Hapus Simbol"
       >
         ×
@@ -94,7 +94,7 @@ const IONode = ({ data, id }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3 !h-3 !bg-sky-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-sky-500 !border-2 !border-white !shadow-sm"
       />
       <div className="bg-sky-50 border-2 border-sky-400 text-sky-950 px-6 py-3 min-w-[170px] text-center shadow-sm hover:shadow-md transition-all transform -skew-x-12 rounded-lg">
         <div className="transform skew-x-12 flex flex-col items-center">
@@ -114,12 +114,12 @@ const IONode = ({ data, id }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3 !h-3 !bg-sky-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-sky-500 !border-2 !border-white !shadow-sm"
       />
       <button
         type="button"
         onClick={() => data.onDeleteNode?.(id)}
-        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md hidden group-hover:flex transition-transform hover:scale-110"
+        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md flex sm:hidden group-hover:flex transition-transform hover:scale-110 z-10"
         title="Hapus Simbol"
       >
         ×
@@ -135,7 +135,7 @@ const ProcessNode = ({ data, id }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm"
       />
       <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-950 rounded-xl px-5 py-3 min-w-[170px] text-center shadow-sm hover:shadow-md transition-all flex flex-col items-center">
         <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 tracking-wider uppercase">
@@ -153,12 +153,12 @@ const ProcessNode = ({ data, id }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3 !h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm"
       />
       <button
         type="button"
         onClick={() => data.onDeleteNode?.(id)}
-        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md hidden group-hover:flex transition-transform hover:scale-110"
+        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md flex sm:hidden group-hover:flex transition-transform hover:scale-110 z-10"
         title="Hapus Simbol"
       >
         ×
@@ -174,7 +174,7 @@ const DecisionNode = ({ data, id }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3 !h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !top-1"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !top-1"
       />
       <div className="w-28 h-28 bg-orange-50 border-2 border-orange-400 text-orange-950 transform rotate-45 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center" />
 
@@ -196,25 +196,25 @@ const DecisionNode = ({ data, id }) => {
         type="source"
         position={Position.Left}
         id="left"
-        className="!w-3 !h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !left-1"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !left-1"
       />
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        className="!w-3 !h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !right-1"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !right-1"
       />
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="!w-3 !h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !bottom-1"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !bottom-1"
       />
 
       <button
         type="button"
         onClick={() => data.onDeleteNode?.(id)}
-        className="absolute top-1 right-1 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md hidden group-hover:flex transition-transform hover:scale-110 z-10"
+        className="absolute top-1 right-1 w-5 h-5 bg-rose-500 hover:bg-rose-600 text-white rounded-full text-xs font-bold items-center justify-center shadow-md flex sm:hidden group-hover:flex transition-transform hover:scale-110 z-10"
         title="Hapus Simbol"
       >
         ×
@@ -435,180 +435,188 @@ export default function FlowchartEditor() {
       )}
 
       {/* BAR ATAS: IDENTITAS SISWA & PILIHAN STUDI KASUS */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
         {/* Identitas Siswa & Kelas */}
-        <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-lg flex-shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0">
             👤
           </div>
-          <div className="flex-1 min-w-[170px]">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Nama Siswa</label>
-            <input
-              type="text"
-              value={studentName}
-              onChange={handleNameChange}
-              placeholder="Ketik Nama Anda..."
-              className="w-full px-3 py-1.5 bg-slate-50/70 border border-slate-200 rounded-lg text-sm text-slate-800 font-bold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-            />
-          </div>
-          <div className="w-32">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Kelas / Rombel</label>
-            <input
-              type="text"
-              value={studentClass}
-              onChange={handleClassChange}
-              placeholder="10 RPL 1"
-              className="w-full px-3 py-1.5 bg-indigo-50/60 border border-indigo-200 rounded-lg text-sm text-indigo-900 font-extrabold focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
+            <div>
+              <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Nama Siswa</label>
+              <input
+                type="text"
+                value={studentName}
+                onChange={handleNameChange}
+                placeholder="Ketik Nama Anda..."
+                className="w-full px-2.5 sm:px-3 py-1.5 bg-slate-50/70 border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 font-bold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Kelas / Rombel</label>
+              <input
+                type="text"
+                value={studentClass}
+                onChange={handleClassChange}
+                placeholder="10 RPL 1"
+                className="w-full px-2.5 sm:px-3 py-1.5 bg-indigo-50/60 border border-indigo-200 rounded-lg text-xs sm:text-sm text-indigo-900 font-extrabold focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+              />
+            </div>
           </div>
         </div>
 
         {/* Tab Pilihan Studi Kasus */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+        <div className="pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
             <span>📚</span>
             <span>Pilih Kasus Soal:</span>
           </span>
-          <button
-            type="button"
-            onClick={() => handleSelectCase('luas_segitiga')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-              selectedCaseKey === 'luas_segitiga'
-                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            📐 Hitung Luas
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSelectCase('kelulusan')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-              selectedCaseKey === 'kelulusan'
-                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            🎓 Cek Kelulusan
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSelectCase('bebas')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-              selectedCaseKey === 'bebas'
-                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            ✏️ Mandiri (Bebas)
-          </button>
+          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
+            <button
+              type="button"
+              onClick={() => handleSelectCase('luas_segitiga')}
+              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                selectedCaseKey === 'luas_segitiga'
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <span className="sm:hidden">📐 Luas</span>
+              <span className="hidden sm:inline">📐 Hitung Luas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectCase('kelulusan')}
+              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                selectedCaseKey === 'kelulusan'
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <span className="sm:hidden">🎓 Lulus</span>
+              <span className="hidden sm:inline">🎓 Cek Kelulusan</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectCase('bebas')}
+              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                selectedCaseKey === 'bebas'
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <span className="sm:hidden">✏️ Mandiri</span>
+              <span className="hidden sm:inline">✏️ Mandiri (Bebas)</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* KARTU PETUNJUK SOAL STUDI KASUS (PANDUAN SISWA) */}
-      <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-sky-50/60 p-4 sm:p-5 rounded-2xl border border-blue-200 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-blue-200/60 mb-3">
+      <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-sky-50/60 p-3.5 sm:p-5 rounded-2xl border border-blue-200 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 pb-2.5 sm:pb-3 border-b border-blue-200/60 mb-2 sm:mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{currentCase.icon}</span>
+            <span className="text-lg sm:text-xl">{currentCase.icon}</span>
             <div>
-              <h3 className="text-sm font-extrabold text-blue-950 flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-extrabold text-blue-950 flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <span>{currentCase.title}</span>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                <span className="text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
                   {currentCase.badge}
                 </span>
               </h3>
-              <p className="text-xs text-blue-700 font-semibold mt-0.5">{currentCase.formula}</p>
+              <p className="text-[11px] sm:text-xs text-blue-700 font-semibold mt-0.5">{currentCase.formula}</p>
             </div>
           </div>
-          <span className="text-[11px] font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 self-start sm:self-auto">
-            Kanvas Kosong: Rangkai flowchart sendiri
+          <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 bg-white px-2.5 py-0.5 sm:py-1 rounded-full border border-slate-200 self-start sm:self-auto">
+            Kanvas Kosong
           </span>
         </div>
 
-        <p className="text-xs text-slate-700 leading-relaxed">
+        <p className="text-[11px] sm:text-xs text-slate-700 leading-relaxed">
           <b>Instruksi Soal:</b> {currentCase.description}
         </p>
       </div>
 
       {/* PALET SIMBOL DENGAN WARNA SESUAI ASLINYA & TOMBOL AKSI */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-3">
         {/* Palet Simbol */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
+        <div>
+          <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
             <span>🧩</span> Tambah Simbol:
           </span>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 sm:gap-2">
+            {/* 1. Terminator */}
+            <button
+              type="button"
+              onClick={() => addSymbol('terminator', 'Mulai')}
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
+              title="Terminator: Penanda Mulai atau Selesai"
+            >
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-500 inline-block flex-shrink-0" />
+              <span className="truncate">Terminator</span>
+            </button>
 
-          {/* 1. Terminator */}
-          <button
-            type="button"
-            onClick={() => addSymbol('terminator', 'Mulai')}
-            className="flex items-center gap-2 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
-            title="Terminator: Penanda Mulai atau Selesai"
-          >
-            <span className="w-3 h-3 rounded-full bg-amber-500 inline-block" />
-            <span>Terminator (Mulai/Selesai)</span>
-          </button>
+            {/* 2. I/O */}
+            <button
+              type="button"
+              onClick={() => addSymbol('io', 'Input Data')}
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-sky-100 hover:bg-sky-200 text-sky-950 border border-sky-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
+              title="I/O: Masukan atau Luaran data"
+            >
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-sky-500 -skew-x-12 inline-block rounded-xs flex-shrink-0" />
+              <span className="truncate">Input / Output</span>
+            </button>
 
-          {/* 2. I/O */}
-          <button
-            type="button"
-            onClick={() => addSymbol('io', 'Input Data')}
-            className="flex items-center gap-2 px-3 py-2 bg-sky-100 hover:bg-sky-200 text-sky-950 border border-sky-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
-            title="I/O: Masukan atau Luaran data"
-          >
-            <span className="w-3 h-3 bg-sky-500 -skew-x-12 inline-block rounded-xs" />
-            <span>I/O (Input/Output)</span>
-          </button>
+            {/* 3. Proses */}
+            <button
+              type="button"
+              onClick={() => addSymbol('process', 'Hitung Data')}
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
+              title="Proses: Perhitungan rumus atau operasi"
+            >
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 inline-block rounded-xs flex-shrink-0" />
+              <span className="truncate">Proses (Hitung)</span>
+            </button>
 
-          {/* 3. Proses */}
-          <button
-            type="button"
-            onClick={() => addSymbol('process', 'Hitung Data')}
-            className="flex items-center gap-2 px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border border-emerald-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
-            title="Proses: Perhitungan rumus atau operasi"
-          >
-            <span className="w-3 h-3 bg-emerald-500 inline-block rounded-xs" />
-            <span>Proses (Perhitungan)</span>
-          </button>
-
-          {/* 4. Keputusan */}
-          <button
-            type="button"
-            onClick={() => addSymbol('decision', 'Kondisi ?')}
-            className="flex items-center gap-2 px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
-            title="Keputusan: Percabangan kondisi Ya/Tidak"
-          >
-            <span className="w-3 h-3 bg-orange-500 rotate-45 inline-block rounded-xs" />
-            <span>Keputusan (Percabangan)</span>
-          </button>
+            {/* 4. Keputusan */}
+            <button
+              type="button"
+              onClick={() => addSymbol('decision', 'Kondisi ?')}
+              className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
+              title="Keputusan: Percabangan kondisi Ya/Tidak"
+            >
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-orange-500 rotate-45 inline-block rounded-xs flex-shrink-0" />
+              <span className="truncate">Keputusan</span>
+            </button>
+          </div>
         </div>
 
         {/* Tombol Aksi */}
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 sm:border-t-0 sm:pt-0 sm:ml-auto">
           <button
             type="button"
             onClick={handleClearCanvas}
-            className="px-3.5 py-2 bg-slate-50 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+            className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer text-center"
             title="Kosongkan Kanvas"
           >
-            🗑️ Kosongkan Kanvas
+            🗑️ Kosongkan
           </button>
 
           <button
             type="button"
             onClick={handleValidateAndSave}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="flex-2 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <>
                 <span className="animate-spin">⏳</span>
-                <span>Memeriksa Alur...</span>
+                <span>Memeriksa...</span>
               </>
             ) : (
               <>
                 <span>🚀</span>
-                <span>Periksa & Simpan ke DB</span>
+                <span>Periksa & Simpan</span>
               </>
             )}
           </button>
@@ -616,7 +624,7 @@ export default function FlowchartEditor() {
       </div>
 
       {/* KANVAS EDITOR DENGAN TAMPILAN BERSIH & MODERN */}
-      <div className="relative w-full h-[580px] bg-[#F8FAFC] border-2 border-slate-200 rounded-3xl overflow-hidden shadow-xs">
+      <div className="relative w-full h-[460px] sm:h-[580px] bg-[#F8FAFC] border-2 border-slate-200 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs">
         <ReactFlow
           nodes={nodesWithHandlers}
           edges={edges}
@@ -641,37 +649,37 @@ export default function FlowchartEditor() {
               if (n.type === 'decision') return '#ea580c';
               return '#64748b';
             }}
-            className="!rounded-2xl !border !border-slate-300 !bg-white/90"
+            className="!hidden sm:!block !rounded-2xl !border !border-slate-300 !bg-white/90"
           />
-          <Controls className="!bg-white !rounded-2xl !border !border-slate-200 !shadow-sm" />
+          <Controls className="!bg-white !rounded-xl sm:!rounded-2xl !border !border-slate-200 !shadow-sm !left-2 !bottom-2 sm:!left-auto sm:!bottom-auto" />
           <Background color="#cbd5e1" gap={20} size={1.5} />
         </ReactFlow>
 
         {/* Petunjuk Kanvas Kosong (Muncul jika kanvas belum ada simbol) */}
         {nodes.length === 0 && (
-          <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-white/90 border border-slate-200 flex items-center justify-center text-2xl shadow-xs mb-3">
+          <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/90 border border-slate-200 flex items-center justify-center text-xl sm:text-2xl shadow-xs mb-2 sm:mb-3">
               ✏️
             </div>
-            <h4 className="text-sm font-extrabold text-slate-700">Kanvas Masih Kosong</h4>
-            <p className="text-xs text-slate-500 max-w-sm mt-1">
-              Klik tombol warna-warni di atas untuk menambahkan simbol <b>Terminator</b>, <b>I/O</b>, <b>Proses</b>, atau <b>Keputusan</b>, lalu tarik garis panah untuk menyambungkannya.
+            <h4 className="text-xs sm:text-sm font-extrabold text-slate-700">Kanvas Masih Kosong</h4>
+            <p className="text-[11px] sm:text-xs text-slate-500 max-w-sm mt-0.5 sm:mt-1 leading-relaxed">
+              Klik tombol simbol di atas untuk menambah kotak alur, lalu tarik lingkaran kecil untuk menyambungkan panah.
             </p>
           </div>
         )}
 
-        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs text-[11px] text-slate-600 pointer-events-none flex items-center gap-1.5">
-          <span>💡 <b>Tips:</b> Tarik lingkaran kecil pada simbol untuk menghubungkan panah alur.</span>
+        <div className="absolute top-2 left-2 right-2 sm:right-auto bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs text-[10px] sm:text-[11px] text-slate-600 pointer-events-none flex items-center gap-1">
+          <span>💡 <b>Tips HP:</b> Geser layar untuk menggeser kanvas, tarik bulatan untuk menghubungkan alur.</span>
         </div>
       </div>
 
       {/* PANEL HASIL PENILAIAN & EVALUASI OTOMATIS */}
       {assessment && (
-        <div className="bg-white border-2 border-blue-200 rounded-3xl p-6 shadow-sm animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
+        <div className="bg-white border-2 border-blue-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-slate-100 gap-3">
             <div className="flex items-center gap-3">
               <div
-                className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shadow-md ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl font-black shadow-md flex-shrink-0 ${
                   assessment.score >= 80
                     ? 'bg-emerald-500 text-white'
                     : assessment.score >= 60
@@ -682,7 +690,7 @@ export default function FlowchartEditor() {
                 {assessment.score}
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug">
                   {assessment.score === 100
                     ? '🌟 Luar Biasa! Diagram Sangat Sempurna'
                     : assessment.score >= 80
@@ -691,37 +699,37 @@ export default function FlowchartEditor() {
                     ? '✏️ Cukup Baik, Ada Beberapa Catatan Perbaikan'
                     : '💪 Masih Perlu Dilengkapi, Perhatikan Catatan di Bawah'}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Tersimpan di Database (Submission #{assessment.id}) • {studentName} ({studentClass})
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+                  Submission #{assessment.id} • {studentName} ({studentClass})
                 </p>
               </div>
             </div>
 
-            <div className="text-right">
-              <span className="inline-block text-xs font-black px-3.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full">
+            <div className="self-start sm:self-auto sm:text-right">
+              <span className="inline-block text-[11px] sm:text-xs font-black px-3 py-1 sm:px-3.5 sm:py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full">
                 Skor Akhir: {assessment.score} / 100
               </span>
             </div>
           </div>
 
-          <div className="mt-4">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+          <div className="mt-3.5 sm:mt-4">
+            <h4 className="text-[11px] sm:text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
               Umpan Balik Evaluasi Logika Flowchart:
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-2.5">
               {assessment.feedback.map((item, idx) => {
                 const isPositive = item.includes('✅') || item.includes('tersedia') || item.includes('valid') || item.includes('disertakan');
                 return (
                   <div
                     key={idx}
-                    className={`p-3 rounded-xl border text-xs font-semibold flex items-start gap-2.5 ${
+                    className={`p-2.5 sm:p-3 rounded-xl border text-[11px] sm:text-xs font-semibold flex items-start gap-2 ${
                       isPositive
                         ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
                         : 'bg-amber-50/70 border-amber-200 text-amber-900'
                     }`}
                   >
-                    <span className="text-sm">{isPositive ? '✅' : '⚠️'}</span>
-                    <span className="mt-0.5">{item.replace(/^[✅⚠️]\s*/, '')}</span>
+                    <span className="text-sm flex-shrink-0">{isPositive ? '✅' : '⚠️'}</span>
+                    <span className="mt-0.5 leading-snug">{item.replace(/^[✅⚠️]\s*/, '')}</span>
                   </div>
                 );
               })}
@@ -731,12 +739,12 @@ export default function FlowchartEditor() {
       )}
 
       {/* PANDUAN SIMBOL FLOWCHART DENGAN DESAIN BERSIH */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
-        <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2 mb-4">
+      <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
+        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2 mb-3 sm:mb-4">
           <span>📖</span>
           <span>Panduan Simbol Flowchart Standar (ANSI/ISO)</span>
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
           <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs">
             <div className="font-extrabold text-amber-900 flex items-center gap-1.5 mb-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />

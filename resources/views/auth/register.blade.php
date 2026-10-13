@@ -17,18 +17,18 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 min-h-screen flex flex-col justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8 text-slate-800">
 
-    <div class="sm:mx-auto sm:w-full sm:max-w-md px-4">
+    <div class="w-full sm:max-w-md mx-auto">
         <div class="text-center">
-            <div class="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 items-center justify-center text-white text-2xl font-extrabold shadow-lg shadow-blue-500/25 mb-3">
+            <div class="inline-flex w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 items-center justify-center text-white text-xl sm:text-2xl font-extrabold shadow-lg shadow-blue-500/25 mb-2.5 sm:mb-3">
                 🎓
             </div>
-            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Pendaftaran Siswa Baru</h2>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Pendaftaran Siswa Baru</h2>
             <p class="text-xs text-slate-500 mt-1">Buat akun untuk memulai praktikum dan membuat flowchart</p>
         </div>
 
-        <div class="mt-8 bg-white py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/60 rounded-3xl border border-slate-200/80">
+        <div class="mt-6 sm:mt-8 bg-white py-6 px-5 sm:py-8 sm:px-10 shadow-xl shadow-slate-200/60 rounded-2xl sm:rounded-3xl border border-slate-200/80">
 
             @if ($errors->any())
                 <div class="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">

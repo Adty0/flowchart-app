@@ -23,38 +23,37 @@
 
     <!-- Top Navigation Bar -->
     <header class="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-blue-500/20">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-base sm:text-lg shadow-md shadow-blue-500/20 flex-shrink-0">
                     ⚡
                 </div>
-                <div>
-                    <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>Laboratorium Algoritma & Flowchart</span>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+                        <span class="truncate">Laboratorium Flowchart</span>
                         @if(Auth::user() && Auth::user()->isGuru())
-                            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Mode Guru</span>
+                            <span class="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 flex-shrink-0">Guru</span>
                         @else
-                            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Modul Siswa</span>
+                            <span class="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">Siswa</span>
                         @endif
                     </h1>
-                    <p class="text-xs text-slate-500">
+                    <p class="text-[11px] sm:text-xs text-slate-500 truncate">
                         {{ Auth::user() ? Auth::user()->name : 'Siswa Praktikan' }} 
                         @if(Auth::user() && Auth::user()->class_name)
-                            • <span class="font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Kelas: {{ Auth::user()->class_name }}</span>
+                            • <span class="font-bold text-indigo-600 bg-indigo-50 px-1 py-0.2 rounded">{{ Auth::user()->class_name }}</span>
                         @endif
-                        • DB: <span class="font-mono text-blue-600 font-semibold">flowchartapp (MySQL)</span>
                     </p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
                 @if(Auth::user() && Auth::user()->isGuru())
                     <a 
                         href="{{ route('guru.dashboard') }}" 
-                        class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                        class="px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
                     >
                         <span>👨‍🏫</span>
-                        <span>Dashboard Rekap Guru</span>
+                        <span class="hidden sm:inline">Dashboard Rekap</span>
                     </a>
                 @endif
 
@@ -64,10 +63,11 @@
                         @csrf
                         <button 
                             type="submit" 
-                            class="px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            class="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            title="Keluar Akun"
                         >
                             <span>🚪</span>
-                            <span>Keluar</span>
+                            <span class="hidden sm:inline">Keluar</span>
                         </button>
                     </form>
                 @endauth
@@ -75,20 +75,20 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <main class="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6">
 
         <!-- Kartu Sambutan Siswa yang Nyaman di Mata -->
-        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
             <div class="max-w-2xl">
-                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2.5">
+                <div class="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2">
                     <span>✨</span>
                     <span>Ruang Praktik Mandiri Siswa</span>
                 </div>
-                <h2 class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 mb-1.5">
+                <h2 class="text-lg sm:text-2xl font-black tracking-tight text-slate-900 mb-1">
                     Susun Flowchart, Uji Logika Algoritma, dan Raih Skor Maksimal!
                 </h2>
                 <p class="text-slate-500 text-xs sm:text-sm leading-relaxed">
-                    Pilih studi kasus yang ingin dikerjakan di bawah. Kanvas disediakan bersih agar Anda dapat melatih kemampuan merangkai simbol dan panah alir secara mandiri.
+                    Pilih studi kasus yang ingin dikerjakan di bawah. Rangkai simbol dan panah alir secara mandiri pada kanvas.
                 </p>
             </div>
             <div class="flex items-center gap-3 self-start md:self-auto">
@@ -100,7 +100,7 @@
         </div>
 
         @if(session('success'))
-            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-semibold flex items-center justify-between shadow-sm">
+            <div class="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-semibold flex items-center justify-between shadow-xs">
                 <span class="flex items-center gap-2">
                     <span>🎉</span>
                     <span>{{ session('success') }}</span>
@@ -109,18 +109,18 @@
         @endif
 
         <!-- Card Flowchart Editor React -->
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-6 transition-all">
+        <section class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 p-2 sm:p-6 transition-all">
             <!-- Mount point untuk React FlowchartEditor -->
             <div id="flowchart-app">
-                <div class="h-[600px] flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 gap-3">
-                    <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-sm font-semibold text-slate-600">Menyiapkan kanvas flowchart interaktif...</p>
+                <div class="h-[460px] sm:h-[600px] flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-200 gap-3">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-xs sm:text-sm font-semibold text-slate-600">Menyiapkan kanvas flowchart interaktif...</p>
                 </div>
             </div>
         </section>
 
         <!-- Daftar Riwayat Pengerjaan Siswa -->
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-4 sm:p-6">
+        <section class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 p-3.5 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2 mb-4">
                 <div>
                     <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
