@@ -58,15 +58,18 @@
                 @endif
 
                 @auth
-                    <!-- Tombol Logout -->
+                    <!-- Tombol Logout Power Merah -->
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <button 
                             type="submit" 
-                            class="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            class="px-2.5 sm:px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95"
                             title="Keluar Akun"
                         >
-                            <span>🚪</span>
+                            <svg class="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                                <line x1="12" y1="2" x2="12" y2="12"></line>
+                            </svg>
                             <span class="hidden sm:inline">Keluar</span>
                         </button>
                     </form>
