@@ -31,8 +31,8 @@ const STUDI_KASUS = {
     title: 'Studi Kasus 2: Cek Kelulusan Nilai Ujian',
     icon: '🎓',
     badge: 'Alur Percabangan',
-    formula: 'Kondisi: Jika Nilai ≥ 75 maka LULUS, jika tidak maka REMEDIAL',
-    description: 'Buatlah flowchart yang menerima masukan nilai ujian siswa, menguji apakah nilai mencapai batas kriteria (>= 75), lalu mencetak status kelulusannya.',
+    formula: 'Syarat: Nilai ≥ 75 → LULUS | Nilai < 75 → REMEDIAL',
+    description: 'Rancang flowchart dengan: 1) Mulai, 2) Input Nilai Ujian, 3) Keputusan Nilai >= 75? (cabang Ya & Tidak), 4) Output Cetak LULUS & REMEDIAL, 5) Selesai.',
   },
   bebas: {
     id: 'bebas',
@@ -175,6 +175,7 @@ const DecisionNode = ({ data, id }) => {
         type="target"
         position={Position.Top}
         className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !top-1"
+        title="Titik Masuk Alur"
       />
       <div className="w-28 h-28 bg-orange-50 border-2 border-orange-400 text-orange-950 transform rotate-45 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center" />
 
@@ -187,28 +188,45 @@ const DecisionNode = ({ data, id }) => {
           type="text"
           value={data.label || ''}
           onChange={(e) => data.onChangeLabel?.(id, e.target.value)}
-          placeholder="Kondisi?"
+          placeholder="Nilai >= 75 ?"
           className="w-24 text-center bg-transparent border-b border-transparent hover:border-orange-300 focus:border-orange-500 font-bold text-xs text-orange-950 outline-none py-0.5 mt-0.5"
         />
       </div>
 
+      {/* Titik & Label Cabang Kiri: YA (Hijau) */}
+      <div className="absolute -left-1.5 top-1/2 -translate-y-6 pointer-events-none z-10">
+        <span className="text-[9px] font-black bg-emerald-600 text-white px-1.5 py-0.5 rounded-sm shadow-xs tracking-tight">
+          Ya
+        </span>
+      </div>
       <Handle
         type="source"
         position={Position.Left}
         id="left"
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !left-1"
+        className="!w-4 !h-4 sm:!w-3.5 sm:!h-3.5 !bg-emerald-500 !border-2 !border-white !shadow-md !left-0.5 hover:scale-125 transition-transform"
+        title="Cabang YA (Kiri)"
       />
+
+      {/* Titik & Label Cabang Kanan: TIDAK (Merah) */}
+      <div className="absolute -right-3 top-1/2 -translate-y-6 pointer-events-none z-10">
+        <span className="text-[9px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded-sm shadow-xs tracking-tight">
+          Tidak
+        </span>
+      </div>
       <Handle
         type="source"
         position={Position.Right}
         id="right"
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !right-1"
+        className="!w-4 !h-4 sm:!w-3.5 sm:!h-3.5 !bg-rose-500 !border-2 !border-white !shadow-md !right-0.5 hover:scale-125 transition-transform"
+        title="Cabang TIDAK (Kanan)"
       />
+
       <Handle
         type="source"
         position={Position.Bottom}
         id="bottom"
         className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !bottom-1"
+        title="Cabang Bawah"
       />
 
       <button
@@ -301,18 +319,120 @@ export default function FlowchartEditor() {
 
   const onConnect = useCallback(
     (params) => {
-      setEdges((prev) =>
-        addEdge(
-          {
-            ...params,
-            animated: true,
-            style: { stroke: '#2563eb', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#2563eb' },
-          },
-          prev
-        )
+      let edgeData = {
+        ...params,
+        animated: true,
+        style: { stroke: '#2563eb', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#2563eb' },
+      };
+
+      // Otomatis atur label dan warna jika ditarik dari handle Ya (left) atau Tidak (right)
+      if (params.sourceHandle === 'left') {
+        edgeData = {
+          ...edgeData,
+          label: 'Ya',
+          labelStyle: { fill: '#047857', fontWeight: 800, fontSize: 11 },
+          labelBgPadding: [6, 4],
+          labelBgBorderRadius: 4,
+          labelBgStyle: { fill: '#ecfdf5', stroke: '#10b981', strokeWidth: 1.5 },
+          style: { stroke: '#059669', strokeWidth: 2.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
+        };
+      } else if (params.sourceHandle === 'right') {
+        edgeData = {
+          ...edgeData,
+          label: 'Tidak',
+          labelStyle: { fill: '#b91c1c', fontWeight: 800, fontSize: 11 },
+          labelBgPadding: [6, 4],
+          labelBgBorderRadius: 4,
+          labelBgStyle: { fill: '#fef2f2', stroke: '#ef4444', strokeWidth: 1.5 },
+          style: { stroke: '#dc2626', strokeWidth: 2.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#dc2626' },
+        };
+      }
+
+      setEdges((prev) => addEdge(edgeData, prev));
+      showToast(
+        params.sourceHandle === 'left'
+          ? 'Cabang [Ya] berhasil dihubungkan! ✅'
+          : params.sourceHandle === 'right'
+          ? 'Cabang [Tidak] berhasil dihubungkan! ❌'
+          : 'Garis alir panah berhasil disambungkan! 🔗',
+        'success'
       );
-      showToast('Garis alir panah berhasil disambungkan! 🔗', 'success');
+    },
+    [setEdges]
+  );
+
+  // Klik garis panah untuk menghapus atau mengganti label (sangat mempermudah pengguna HP)
+  const onEdgeClick = useCallback(
+    (event, edge) => {
+      const currentLbl = edge.label ? `"${edge.label}"` : '(tanpa label)';
+      const choice = window.prompt(
+        `Pengaturan Garis Panah [${currentLbl}]:\n\n` +
+          `• Ketik "hapus" untuk MENGHAPUS garis ini\n` +
+          `• Ketik "ya" untuk memberi label [Ya] (Hijau)\n` +
+          `• Ketik "tidak" untuk memberi label [Tidak] (Merah)\n` +
+          `• Atau ketik teks label lain yang diinginkan:`,
+        edge.label || ''
+      );
+
+      if (choice === null) return;
+      const val = choice.trim();
+
+      if (val.toLowerCase() === 'hapus') {
+        setEdges((prev) => prev.filter((e) => e.id !== edge.id));
+        showToast('Garis panah berhasil dihapus.', 'info');
+      } else if (val.toLowerCase() === 'ya') {
+        setEdges((prev) =>
+          prev.map((e) =>
+            e.id === edge.id
+              ? {
+                  ...e,
+                  label: 'Ya',
+                  labelStyle: { fill: '#047857', fontWeight: 800, fontSize: 11 },
+                  labelBgPadding: [6, 4],
+                  labelBgBorderRadius: 4,
+                  labelBgStyle: { fill: '#ecfdf5', stroke: '#10b981', strokeWidth: 1.5 },
+                  style: { stroke: '#059669', strokeWidth: 2.5 },
+                  markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
+                }
+              : e
+          )
+        );
+        showToast('Label panah diubah menjadi [Ya] ✅', 'success');
+      } else if (val.toLowerCase() === 'tidak') {
+        setEdges((prev) =>
+          prev.map((e) =>
+            e.id === edge.id
+              ? {
+                  ...e,
+                  label: 'Tidak',
+                  labelStyle: { fill: '#b91c1c', fontWeight: 800, fontSize: 11 },
+                  labelBgPadding: [6, 4],
+                  labelBgBorderRadius: 4,
+                  labelBgStyle: { fill: '#fef2f2', stroke: '#ef4444', strokeWidth: 1.5 },
+                  style: { stroke: '#dc2626', strokeWidth: 2.5 },
+                  markerEnd: { type: MarkerType.ArrowClosed, color: '#dc2626' },
+                }
+              : e
+          )
+        );
+        showToast('Label panah diubah menjadi [Tidak] ❌', 'success');
+      } else if (val !== '') {
+        setEdges((prev) =>
+          prev.map((e) =>
+            e.id === edge.id
+              ? {
+                  ...e,
+                  label: val,
+                  labelStyle: { fill: '#1e293b', fontWeight: 700, fontSize: 11 },
+                }
+              : e
+          )
+        );
+        showToast(`Label panah diubah menjadi "${val}".`, 'info');
+      }
     },
     [setEdges]
   );
@@ -583,7 +703,7 @@ export default function FlowchartEditor() {
             {/* 4. Keputusan */}
             <button
               type="button"
-              onClick={() => addSymbol('decision', 'Kondisi ?')}
+              onClick={() => addSymbol('decision', selectedCaseKey === 'kelulusan' ? 'Nilai >= 75?' : 'Kondisi ?')}
               className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
               title="Keputusan: Percabangan kondisi Ya/Tidak"
             >
@@ -633,6 +753,7 @@ export default function FlowchartEditor() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onEdgeClick={onEdgeClick}
           nodeTypes={nodeTypes}
           fitView
           defaultEdgeOptions={{
@@ -670,8 +791,8 @@ export default function FlowchartEditor() {
           </div>
         )}
 
-        <div className="absolute top-2 left-2 right-2 sm:right-auto bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs text-[10px] sm:text-[11px] text-slate-600 pointer-events-none flex items-center gap-1">
-          <span>💡 <b>Tips HP:</b> Geser layar untuk menggeser kanvas, tarik bulatan untuk menghubungkan alur.</span>
+        <div className="absolute top-2 left-2 right-2 sm:right-auto bg-white/95 backdrop-blur-xs px-2.5 py-1.5 rounded-lg sm:rounded-xl border border-slate-200 shadow-2xs text-[10px] sm:text-[11px] text-slate-600 pointer-events-none flex items-center gap-1.5">
+          <span>💡 <b>Tips:</b> Tarik titik <b>Hijau (Ya)</b> & <b>Merah (Tidak)</b> pada simbol Keputusan. Ketuk garis panah untuk menghapus atau mengganti label.</span>
         </div>
       </div>
 

@@ -276,7 +276,7 @@ class FlowchartController extends Controller
 
         } elseif ($caseKey === 'kelulusan') {
             // STUDI KASUS 2: KELULUSAN
-            // A. Teks Input Nilai Ujian (18 Poin)
+            // A. Teks Input Nilai Ujian (15 Poin)
             $hasInputNilai = false;
             foreach ($ioNodes as $io) {
                 $lbl = $io['clean'];
@@ -287,61 +287,103 @@ class FlowchartController extends Controller
             }
 
             if ($hasInputNilai) {
-                $score += 18;
+                $score += 15;
                 $feedback[] = '✅ Teks Input tepat: Terdeteksi pembacaan masukan nilai ujian siswa.';
+            } elseif (count($ioNodes) > 0) {
+                $score += 8;
+                $feedback[] = '⚠️ Teks Input belum spesifik: Tuliskan masukan untuk nilai ujian (contoh: "Input Nilai Ujian").';
             } else {
-                $feedback[] = '⚠️ Teks Input belum sesuai: Tuliskan masukan untuk nilai ujian (contoh: "Input Nilai Ujian").';
+                $feedback[] = '⚠️ Tambahkan simbol Input/Output (Jajar Genjang) untuk membaca nilai: "Input Nilai Ujian".';
             }
 
-            // B. Teks Keputusan / Percabangan Syarat Nilai (22 Poin)
-            $hasValidDecision = false;
-            $hasPartialDecision = false;
+            // B. Teks Keputusan / Percabangan Syarat Nilai (25 Poin)
+            // 15 poin untuk teks kondisi (menguji >= 75 / > 74 / < 75 / kkm)
+            // 10 poin untuk struktur percabangan (memiliki minimal 2 cabang keluar: Ya dan Tidak)
+            $hasValidDecisionText = false;
+            $hasPartialDecisionText = false;
 
             foreach ($decisionNodes as $dec) {
                 $lbl = $dec['clean'];
-                if (str_contains($lbl, '75') || str_contains($lbl, '>= 75') || str_contains($lbl, '>=75') || (str_contains($lbl, 'nilai') && (str_contains($lbl, '>') || str_contains($lbl, '>=')))) {
-                    $hasValidDecision = true;
+                if (str_contains($lbl, '75') || str_contains($lbl, '74') || str_contains($lbl, '>=') || str_contains($lbl, 'kkm') || (str_contains($lbl, 'nilai') && (str_contains($lbl, '>') || str_contains($lbl, '<')))) {
+                    $hasValidDecisionText = true;
                     break;
-                } elseif (str_contains($lbl, '?') || str_contains($lbl, 'lulus') || str_contains($lbl, 'kkm') || str_contains($lbl, 'syarat')) {
-                    $hasPartialDecision = true;
+                } elseif (str_contains($lbl, '?') || str_contains($lbl, 'lulus') || str_contains($lbl, 'syarat')) {
+                    $hasPartialDecisionText = true;
                 }
             }
 
-            if ($hasValidDecision) {
-                $score += 22;
-                $feedback[] = '✅ Teks Keputusan tepat: Terdeteksi pengujian syarat kelulusan (Apakah Nilai >= 75?).';
-            } elseif ($hasPartialDecision) {
-                $score += 10;
+            if ($hasValidDecisionText) {
+                $score += 15;
+                $feedback[] = '✅ Teks Keputusan tepat: Terdeteksi pengujian syarat kriteria kelulusan (Apakah Nilai >= 75?).';
+            } elseif ($hasPartialDecisionText) {
+                $score += 8;
                 $feedback[] = '⚠️ Teks Keputusan belum menyebutkan batas KKM nilai 75. Tuliskan syarat lengkap (contoh: "Apakah Nilai >= 75?").';
             } elseif (count($decisionNodes) > 0) {
-                $score += 5;
-                $feedback[] = '⚠️ Teks Keputusan masih berupa placeholder "Kondisi?". Ubah dengan kondisi syarat: "Nilai >= 75?".';
+                $score += 4;
+                $feedback[] = '⚠️ Teks Keputusan masih berupa placeholder bawaan. Ubah dengan kondisi syarat: "Apakah Nilai >= 75?".';
             } else {
                 $feedback[] = '⚠️ Tambahkan simbol Keputusan (Belah Ketupat) untuk memeriksa kondisi kelulusan: "Nilai >= 75?".';
             }
 
+            // Cek apakah simbol keputusan memiliki minimal 2 garis keluar (cabang Ya & Tidak)
+            $decisionHasTwoBranches = false;
+            $hasBranchLabels = false;
+
+            foreach ($nodes as $n) {
+                if (($n['type'] ?? '') === 'decision') {
+                    $decId = $n['id'] ?? '';
+                    $outgoingEdges = array_values(array_filter($edges, fn($e) => ($e['source'] ?? '') === $decId));
+                    if (count($outgoingEdges) >= 2) {
+                        $decisionHasTwoBranches = true;
+
+                        $labels = array_map(fn($e) => strtolower(trim($e['label'] ?? '')), $outgoingEdges);
+                        $handles = array_map(fn($e) => strtolower(trim($e['sourceHandle'] ?? '')), $outgoingEdges);
+
+                        $hasYes = in_array('ya', $labels, true) || in_array('yes', $labels, true) || in_array('left', $handles, true);
+                        $hasNo  = in_array('tidak', $labels, true) || in_array('no', $labels, true) || in_array('right', $handles, true);
+
+                        if ($hasYes && $hasNo) {
+                            $hasBranchLabels = true;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if ($decisionHasTwoBranches) {
+                $score += 10;
+                if ($hasBranchLabels) {
+                    $feedback[] = '✅ Struktur percabangan sangat baik: Simbol Keputusan memiliki 2 cabang alur keluar lengkap dengan cabang "Ya" dan "Tidak".';
+                } else {
+                    $feedback[] = '✅ Struktur percabangan tepat: Simbol Keputusan memiliki 2 cabang alur keluar (Ya dan Tidak).';
+                }
+            } elseif (count($decisionNodes) > 0) {
+                $feedback[] = '⚠️ Simbol Keputusan harus memiliki 2 cabang panah keluar: satu untuk kondisi "Ya" (Lulus) dan satu untuk kondisi "Tidak" (Remedial).';
+            }
+
             // C. Teks Output Lulus / Remedial (15 Poin)
+            $candidateNodes = array_merge($ioNodes, $processNodes);
             $hasOutputLulus = false;
             $hasOutputRemedial = false;
 
-            foreach ($ioNodes as $io) {
-                $lbl = $io['clean'];
-                if (str_contains($lbl, 'lulus') && !str_contains($lbl, 'tidak lulus')) {
+            foreach ($candidateNodes as $node) {
+                $lbl = $node['clean'];
+                if (str_contains($lbl, 'lulus') && !str_contains($lbl, 'tidak lulus') && !str_contains($lbl, 'belum lulus')) {
                     $hasOutputLulus = true;
                 }
-                if (str_contains($lbl, 'remedial') || str_contains($lbl, 'tidak lulus') || str_contains($lbl, 'gagal')) {
+                if (str_contains($lbl, 'remedial') || str_contains($lbl, 'tidak lulus') || str_contains($lbl, 'belum lulus') || str_contains($lbl, 'gagal')) {
                     $hasOutputRemedial = true;
                 }
             }
 
             if ($hasOutputLulus && $hasOutputRemedial) {
                 $score += 15;
-                $feedback[] = '✅ Teks Output tepat: Terdeteksi pencetakan kedua status (LULUS dan REMEDIAL).';
+                $feedback[] = '✅ Teks Output tepat: Terdeteksi penanganan kedua kemungkinan hasil (LULUS dan REMEDIAL).';
             } elseif ($hasOutputLulus || $hasOutputRemedial) {
-                $score += 10;
-                $feedback[] = '⚠️ Teks Output baru memuat salah satu cabang. Pastikan mencetak kedua kemungkinan: "LULUS" dan "REMEDIAL".';
+                $score += 8;
+                $feedback[] = '⚠️ Teks Output baru memuat salah satu cabang. Pastikan menangani kedua kemungkinan: "LULUS" dan "REMEDIAL".';
             } else {
-                $feedback[] = '⚠️ Tambahkan simbol Input/Output untuk mencetak hasil seleksi: "Cetak LULUS" dan "Cetak REMEDIAL".';
+                $feedback[] = '⚠️ Tambahkan simbol Output untuk menampilkan hasil seleksi: "Cetak LULUS" dan "Cetak REMEDIAL".';
             }
 
         } else {
