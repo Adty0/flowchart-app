@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ReactFlow,
@@ -273,6 +273,20 @@ export default function FlowchartEditor() {
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const assessmentRef = useRef(null);
+
+  // Otomatis scroll halus ke bagian umpan balik & skor saat evaluasi selesai
+  useEffect(() => {
+    if (assessment) {
+      const timer = setTimeout(() => {
+        const el = assessmentRef.current || document.getElementById('hasil-penilaian');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [assessment]);
 
   const handleNameChange = (e) => {
     const name = e.target.value;
@@ -527,6 +541,14 @@ export default function FlowchartEditor() {
           id: data.submission_id,
         });
         showToast(`🎉 Evaluasi selesai! Skor Anda: ${data.score}/100`, 'success');
+
+        // Langsung arahkan tampilan siswa ke bagian umpan balik dan nilai
+        setTimeout(() => {
+          const el = assessmentRef.current || document.getElementById('hasil-penilaian');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 120);
       } else {
         alert('Gagal mengevaluasi: ' + (data.message || 'Terjadi galat'));
       }
@@ -798,7 +820,11 @@ export default function FlowchartEditor() {
 
       {/* PANEL HASIL PENILAIAN & EVALUASI OTOMATIS */}
       {assessment && (
-        <div className="bg-white border-2 border-blue-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm animate-fadeIn">
+        <div 
+          ref={assessmentRef}
+          id="hasil-penilaian"
+          className="bg-white border-2 border-blue-300 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-md animate-fadeIn scroll-mt-20 sm:scroll-mt-24 ring-4 ring-blue-500/10"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-4 border-b border-slate-100 gap-3">
             <div className="flex items-center gap-3">
               <div
