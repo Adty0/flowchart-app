@@ -887,55 +887,6 @@ export default function FlowchartEditor() {
         </div>
       )}
 
-      {/* PANDUAN SIMBOL FLOWCHART DENGAN DESAIN BERSIH */}
-      <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
-        <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2 mb-3 sm:mb-4">
-          <span>📖</span>
-          <span>Panduan Simbol Flowchart Standar (ANSI/ISO)</span>
-        </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
-          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs">
-            <div className="font-extrabold text-amber-900 flex items-center gap-1.5 mb-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <span>Terminator</span>
-            </div>
-            <p className="text-amber-800 leading-relaxed text-[11px]">
-              Bentuk oval/kapsul. Menandakan awal (<b>Mulai</b>) dan akhir (<b>Selesai</b>) dari alur algoritma.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 text-xs">
-            <div className="font-extrabold text-sky-950 flex items-center gap-1.5 mb-1.5">
-              <span className="w-2.5 h-2.5 bg-sky-500 -skew-x-12 rounded-xs" />
-              <span>Input / Output (I/O)</span>
-            </div>
-            <p className="text-sky-900 leading-relaxed text-[11px]">
-              Jajar genjang. Digunakan untuk membaca masukan dari pengguna atau menampilkan hasil/cetakan.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs">
-            <div className="font-extrabold text-emerald-950 flex items-center gap-1.5 mb-1.5">
-              <span className="w-2.5 h-2.5 bg-emerald-500 rounded-xs" />
-              <span>Proses (Process)</span>
-            </div>
-            <p className="text-emerald-900 leading-relaxed text-[11px]">
-              Persegi panjang. Digunakan untuk langkah perhitungan rumus matematika atau manipulasi data.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-orange-50/70 border border-orange-200 text-xs">
-            <div className="font-extrabold text-orange-950 flex items-center gap-1.5 mb-1.5">
-              <span className="w-2.5 h-2.5 bg-orange-500 rotate-45 rounded-xs" />
-              <span>Keputusan (Decision)</span>
-            </div>
-            <p className="text-orange-900 leading-relaxed text-[11px]">
-              Belah ketupat. Digunakan untuk kondisi logika percabangan yang menghasilkan nilai <b>Ya</b> atau <b>Tidak</b>.
-            </p>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 }
