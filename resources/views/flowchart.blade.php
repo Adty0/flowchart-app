@@ -14,9 +14,7 @@
     <meta name="user-name" content="{{ Auth::user() ? Auth::user()->name : '' }}">
     <meta name="user-class" content="{{ Auth::user() ? (Auth::user()->class_name ?: '10 RPL 1') : '10 RPL 1' }}">
     <meta name="user-role" content="{{ Auth::user() ? Auth::user()->role : '' }}">
-    <!-- Tailwind CSS Script & Vite Assets -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    @viteReactRefresh
+    <!-- Production Compiled Vite Assets (Tailwind CSS & React Flowchart) -->
     @vite(['resources/css/app.css', 'resources/js/flowchart.jsx'])
 </head>
 <body class="bg-[#F8FAFC] text-slate-800 font-sans min-h-screen antialiased selection:bg-blue-100 selection:text-blue-800">

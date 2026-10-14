@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "node -e \"const fs=require('fs');if(fs.existsSync('public/hot'))fs.unlinkSync('public/hot')\" && vite build",
         "dev": "vite"
     },
     "devDependencies": {
