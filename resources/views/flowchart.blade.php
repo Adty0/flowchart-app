@@ -158,6 +158,11 @@
             </div>
         @endif
 
+        <!-- Inject data studi kasus aktif dari database -->
+        <script>
+            window.__FLOWCHART_CASE_STUDIES__ = @json($caseStudies ?? []);
+        </script>
+
         <!-- Card Flowchart Editor React -->
         <section class="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 p-2 sm:p-6 transition-all">
             <!-- Mount point untuk React FlowchartEditor -->

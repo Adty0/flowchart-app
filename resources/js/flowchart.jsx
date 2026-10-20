@@ -15,9 +15,9 @@ import {
 import '@xyflow/react/dist/style.css';
 
 // ============================================================================
-// DAFTAR STUDI KASUS & SOAL LATIHAN SISWA (KANVAS SELALU KOSONG AGAR SISWA MENYUSUN SENDIRI)
+// DAFTAR STUDI KASUS & SOAL LATIHAN SISWA (DIPEROLEH DINAMIS DARI DATABASE GURU)
 // ============================================================================
-const STUDI_KASUS = {
+const defaultCaseStudies = {
   luas_segitiga: {
     id: 'luas_segitiga',
     title: 'Studi Kasus 1: Menghitung Luas Segitiga',
@@ -25,6 +25,7 @@ const STUDI_KASUS = {
     badge: 'Alur Sekuensial',
     formula: 'Rumus: Luas = 0.5 × Alas × Tinggi',
     description: 'Buatlah flowchart yang membaca masukan nilai alas dan tinggi dari pengguna, menghitung luas segitiga dengan rumus matematika, lalu mencetak nilai hasil luas ke layar.',
+    flow_type: 'sequential',
   },
   kelulusan: {
     id: 'kelulusan',
@@ -33,6 +34,8 @@ const STUDI_KASUS = {
     badge: 'Alur Percabangan',
     formula: 'Syarat: Nilai ≥ 75 → LULUS | Nilai < 75 → REMEDIAL',
     description: 'Rancang flowchart dengan: 1) Mulai, 2) Input Nilai Ujian, 3) Keputusan Nilai >= 75? (cabang Ya & Tidak), 4) Output Cetak LULUS & REMEDIAL, 5) Selesai.',
+    flow_type: 'branching',
+    expected_decision: 'Nilai >= 75?',
   },
   bebas: {
     id: 'bebas',
@@ -41,7 +44,36 @@ const STUDI_KASUS = {
     badge: 'Proyek Bebas',
     formula: 'Alur Logika Bebas Sesuai Instruksi Guru',
     description: 'Rancang flowchart secara mandiri sesuai dengan tugas atau studi kasus pemrograman yang diberikan oleh guru pada pertemuan hari ini.',
+    flow_type: 'sequential',
   },
+};
+
+const getCaseStudiesMap = () => {
+  const dynamicList = typeof window !== 'undefined' ? window.__FLOWCHART_CASE_STUDIES__ : null;
+  if (!Array.isArray(dynamicList) || dynamicList.length === 0) {
+    return defaultCaseStudies;
+  }
+
+  const map = {};
+  dynamicList.forEach((c) => {
+    map[c.case_key] = {
+      id: c.case_key,
+      title: c.title,
+      icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
+      badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
+      formula: c.formula || '',
+      description: c.description || '',
+      flow_type: c.flow_type || 'sequential',
+      expected_inputs: c.expected_inputs || '',
+      expected_process: c.expected_process || '',
+      expected_decision: c.expected_decision || '',
+      expected_yes_output: c.expected_yes_output || '',
+      expected_no_output: c.expected_no_output || '',
+      expected_outputs: c.expected_outputs || '',
+      reference_flow: c.reference_flow || null,
+    };
+  });
+  return Object.keys(map).length > 0 ? map : defaultCaseStudies;
 };
 
 // ============================================================================
@@ -252,6 +284,9 @@ const nodeTypes = {
 // KOMPONEN UTAMA EDITOR FLOWCHART SISWA
 // ============================================================================
 export default function FlowchartEditor() {
+  const caseStudiesMap = React.useMemo(() => getCaseStudiesMap(), []);
+  const caseKeys = Object.keys(caseStudiesMap);
+
   const [studentName, setStudentName] = useState(() => {
     const metaUser = document.querySelector('meta[name="user-name"]')?.getAttribute('content');
     if (metaUser && metaUser.trim()) return metaUser.trim();
@@ -264,7 +299,9 @@ export default function FlowchartEditor() {
     return localStorage.getItem('flowchart_student_class') || '10 RPL 1';
   });
 
-  const [selectedCaseKey, setSelectedCaseKey] = useState('luas_segitiga');
+  const [selectedCaseKey, setSelectedCaseKey] = useState(() => {
+    return caseKeys[0] || 'luas_segitiga';
+  });
 
   // KANVAS DIMULAI DALAM KONDISI KOSONG AGAR SISWA MENYUSUN SENDIRI DARI AWAL
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -471,9 +508,10 @@ export default function FlowchartEditor() {
   // Pilih studi kasus (Kanvas tetap bersih / kosong)
   const handleSelectCase = (key) => {
     if (selectedCaseKey === key) return;
+    const targetCase = caseStudiesMap[key] || {};
 
     if (nodes.length > 0) {
-      if (confirm(`Pindah ke "${STUDI_KASUS[key].title}"? Kanvas akan dikosongkan agar Anda dapat mengerjakan soal baru dari awal.`)) {
+      if (confirm(`Pindah ke "${targetCase.title || key}"? Kanvas akan dikosongkan agar Anda dapat mengerjakan soal baru dari awal.`)) {
         setNodes([]);
         setEdges([]);
         setAssessment(null);
@@ -483,7 +521,7 @@ export default function FlowchartEditor() {
     }
 
     setSelectedCaseKey(key);
-    showToast(`Studi kasus "${STUDI_KASUS[key].title}" dipilih. Silakan rangkai flowchart Anda!`, 'info');
+    showToast(`Studi kasus "${targetCase.title || key}" dipilih. Silakan rangkai flowchart Anda!`, 'info');
   };
 
   // Bersihkan kanvas
@@ -560,7 +598,7 @@ export default function FlowchartEditor() {
     }
   };
 
-  const currentCase = STUDI_KASUS[selectedCaseKey] || STUDI_KASUS.luas_segitiga;
+  const currentCase = caseStudiesMap[selectedCaseKey] || caseStudiesMap[caseKeys[0]] || defaultCaseStudies.luas_segitiga;
 
   return (
     <div className="flex flex-col gap-5">
@@ -613,45 +651,31 @@ export default function FlowchartEditor() {
         <div className="pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
           <span className="text-[11px] sm:text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1">
             <span>📚</span>
-            <span>Pilih Kasus Soal:</span>
+            <span>Pilih Kasus Soal ({caseKeys.length}):</span>
           </span>
-          <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
-            <button
-              type="button"
-              onClick={() => handleSelectCase('luas_segitiga')}
-              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                selectedCaseKey === 'luas_segitiga'
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <span className="sm:hidden">📐 Luas</span>
-              <span className="hidden sm:inline">📐 Hitung Luas</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectCase('kelulusan')}
-              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                selectedCaseKey === 'kelulusan'
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <span className="sm:hidden">🎓 Lulus</span>
-              <span className="hidden sm:inline">🎓 Cek Kelulusan</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSelectCase('bebas')}
-              className={`px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                selectedCaseKey === 'bebas'
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <span className="sm:hidden">✏️ Mandiri</span>
-              <span className="hidden sm:inline">✏️ Mandiri (Bebas)</span>
-            </button>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            {caseKeys.map((key) => {
+              const item = caseStudiesMap[key] || {};
+              const isSelected = selectedCaseKey === key;
+              const shortTitle = (item.title || key)
+                .replace(/^Studi Kasus \d+:\s*/i, '')
+                .replace(/^Studi Kasus Mandiri:\s*/i, '');
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleSelectCase(key)}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-sm ring-2 ring-blue-200'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                  }`}
+                >
+                  <span>{item.icon || '📌'}</span>
+                  <span className="truncate max-w-[130px] sm:max-w-none">{shortTitle}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -725,7 +749,7 @@ export default function FlowchartEditor() {
             {/* 4. Keputusan */}
             <button
               type="button"
-              onClick={() => addSymbol('decision', selectedCaseKey === 'kelulusan' ? 'Nilai >= 75?' : 'Kondisi ?')}
+              onClick={() => addSymbol('decision', currentCase.expected_decision || 'Kondisi ?')}
               className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
               title="Keputusan: Percabangan kondisi Ya/Tidak"
             >

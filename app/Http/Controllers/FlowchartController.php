@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FlowchartSubmission;
+use App\Models\CaseStudy;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +27,17 @@ class FlowchartController extends Controller
             $submissions = FlowchartSubmission::orderByDesc('created_at')->get();
         }
 
-        return view('flowchart', compact('submissions', 'user'));
+        $caseStudies = CaseStudy::where('is_active', true)->orderBy('id')->get();
+
+        return view('flowchart', compact('submissions', 'user', 'caseStudies'));
+    }
+
+    /**
+     * Dapatkan daftar studi kasus aktif untuk klien/frontend.
+     */
+    public function getCaseStudies()
+    {
+        return response()->json(CaseStudy::where('is_active', true)->orderBy('id')->get());
     }
 
     /**
@@ -384,6 +395,211 @@ class FlowchartController extends Controller
                 $feedback[] = '⚠️ Teks Output baru memuat salah satu cabang. Pastikan menangani kedua kemungkinan: "LULUS" dan "REMEDIAL".';
             } else {
                 $feedback[] = '⚠️ Tambahkan simbol Output untuk menampilkan hasil seleksi: "Cetak LULUS" dan "Cetak REMEDIAL".';
+            }
+
+        } elseif ($caseKey !== 'bebas' && ($customCase = CaseStudy::where('case_key', $caseKey)->first())) {
+            // ================================================================
+            // STUDI KASUS DINAMIS YANG DITAMBAHKAN OLEH GURU
+            // ================================================================
+            $isBranching = $customCase->flow_type === 'branching';
+
+            // A. Evaluasi Input (15 Poin)
+            $inputKeywords = array_filter(array_map('trim', explode(',', strtolower($customCase->expected_inputs ?? ''))));
+            $allIoCleanText = implode(' ', array_column($ioNodes, 'clean'));
+            $matchedInputKeywords = [];
+            foreach ($inputKeywords as $kw) {
+                if (!empty($kw) && str_contains($allIoCleanText, $kw)) {
+                    $matchedInputKeywords[] = $kw;
+                }
+            }
+
+            $hasDefaultIO = false;
+            foreach ($ioNodes as $io) {
+                $lbl = $io['clean'];
+                if ($lbl === 'baca / cetak data' || $lbl === 'input data' || empty($lbl)) {
+                    $hasDefaultIO = true;
+                }
+            }
+
+            if (!empty($inputKeywords)) {
+                if (count($matchedInputKeywords) >= count($inputKeywords)) {
+                    $score += 15;
+                    $feedback[] = '✅ Teks Input tepat: Terdeteksi masukan data lengkap (' . implode(', ', $matchedInputKeywords) . ').';
+                } elseif (count($matchedInputKeywords) > 0) {
+                    $score += 15;
+                    $feedback[] = '✅ Teks Input tepat: Terdeteksi masukan data (' . implode(', ', $matchedInputKeywords) . ').';
+                } else {
+                    if ($hasDefaultIO) {
+                        $feedback[] = '⚠️ Teks simbol Input masih berupa teks contoh. Masukkan nama data: ' . ($customCase->expected_inputs ?: 'Data Masukan') . '.';
+                    } else {
+                        $feedback[] = '⚠️ Tambahkan simbol Input/Output (Jajar Genjang) dengan masukan: ' . ($customCase->expected_inputs ?: 'Data Masukan') . '.';
+                    }
+                }
+            } else {
+                if (count($ioNodes) > 0 && !$hasDefaultIO) {
+                    $score += 15;
+                    $feedback[] = '✅ Teks Input disertakan dengan instruksi data yang jelas.';
+                } elseif (count($ioNodes) > 0) {
+                    $score += 8;
+                    $feedback[] = '⚠️ Ganti teks bawaan simbol Input dengan variabel data yang diproses.';
+                } else {
+                    $feedback[] = '⚠️ Tambahkan simbol Input/Output (Jajar Genjang) untuk membaca data.';
+                }
+            }
+
+            if ($isBranching) {
+                // B. Evaluasi Percabangan (25 Poin: 15 teks kondisi + 10 struktur 2 cabang)
+                $decisionKeywords = array_filter(array_map('trim', explode(',', strtolower($customCase->expected_decision ?? ''))));
+                $hasValidDecisionText = false;
+
+                foreach ($decisionNodes as $dec) {
+                    $lbl = $dec['clean'];
+                    if (!empty($decisionKeywords)) {
+                        foreach ($decisionKeywords as $dkw) {
+                            if (!empty($dkw) && str_contains($lbl, $dkw)) {
+                                $hasValidDecisionText = true;
+                                break 2;
+                            }
+                        }
+                    } elseif (!empty($lbl) && $lbl !== 'kondisi ?' && $lbl !== 'kondisi?') {
+                        $hasValidDecisionText = true;
+                        break;
+                    }
+                }
+
+                if ($hasValidDecisionText) {
+                    $score += 15;
+                    $feedback[] = '✅ Teks Keputusan tepat: Terdeteksi pengujian syarat kondisi (' . ($customCase->expected_decision ?: 'Kondisi') . ').';
+                } elseif (count($decisionNodes) > 0) {
+                    $score += 6;
+                    $feedback[] = '⚠️ Teks Keputusan belum spesifik. Tuliskan syarat kondisi: "' . ($customCase->expected_decision ?: 'Kondisi?') . '".';
+                } else {
+                    $feedback[] = '⚠️ Tambahkan simbol Keputusan (Belah Ketupat) untuk menguji kondisi percabangan.';
+                }
+
+                // Cek 2 cabang panah keluar (Ya dan Tidak)
+                $decisionHasTwoBranches = false;
+                $hasBranchLabels = false;
+
+                foreach ($nodes as $n) {
+                    if (($n['type'] ?? '') === 'decision') {
+                        $decId = $n['id'] ?? '';
+                        $outgoingEdges = array_values(array_filter($edges, fn($e) => ($e['source'] ?? '') === $decId));
+                        if (count($outgoingEdges) >= 2) {
+                            $decisionHasTwoBranches = true;
+                            $labels = array_map(fn($e) => strtolower(trim($e['label'] ?? '')), $outgoingEdges);
+                            $handles = array_map(fn($e) => strtolower(trim($e['sourceHandle'] ?? '')), $outgoingEdges);
+                            $hasYes = in_array('ya', $labels, true) || in_array('yes', $labels, true) || in_array('left', $handles, true);
+                            $hasNo  = in_array('tidak', $labels, true) || in_array('no', $labels, true) || in_array('right', $handles, true);
+                            if ($hasYes && $hasNo) {
+                                $hasBranchLabels = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if ($decisionHasTwoBranches) {
+                    $score += 10;
+                    if ($hasBranchLabels) {
+                        $feedback[] = '✅ Struktur percabangan sangat baik: Simbol Keputusan memiliki 2 cabang alur keluar lengkap dengan cabang "Ya" dan "Tidak".';
+                    } else {
+                        $feedback[] = '✅ Struktur percabangan tepat: Simbol Keputusan memiliki 2 cabang alur keluar (Ya dan Tidak).';
+                    }
+                } elseif (count($decisionNodes) > 0) {
+                    $feedback[] = '⚠️ Simbol Keputusan harus memiliki 2 cabang panah keluar: satu untuk kondisi "Ya" dan satu untuk kondisi "Tidak".';
+                }
+
+                // C. Evaluasi Output Cabang Ya & Tidak (15 Poin)
+                $candidateNodes = array_merge($ioNodes, $processNodes);
+                $expectedYes = strtolower(trim($customCase->expected_yes_output ?? ''));
+                $expectedNo = strtolower(trim($customCase->expected_no_output ?? ''));
+                $hasYesOut = false;
+                $hasNoOut = false;
+
+                foreach ($candidateNodes as $cn) {
+                    $lbl = $cn['clean'];
+                    if (!empty($expectedYes) && str_contains($lbl, $expectedYes)) {
+                        $hasYesOut = true;
+                    }
+                    if (!empty($expectedNo) && str_contains($lbl, $expectedNo)) {
+                        $hasNoOut = true;
+                    }
+                }
+
+                if (!empty($expectedYes) && !empty($expectedNo)) {
+                    if ($hasYesOut && $hasNoOut) {
+                        $score += 15;
+                        $feedback[] = "✅ Teks Output tepat: Terdeteksi penanganan kedua kemungkinan hasil ('$expectedYes' dan '$expectedNo').";
+                    } elseif ($hasYesOut || $hasNoOut) {
+                        $score += 8;
+                        $feedback[] = "⚠️ Teks Output baru menangani salah satu cabang. Pastikan menampilkan kedua status: '$expectedYes' dan '$expectedNo'.";
+                    } else {
+                        $feedback[] = "⚠️ Tambahkan simbol Output untuk menampilkan hasil: '$expectedYes' dan '$expectedNo'.";
+                    }
+                } elseif (count($ioNodes) > 1) {
+                    $score += 15;
+                    $feedback[] = '✅ Teks Output terdeteksi untuk kedua jalur cabang alur.';
+                } else {
+                    $score += 7;
+                    $feedback[] = '💡 Tips: Sediakan simbol Output untuk masing-masing cabang keputusan.';
+                }
+
+            } else {
+                // Alur Sekuensial: B. Evaluasi Proses / Rumus (25 Poin)
+                $processKeywords = array_filter(array_map('trim', explode(',', strtolower($customCase->expected_process ?? ''))));
+                $hasValidProcess = false;
+
+                foreach ($processNodes as $proc) {
+                    $lbl = $proc['clean'];
+                    if (!empty($processKeywords)) {
+                        foreach ($processKeywords as $pkw) {
+                            if (!empty($pkw) && str_contains($lbl, $pkw)) {
+                                $hasValidProcess = true;
+                                break 2;
+                            }
+                        }
+                    } elseif (!empty($lbl) && $lbl !== 'langkah perhitungan...' && $lbl !== 'hitung data') {
+                        $hasValidProcess = true;
+                        break;
+                    }
+                }
+
+                if ($hasValidProcess) {
+                    $score += 25;
+                    $feedback[] = '✅ Teks Proses tepat: Terdeteksi rumus/langkah perhitungan yang sesuai (' . ($customCase->expected_process ?: 'Perhitungan') . ').';
+                } elseif (count($processNodes) > 0) {
+                    $score += 10;
+                    $feedback[] = '⚠️ Teks Proses belum sesuai rumus. Tuliskan rumus: "' . ($customCase->expected_process ?: 'Rumus Perhitungan') . '".';
+                } else {
+                    $feedback[] = '⚠️ Tambahkan simbol Proses (Persegi Panjang) dengan langkah: "' . ($customCase->expected_process ?: 'Rumus Perhitungan') . '".';
+                }
+
+                // C. Evaluasi Output (15 Poin)
+                $outputKeywords = array_filter(array_map('trim', explode(',', strtolower($customCase->expected_outputs ?? ''))));
+                $hasValidOutput = false;
+
+                foreach ($ioNodes as $io) {
+                    $lbl = $io['clean'];
+                    if (!empty($outputKeywords)) {
+                        foreach ($outputKeywords as $okw) {
+                            if (!empty($okw) && str_contains($lbl, $okw)) {
+                                $hasValidOutput = true;
+                                break 2;
+                            }
+                        }
+                    } elseif (str_contains($lbl, 'cetak') || str_contains($lbl, 'tampil') || str_contains($lbl, 'output') || count($ioNodes) > 1) {
+                        $hasValidOutput = true;
+                        break;
+                    }
+                }
+
+                if ($hasValidOutput) {
+                    $score += 15;
+                    $feedback[] = '✅ Teks Output tepat: Terdeteksi pencetakan/keluaran hasil ke layar (' . ($customCase->expected_outputs ?: 'Keluaran') . ').';
+                } else {
+                    $feedback[] = '⚠️ Tambahkan simbol Input/Output untuk mencetak hasil: "' . ($customCase->expected_outputs ?: 'Cetak Hasil') . '".';
+                }
             }
 
         } else {

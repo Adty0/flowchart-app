@@ -99,6 +99,19 @@
                 </button>
             </form>
 
+            <!-- Akun Contoh untuk Guru & Siswa -->
+            <div class="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+                <span class="font-bold text-slate-700 block mb-1">🔑 Akun Default Tersedia:</span>
+                <div class="flex justify-between items-center py-0.5 border-b border-slate-200/60">
+                    <span><b>Guru:</b> guru@sekolah.id</span>
+                    <span class="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">password123</span>
+                </div>
+                <div class="flex justify-between items-center py-0.5 mt-0.5">
+                    <span><b>Siswa:</b> siswa@sekolah.id</span>
+                    <span class="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">password123</span>
+                </div>
+            </div>
+
             <!-- Link Pendaftaran Siswa -->
             <div class="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-600">
                 Belum punya akun siswa? 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Dashboard Rekapitulasi Per Kelas - Portal Guru</title>
+    <title>Portal Guru - Kelola Studi Kasus & Rekapitulasi Nilai</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,8 +32,8 @@
                 </div>
                 <div>
                     <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>Rekapitulasi Nilai Flowchart</span>
-                        <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Pendidik</span>
+                        <span>Portal Pendidik Flowchart</span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Guru</span>
                     </h1>
                     <p class="text-xs text-slate-500">
                         {{ Auth::user()->name }} ({{ Auth::user()->email }})
@@ -41,13 +41,14 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 sm:gap-3">
                 <a 
                     href="{{ route('flowchart.index') }}" 
-                    class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-2xs"
                 >
                     <span>⚡</span>
-                    <span>Buka Kanvas Flowchart</span>
+                    <span class="hidden sm:inline">Buka Kanvas Flowchart</span>
+                    <span class="sm:hidden">Kanvas</span>
                 </a>
 
                 <form action="{{ route('logout') }}" method="POST">
@@ -68,16 +69,275 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-7">
 
+        <!-- Notifikasi Flash -->
         @if(session('success'))
-            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-semibold flex items-center justify-between shadow-sm no-print">
+            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-semibold flex items-center justify-between shadow-xs no-print">
                 <span class="flex items-center gap-2">
-                    <span>✅</span>
+                    <span class="text-lg">✅</span>
                     <span>{{ session('success') }}</span>
                 </span>
             </div>
         @endif
+
+        @if(session('error'))
+            <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-sm font-semibold flex items-center justify-between shadow-xs no-print">
+                <span class="flex items-center gap-2">
+                    <span class="text-lg">⚠️</span>
+                    <span>{{ session('error') }}</span>
+                </span>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm font-semibold shadow-xs no-print space-y-1">
+                <div class="flex items-center gap-2 font-bold text-amber-950">
+                    <span>⚠️</span>
+                    <span>Terdapat kesalahan pada isian form:</span>
+                </div>
+                <ul class="list-disc pl-7 text-xs space-y-0.5 text-amber-800">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <!-- TAB NAVIGASI PORTAL GURU -->
+        @php
+            $activeTab = request('tab', 'rekap');
+        @endphp
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 no-print">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a 
+                    href="{{ route('guru.dashboard', array_merge(request()->except('tab'), ['tab' => 'rekap'])) }}" 
+                    class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all {{ $activeTab === 'rekap' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200' }}"
+                >
+                    <span>📊</span>
+                    <span>Rekap Nilai Siswa</span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] {{ $activeTab === 'rekap' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600' }}">
+                        {{ $totalSubmissions }}
+                    </span>
+                </a>
+
+                <a 
+                    href="{{ route('guru.dashboard', array_merge(request()->except('tab'), ['tab' => 'studi_kasus'])) }}" 
+                    class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all {{ $activeTab === 'studi_kasus' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200' }}"
+                >
+                    <span>📚</span>
+                    <span>Kelola Studi Kasus & Kunci Koreksi</span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] {{ $activeTab === 'studi_kasus' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600' }}">
+                        {{ $caseStudies->count() }}
+                    </span>
+                </a>
+            </div>
+
+            @if($activeTab === 'studi_kasus')
+                <button 
+                    type="button" 
+                    onclick="openCreateCaseModal()" 
+                    class="px-4 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-extrabold shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+                >
+                    <span>➕</span>
+                    <span>Tambah Studi Kasus Baru</span>
+                </button>
+            @endif
+        </div>
+
+        @if($activeTab === 'studi_kasus')
+        <!-- ================================================================= -->
+        <!-- TAB 2: KELOLA STUDI KASUS, ALUR ACUAN & KUNCI JAWABAN KOREKSI     -->
+        <!-- ================================================================= -->
+        <div class="space-y-6">
+
+            <!-- Banner Pengantar Modul Studi Kasus -->
+            <div class="bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 opacity-10 text-9xl pointer-events-none select-none">📐</div>
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                    <div class="max-w-2xl">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold text-indigo-100 mb-2.5">
+                            <span>⚙️</span> Modul Manajemen Soal & Mesin Penilaian Otomatis
+                        </span>
+                        <h2 class="text-xl sm:text-2xl font-black tracking-tight text-white">
+                            Katalog Studi Kasus & Kunci Jawaban Acuan
+                        </h2>
+                        <p class="text-xs sm:text-sm text-indigo-100/90 mt-1.5 leading-relaxed">
+                            Definisikan soal algoritma baru untuk siswa Anda. Masukkan kata kunci input, formula rumus, atau kondisi percabangan Ya/Tidak. Sistem akan mencocokkan diagram alir siswa secara otomatis dan memberikan skor dari 0 hingga 100 secara instan.
+                        </p>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        onclick="openCreateCaseModal()" 
+                        class="px-5 py-3 bg-white hover:bg-indigo-50 text-indigo-950 rounded-2xl text-xs sm:text-sm font-extrabold shadow-lg transition-all active:scale-95 cursor-pointer flex items-center gap-2 self-start md:self-auto flex-shrink-0"
+                    >
+                        <span class="text-base">➕</span>
+                        <span>Tambah Kasus Baru</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid Kartu Studi Kasus -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                @foreach($caseStudies as $case)
+                    @php
+                        $refFlow = is_array($case->reference_flow) ? $case->reference_flow : json_decode($case->reference_flow, true);
+                        $refSteps = $refFlow['steps'] ?? [];
+                        $refConnections = $refFlow['connections'] ?? [];
+                    @endphp
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all p-5 sm:p-6 flex flex-col justify-between">
+                        <div class="space-y-4">
+                            <!-- Header Kartu -->
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-2xl flex-shrink-0 shadow-2xs">
+                                        {{ $case->icon ?: '📐' }}
+                                    </div>
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <h3 class="text-base font-black text-slate-900 leading-snug">{{ $case->title }}</h3>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase {{ $case->flow_type === 'branching' ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-blue-100 text-blue-800 border border-blue-200' }}">
+                                                {{ $case->badge ?: ($case->flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial') }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-[11px] font-mono text-slate-400">key: {{ $case->case_key }}</span>
+                                            @if($case->is_default)
+                                                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">
+                                                    🔒 Bawaan Sistem
+                                                </span>
+                                            @else
+                                                <span class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-bold">
+                                                    ✍️ Buatan Guru
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if(!$case->is_default)
+                                    <form action="{{ route('guru.case_study.destroy', $case->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus studi kasus ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button 
+                                            type="submit" 
+                                            class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                                            title="Hapus Studi Kasus Ini"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+
+                            @if($case->formula)
+                                <div class="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/90 text-xs font-bold text-slate-700 flex items-center gap-2">
+                                    <span>💡</span>
+                                    <span>{{ $case->formula }}</span>
+                                </div>
+                            @endif
+
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                <b>Petunjuk Soal:</b> {{ $case->description }}
+                            </p>
+
+                            <!-- Parameter Kunci Koreksi Jawaban Siswa -->
+                            <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
+                                <h4 class="text-xs font-black text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                                    <span>🎯</span> Kunci Koreksi & Parameter Penilaian
+                                </h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                    <div class="p-2.5 bg-white rounded-xl border border-indigo-100/90">
+                                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Input yang Diperiksa:</span>
+                                        <span class="font-bold text-sky-800">{{ $case->expected_inputs ?: 'Data Bebas' }}</span>
+                                    </div>
+
+                                    @if($case->flow_type === 'branching')
+                                        <div class="p-2.5 bg-white rounded-xl border border-indigo-100/90">
+                                            <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Syarat Percabangan:</span>
+                                            <span class="font-bold text-orange-700">{{ $case->expected_decision ?: 'Kondisi Logika' }}</span>
+                                        </div>
+                                        <div class="p-2.5 bg-white rounded-xl border border-indigo-100/90">
+                                            <span class="block text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Output Cabang [Ya]:</span>
+                                            <span class="font-bold text-emerald-800">{{ $case->expected_yes_output ?: '-' }}</span>
+                                        </div>
+                                        <div class="p-2.5 bg-white rounded-xl border border-indigo-100/90">
+                                            <span class="block text-[10px] font-bold text-rose-600 uppercase tracking-wider">Output Cabang [Tidak]:</span>
+                                            <span class="font-bold text-rose-800">{{ $case->expected_no_output ?: '-' }}</span>
+                                        </div>
+                                    @else
+                                        <div class="p-2.5 bg-white rounded-xl border border-indigo-100/90">
+                                            <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rumus / Perhitungan:</span>
+                                            <span class="font-bold text-emerald-800">{{ $case->expected_process ?: 'Perhitungan Bebas' }}</span>
+                                        </div>
+                                        <div class="p-2.5 bg-white rounded-xl border border-indigo-100/90 sm:col-span-2">
+                                            <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Output Luaran yang Dicetak:</span>
+                                            <span class="font-bold text-blue-800">{{ $case->expected_outputs ?: 'Tampilkan Hasil' }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Alur Flowchart Standar Acuan (Visual Flow Steps) -->
+                            <div class="space-y-2">
+                                <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                    <span>🧭</span> Alur Flowchart Kunci Jawaban:
+                                </span>
+                                @if(count($refSteps) > 0)
+                                    <div class="p-3 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2.5">
+                                        <div class="flex flex-wrap items-center gap-1.5">
+                                            @foreach($refSteps as $idx => $step)
+                                                @php
+                                                    $stepType = $step['type'] ?? 'terminator';
+                                                    $stepBadgeClass = match($stepType) {
+                                                        'terminator' => 'bg-amber-100 border-amber-300 text-amber-950',
+                                                        'io' => 'bg-sky-100 border-sky-300 text-sky-950',
+                                                        'process' => 'bg-emerald-100 border-emerald-300 text-emerald-950',
+                                                        'decision' => 'bg-orange-100 border-orange-300 text-orange-950',
+                                                        default => 'bg-slate-100 border-slate-300 text-slate-800'
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border text-[11px] font-bold {{ $stepBadgeClass }}">
+                                                    <span>{{ $step['label'] ?? '' }}</span>
+                                                </span>
+                                                @if($idx < count($refSteps) - 1)
+                                                    <span class="text-slate-400 font-bold text-xs">➔</span>
+                                                @endif
+                                            @endforeach
+                                        </div>
+
+                                        @if(count($refConnections) > 0)
+                                            <div class="text-[11px] text-slate-500 font-mono pt-2 border-t border-slate-200/70 space-y-0.5">
+                                                @foreach($refConnections as $conn)
+                                                    <div>• {{ $conn }}</div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <p class="text-xs text-slate-400 italic">Alur bebas sesuai arahan tatap muka guru.</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Footer Kartu -->
+                        <div class="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                            <span>Partisipasi Pengerjaan:</span>
+                            <span class="font-extrabold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg">
+                                {{ $case->submissions_count }} diagram siswa terkumpul
+                            </span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+        </div>
+
+        @else
+        <!-- ================================================================= -->
+        <!-- TAB 1: REKAPITULASI PENILAIAN SISWA (PER ROMBEL / KELAS)          -->
+        <!-- ================================================================= -->
 
         <!-- KARTU STATISTIK GLOBAL -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -113,7 +373,7 @@
         </div>
 
         <!-- RINGKASAN PERFORMA PER KELAS -->
-        <section class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+        <section class="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs">
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
@@ -157,18 +417,20 @@
         </section>
 
         <!-- TOOLBAR PENCARIAN & FILTER KELAS -->
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <section class="bg-white rounded-3xl shadow-xs border border-slate-200 p-6 space-y-6">
             <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-100 gap-4 no-print">
                 <div>
                     <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
                         <span>📑</span>
-                        <span>Rekapitulasi Hasil Praktikum Dikelompokkan Per Kelas</span>
+                        <span>Rekapitulasi Hasil Praktikum Siswa</span>
                     </h3>
                     <p class="text-xs text-slate-500 mt-0.5">Hasil pengerjaan flowchart siswa tersusun rapi berdasarkan rombongan belajar.</p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
                     <form method="GET" action="{{ route('guru.dashboard') }}" class="flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="tab" value="rekap">
+
                         <!-- Filter Dropdown Kelas -->
                         <select 
                             name="class_name" 
@@ -215,7 +477,7 @@
 
                         @if(request('search') || request('status') || request('class_name'))
                             <a 
-                                href="{{ route('guru.dashboard') }}" 
+                                href="{{ route('guru.dashboard', ['tab' => 'rekap']) }}" 
                                 class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-all"
                             >
                                 Reset
@@ -282,11 +544,12 @@
                                         <tr>
                                             <th class="px-5 py-3">ID</th>
                                             <th class="px-5 py-3">Nama Siswa</th>
+                                            <th class="px-5 py-3">Kasus Soal</th>
                                             <th class="px-5 py-3 text-center">Skor</th>
                                             <th class="px-5 py-3 text-center">Status</th>
                                             <th class="px-5 py-3">Struktur Simbol</th>
                                             <th class="px-5 py-3">Umpan Balik Evaluasi</th>
-                                            <th class="px-5 py-3">Waktu Pengumpulan</th>
+                                            <th class="px-5 py-3">Waktu</th>
                                             <th class="px-5 py-3 text-right no-print">Aksi</th>
                                         </tr>
                                     </thead>
@@ -297,6 +560,7 @@
                                                 $nodeCount = count($diagram['nodes'] ?? []);
                                                 $edgeCount = count($diagram['edges'] ?? []);
                                                 $feedbackArr = is_array($sub->feedback) ? $sub->feedback : json_decode($sub->feedback, true);
+                                                $caseTitle = $caseStudies->firstWhere('case_key', $sub->case_key)?->title ?? ($sub->case_key ?: 'Umum');
                                             @endphp
                                             <tr class="hover:bg-slate-50/80 transition-colors">
                                                 <td class="px-5 py-3.5 font-mono text-xs font-semibold text-slate-400">
@@ -307,6 +571,11 @@
                                                     @if($sub->user)
                                                         <div class="text-[11px] text-slate-400">{{ $sub->user->email }}</div>
                                                     @endif
+                                                </td>
+                                                <td class="px-5 py-3.5 text-xs text-slate-700">
+                                                    <span class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 font-semibold text-indigo-900">
+                                                        {{ $caseTitle }}
+                                                    </span>
                                                 </td>
                                                 <td class="px-5 py-3.5 text-center">
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-extrabold {{ $sub->score >= 75 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300' }}">
@@ -343,7 +612,7 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-5 py-3.5 text-xs text-slate-400">
-                                                    {{ $sub->created_at ? $sub->created_at->format('d M Y, H:i') : '-' }}
+                                                    {{ $sub->created_at ? $sub->created_at->format('d M, H:i') : '-' }}
                                                 </td>
                                                 <td class="px-5 py-3.5 text-right no-print">
                                                     <div class="flex items-center justify-end gap-1.5">
@@ -387,9 +656,288 @@
 
         </section>
 
+        @endif
+
     </main>
 
-    <!-- MODAL DETAIL DIAGRAM SISWA -->
+    <!-- ================================================================= -->
+    <!-- MODAL 1: TAMBAH STUDI KASUS BARU BESERTA ALUR & KUNCI KOREKSI     -->
+    <!-- ================================================================= -->
+    <div id="createCaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-auto animate-fadeIn max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-lg font-bold">
+                        ➕
+                    </div>
+                    <div>
+                        <h3 class="text-base font-black text-slate-900">
+                            Tambah Studi Kasus & Kunci Alur Baru
+                        </h3>
+                        <p class="text-xs text-slate-500">Definisikan studi kasus dan parameter pemeriksaan otomatis.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCreateCaseModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold flex items-center justify-center cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <form action="{{ route('guru.case_study.store') }}" method="POST" class="mt-5 space-y-5">
+                @csrf
+
+                <!-- 1. Judul Kasus & Emoji Icon -->
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Judul Studi Kasus / Soal <span class="text-rose-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="title" 
+                            id="caseTitleInput"
+                            required 
+                            placeholder="Contoh: Menghitung Keliling Lingkaran" 
+                            class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            oninput="updatePreview()"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Ikon Emoji
+                        </label>
+                        <input 
+                            type="text" 
+                            name="icon" 
+                            id="caseIconInput"
+                            value="📐" 
+                            placeholder="📐 / ⭕ / 🛒" 
+                            class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 text-center focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            oninput="updatePreview()"
+                        >
+                    </div>
+                </div>
+
+                <!-- 2. Pilihan Tipe Alur: Sekuensial vs Percabangan -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                        Tipe Alur Algoritma <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-indigo-50/60 cursor-pointer flex items-start gap-3 transition-all has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500 has-[:checked]:ring-2 has-[:checked]:ring-indigo-200">
+                            <input 
+                                type="radio" 
+                                name="flow_type" 
+                                value="sequential" 
+                                checked 
+                                class="mt-1 text-indigo-600 focus:ring-indigo-500" 
+                                onchange="handleFlowTypeChange('sequential')"
+                            >
+                            <div>
+                                <span class="block text-xs font-black text-slate-900">Alur Sekuensial (Lurus)</span>
+                                <span class="text-[11px] text-slate-500 leading-tight">Perhitungan matematis: Mulai ➔ Input ➔ Proses Rumus ➔ Output ➔ Selesai.</span>
+                            </div>
+                        </label>
+
+                        <label class="p-3 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-orange-50/60 cursor-pointer flex items-start gap-3 transition-all has-[:checked]:bg-orange-50 has-[:checked]:border-orange-500 has-[:checked]:ring-2 has-[:checked]:ring-orange-200">
+                            <input 
+                                type="radio" 
+                                name="flow_type" 
+                                value="branching" 
+                                class="mt-1 text-orange-600 focus:ring-orange-500" 
+                                onchange="handleFlowTypeChange('branching')"
+                            >
+                            <div>
+                                <span class="block text-xs font-black text-slate-900">Alur Percabangan (Decision)</span>
+                                <span class="text-[11px] text-slate-500 leading-tight">Pengambilan keputusan: Mulai ➔ Input ➔ Keputusan Ya/Tidak ➔ Cetak ➔ Selesai.</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Rumus / Kriteria & Deskripsi Soal -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Rumus / Syarat Kriteria (Panduan Singkat)
+                        </label>
+                        <input 
+                            type="text" 
+                            name="formula" 
+                            id="caseFormulaInput"
+                            placeholder="Contoh: Rumus: K = 2 × 3.14 × r" 
+                            class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            oninput="updatePreview()"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Sub-Judul Badge
+                        </label>
+                        <input 
+                            type="text" 
+                            name="badge" 
+                            id="caseBadgeInput"
+                            placeholder="Contoh: Alur Sekuensial" 
+                            class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                        >
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                        Deskripsi / Petunjuk Soal Lengkap untuk Siswa <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea 
+                        name="description" 
+                        required 
+                        rows="2" 
+                        placeholder="Contoh: Buatlah flowchart yang membaca input nilai jari-jari (r), menghitung keliling lingkaran dengan rumus K = 2 * 3.14 * r, lalu menampilkan hasil keliling ke layar." 
+                        class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none leading-relaxed"
+                    ></textarea>
+                </div>
+
+                <!-- 4. Bagian Kunci Jawaban & Parameter Penilaian Otomatis -->
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/70 to-purple-50/40 border border-indigo-200 space-y-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">🎯</span>
+                        <div>
+                            <h4 class="text-xs font-black text-indigo-950 uppercase tracking-wider">
+                                Kunci Jawaban & Parameter Koreksi Otomatis
+                            </h4>
+                            <p class="text-[11px] text-slate-500">Sistem akan memeriksa diagram siswa berdasarkan kata kunci dan struktur yang Anda isi di bawah ini.</p>
+                        </div>
+                    </div>
+
+                    <!-- Input Umum: Masukan Data yang Diharapkan -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">
+                            Kata Kunci Input (Masukan Siswa)
+                        </label>
+                        <input 
+                            type="text" 
+                            name="expected_inputs" 
+                            id="expectedInputs"
+                            placeholder="Contoh: jari-jari, r, radius (pisahkan koma jika ada alternatif)" 
+                            class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-sky-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            oninput="updatePreview()"
+                        >
+                        <span class="text-[10px] text-slate-500 mt-0.5 block">Siswa harus menambahkan simbol I/O yang memuat kata kunci ini.</span>
+                    </div>
+
+                    <!-- Mode Sekuensial: Proses & Output -->
+                    <div id="sequentialFields" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                Rumus / Perhitungan Proses yang Diharapkan
+                            </label>
+                            <input 
+                                type="text" 
+                                name="expected_process" 
+                                id="expectedProcess"
+                                placeholder="Contoh: 2 * 3.14 * r, keliling" 
+                                class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-emerald-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                oninput="updatePreview()"
+                            >
+                            <span class="text-[10px] text-slate-500 mt-0.5 block">Simbol Persegi Panjang (Proses) siswa harus memuat rumus/perhitungan ini.</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                Luaran / Output yang Diharapkan
+                            </label>
+                            <input 
+                                type="text" 
+                                name="expected_outputs" 
+                                id="expectedOutputs"
+                                placeholder="Contoh: keliling, cetak keliling" 
+                                class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-blue-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                oninput="updatePreview()"
+                            >
+                            <span class="text-[10px] text-slate-500 mt-0.5 block">Simbol I/O kedua siswa harus mencetak hasil luaran ini.</span>
+                        </div>
+                    </div>
+
+                    <!-- Mode Percabangan: Syarat Decision, Output Ya, Output Tidak -->
+                    <div id="branchingFields" class="space-y-3 hidden">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">
+                                Syarat Keputusan / Kondisi Belah Ketupat
+                            </label>
+                            <input 
+                                type="text" 
+                                name="expected_decision" 
+                                id="expectedDecision"
+                                placeholder="Contoh: nilai >= 75? atau belanja >= 100000?" 
+                                class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-orange-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                oninput="updatePreview()"
+                            >
+                            <span class="text-[10px] text-slate-500 mt-0.5 block">Simbol Belah Ketupat (Keputusan) siswa harus memuat kondisi logika ini.</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-700 mb-1">
+                                    Output Cabang [Ya] (Kondisi Terpenuhi)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="expected_yes_output" 
+                                    id="expectedYesOutput"
+                                    placeholder="Contoh: LULUS atau Diskon 10%" 
+                                    class="w-full px-3.5 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
+                                    oninput="updatePreview()"
+                                >
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-rose-700 mb-1">
+                                    Output Cabang [Tidak] (Tidak Terpenuhi)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="expected_no_output" 
+                                    id="expectedNoOutput"
+                                    placeholder="Contoh: REMEDIAL atau Bayar Normal" 
+                                    class="w-full px-3.5 py-2 bg-white border border-rose-300 rounded-xl text-xs font-bold text-rose-950 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none"
+                                    oninput="updatePreview()"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Live Preview Alur Flowchart Standar Acuan -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <span class="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>👁️</span> Pratinjau Alur Flowchart Acuan yang Terbentuk:
+                    </span>
+                    <div id="livePreviewContainer" class="flex flex-wrap items-center gap-1.5 p-2.5 bg-white rounded-xl border border-slate-200/80">
+                        <!-- Preview badges dynamically updated by JS -->
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                    <button 
+                        type="button" 
+                        onclick="closeCreateCaseModal()" 
+                        class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        type="submit" 
+                        class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                    >
+                        Simpan Studi Kasus & Aktifkan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 2: DETAIL DIAGRAM SISWA (VIEW JSON & FEEDBACK)              -->
+    <!-- ================================================================= -->
     <div id="detailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -448,6 +996,71 @@
     </div>
 
     <script>
+        // Tab & Modal State Management
+        let currentFlowType = 'sequential';
+
+        function openCreateCaseModal() {
+            document.getElementById('createCaseModal').classList.remove('hidden');
+            updatePreview();
+        }
+
+        function closeCreateCaseModal() {
+            document.getElementById('createCaseModal').classList.add('hidden');
+        }
+
+        function handleFlowTypeChange(type) {
+            currentFlowType = type;
+            const seqEl = document.getElementById('sequentialFields');
+            const branchEl = document.getElementById('branchingFields');
+
+            if (type === 'branching') {
+                seqEl.classList.add('hidden');
+                branchEl.classList.remove('hidden');
+            } else {
+                seqEl.classList.remove('hidden');
+                branchEl.classList.add('hidden');
+            }
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const container = document.getElementById('livePreviewContainer');
+            if (!container) return;
+
+            const inputs = document.getElementById('expectedInputs')?.value?.trim() || 'Data';
+            const badges = [];
+
+            // 1. Terminator Mulai
+            badges.push({ label: 'Mulai', color: 'bg-amber-100 border-amber-300 text-amber-950' });
+
+            // 2. I/O Input
+            badges.push({ label: 'Input ' + inputs, color: 'bg-sky-100 border-sky-300 text-sky-950' });
+
+            if (currentFlowType === 'branching') {
+                const decision = document.getElementById('expectedDecision')?.value?.trim() || 'Kondisi ?';
+                const yesOut = document.getElementById('expectedYesOutput')?.value?.trim() || 'Output Ya';
+                const noOut = document.getElementById('expectedNoOutput')?.value?.trim() || 'Output Tidak';
+
+                badges.push({ label: decision, color: 'bg-orange-100 border-orange-300 text-orange-950' });
+                badges.push({ label: '[Ya] ' + yesOut, color: 'bg-emerald-100 border-emerald-300 text-emerald-950' });
+                badges.push({ label: '[Tidak] ' + noOut, color: 'bg-rose-100 border-rose-300 text-rose-950' });
+            } else {
+                const proc = document.getElementById('expectedProcess')?.value?.trim() || 'Rumus / Proses';
+                const out = document.getElementById('expectedOutputs')?.value?.trim() || 'Hasil';
+
+                badges.push({ label: proc, color: 'bg-emerald-100 border-emerald-300 text-emerald-950' });
+                badges.push({ label: 'Cetak ' + out, color: 'bg-sky-100 border-sky-300 text-sky-950' });
+            }
+
+            // Terminator Selesai
+            badges.push({ label: 'Selesai', color: 'bg-amber-100 border-amber-300 text-amber-950' });
+
+            container.innerHTML = badges.map((b, i) => {
+                const arrow = i < badges.length - 1 ? '<span class="text-slate-400 font-bold text-xs">➔</span>' : '';
+                return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl border text-[11px] font-bold ${b.color}"><span>${b.label}</span></span> ${arrow}`;
+            }).join(' ');
+        }
+
         function openDetailModal(sub) {
             document.getElementById('modalStudentName').textContent = sub.student_name || 'Anonim';
             document.getElementById('modalMeta').textContent = `Submission #${sub.id} • ${new Date(sub.created_at).toLocaleString('id-ID')}`;
@@ -503,6 +1116,11 @@
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
         }
+
+        // Initialize preview on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePreview();
+        });
     </script>
 </body>
 </html>

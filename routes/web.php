@@ -35,8 +35,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/flowchart/store', [FlowchartController::class, 'store'])->name('flowchart.store');
 });
 
-// Portal Guru - Dashboard Rekapitulasi (Khusus Hak Akses Role: Guru)
+// Portal Guru - Dashboard Rekapitulasi & Manajemen Studi Kasus (Khusus Role: Guru)
 Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('/dashboard', [GuruController::class, 'dashboard'])->name('dashboard');
     Route::delete('/submission/{id}', [GuruController::class, 'destroy'])->name('submission.destroy');
+    Route::post('/case-study', [GuruController::class, 'storeCaseStudy'])->name('case_study.store');
+    Route::delete('/case-study/{id}', [GuruController::class, 'destroyCaseStudy'])->name('case_study.destroy');
 });
