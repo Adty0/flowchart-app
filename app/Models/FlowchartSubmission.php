@@ -10,6 +10,7 @@ class FlowchartSubmission extends Model
         'user_id',
         'student_name',
         'class_name',
+        'case_key',
         'diagram_data',
         'score',
         'feedback',
@@ -28,5 +29,10 @@ class FlowchartSubmission extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function caseStudy()
+    {
+        return $this->belongsTo(CaseStudy::class, 'case_key', 'case_key');
     }
 }
