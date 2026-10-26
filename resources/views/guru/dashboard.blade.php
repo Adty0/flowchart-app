@@ -482,15 +482,26 @@
                         @endif
                     </form>
 
-                    <button 
-                        type="button" 
-                        onclick="window.print()" 
-                        class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                        title="Cetak Rekap"
-                    >
-                        <span>🖨️</span>
-                        <span>Cetak</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <a 
+                            href="{{ route('guru.export_excel', request()->query()) }}" 
+                            class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                            title="Cetak & Ekspor Hasil Penilaian ke Format Excel (.xls)"
+                        >
+                            <span>📊</span>
+                            <span>Cetak Excel</span>
+                        </a>
+
+                        <button 
+                            type="button" 
+                            onclick="window.print()" 
+                            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                            title="Cetak Dokumen / Print PDF"
+                        >
+                            <span>🖨️</span>
+                            <span class="hidden sm:inline">Print</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

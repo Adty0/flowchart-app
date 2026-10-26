@@ -233,6 +233,129 @@ class GuruController extends Controller
     }
 
     /**
+     * Cetak / Ekspor hasil penilaian siswa ke format Microsoft Excel (.xls).
+     */
+    public function exportExcel(Request $request)
+    {
+        $search = $request->query('search');
+        $filterStatus = $request->query('status');
+        $selectedClass = $request->query('class_name');
+
+        $query = FlowchartSubmission::with(['user', 'caseStudy'])->orderBy('class_name')->orderBy('student_name');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('student_name', 'like', "%{$search}%")
+                  ->orWhere('class_name', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($sub) use ($search) {
+                      $sub->where('name', 'like', "%{$search}%")
+                          ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($filterStatus === 'lulus') {
+            $query->where('score', '>=', 75);
+        } elseif ($filterStatus === 'remedial') {
+            $query->where('score', '<', 75);
+        }
+
+        if ($selectedClass) {
+            $query->where('class_name', $selectedClass);
+        }
+
+        $submissions = $query->get()->filter(function ($sub) {
+            $name = strtolower(trim($sub->student_name ?? ''));
+            return $name !== 'contoh1' && $name !== 'adit' && !str_contains($name, 'contoh1');
+        })->values();
+
+        // Mapping NISN Resmi Siswa X TO 3
+        $studentNisnMap = [
+            'RAFIANSYAH CIPTA PRANATA' => '0106572131',
+            'RAFIQI DWI SAPUTRA' => '0109053073',
+            'RAIHAN NUR RAHMAN' => '0102160972',
+            'RANGGA SAPUTRA' => '0107837151',
+            'RAVAEL DEWA FAHLEVI' => '0103998108',
+            'REHAN DWI OKTAVIAN' => '0107376882',
+            'RENO ADIAN SAPUTRA' => '0118540361',
+            'RIDWAN KURNIAWAN' => '0103670451',
+            'RIZKY EDY HIKMAWAN' => '0106392063',
+            "SA'I FADLI" => '0106399619',
+            'SATRIA BAGUS NURROHMAN' => '0111405486',
+            'SATRIA GUTAMA' => '0107669333',
+            'SATYA NURIL TAQIYAN' => '0107397653',
+            'SHAH SULTAN ARIFIN' => '0101682196',
+            'TEGAR ABADY' => '0101223593',
+            'TEGAR GUSTI WARDANA' => '0101037491',
+            'TEXAS PUTRA WIJAYA' => '0104999663',
+            'WISNU BUDI SANTOSO' => '0114072927',
+            'YARDAN ATSAQIF' => '0101294104',
+            'YUSUF BINTANG PRATAMA' => '0104490586',
+            'YUSUF THORIQ EL FAROBI' => '0103213869',
+            'ZUAN ADITYA FIRMANSYAH' => '0116085711',
+            'ADDIN NOOR MAULANA' => '0105535891',
+            'ARYA BAGUS NUGROHO' => '0102018742',
+            'ARYA FAHREZA' => '0108465352',
+            'CAKRAWALA LINTANG SABAKHALILLAH' => '0101394467',
+            'EGIT MAHARDIKA' => '0102727958',
+            'ENGGAR WIBOWO MUKTI' => '0103349017',
+            'ERLINO DWI SAPUTRA' => '0104382559',
+            'FAHRI RAHMADANI' => '0107878508',
+            'HAFIZH MAULANA AHMAD' => '0105540344',
+            'ILHAM NUR YUWANA' => '0112054807',
+            'IQBAL RAFA SAPUTRA' => '0108497094',
+            'IRFANO DIKA PRATAMA' => '0107988726',
+            'LANJAR REZKY BAKTI AJI SAPUTRA' => '0101764559',
+            'NAUFAL LATIF CHAIRUL HAKAN' => '0108854779',
+        ];
+
+        // Assign calculated_nisn ke setiap submission
+        foreach ($submissions as $sub) {
+            $studentUpper = strtoupper(trim($sub->student_name ?? ''));
+            if ($sub->user && preg_match('/^([0-9]+)@/', $sub->user->email, $m)) {
+                $sub->calculated_nisn = $m[1];
+            } elseif (isset($studentNisnMap[$studentUpper])) {
+                $sub->calculated_nisn = $studentNisnMap[$studentUpper];
+            } else {
+                $sub->calculated_nisn = '-';
+            }
+        }
+
+        $totalSubmissions = $submissions->count();
+        $tuntasCount = $submissions->where('score', '>=', 75)->count();
+        $remedialCount = $submissions->where('score', '<', 75)->count();
+        $averageScore = $totalSubmissions > 0 ? round($submissions->avg('score'), 1) : 0;
+        $percentageTuntas = $totalSubmissions > 0 ? round(($tuntasCount / $totalSubmissions) * 100, 1) : 0;
+
+        $user = auth()->user();
+        $teacherName = $user ? $user->name : 'Nur Aditya Romadhon S.Kom';
+        $caseStudyTitle = 'Hitung Luas Segitiga';
+
+        $safeClass = $selectedClass ? preg_replace('/[^A-Za-z0-9_-]/', '_', $selectedClass) : 'X_TO_3';
+        $filename = 'Rekap_Nilai_Flowchart_' . $safeClass . '_' . date('Ymd_His') . '.xls';
+
+        $content = view('guru.export_excel', compact(
+            'submissions',
+            'totalSubmissions',
+            'tuntasCount',
+            'remedialCount',
+            'averageScore',
+            'percentageTuntas',
+            'teacherName',
+            'selectedClass',
+            'caseStudyTitle'
+        ))->render();
+
+        return response($content, 200, [
+            'Content-Type'        => 'application/vnd.ms-excel; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+        ]);
+    }
+
+    /**
      * Buka / Tutup akses remedial bagi siswa yang belum tuntas.
      */
     public function toggleRemedial($id)

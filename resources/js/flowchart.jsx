@@ -2399,6 +2399,177 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
   };
 
+  // Cetak & Ekspor Hasil Penilaian ke Format Microsoft Excel (.xls)
+  const handleExportExcel = () => {
+    const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
+    if (listToExport.length === 0) {
+      alert('Tidak ada data penilaian untuk dicetak ke Excel.');
+      return;
+    }
+
+    const teacherName = currentUser?.name || 'Nur Aditya Romadhon S.Kom';
+    const activeClass = filterClass || 'Semua Kelas (X TO 3)';
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    const total = listToExport.length;
+    const tuntas = listToExport.filter((s) => (s.score || 0) >= 75).length;
+    const remedial = total - tuntas;
+    const avg = total > 0 ? (listToExport.reduce((acc, c) => acc + (c.score || 0), 0) / total).toFixed(1) : 0;
+    const pctTuntas = total > 0 ? ((tuntas / total) * 100).toFixed(1) : 0;
+
+    // Mapping NISN
+    const nisnMap = {};
+    STUDENTS_X_TO3.forEach((st) => {
+      nisnMap[st.name.toUpperCase().trim()] = st.nisn;
+    });
+
+    const rowsHtml = listToExport
+      .map((sub, idx) => {
+        const studentName = (sub.student_name || 'Siswa').toUpperCase().trim();
+        let nisn = sub.nisn || nisnMap[studentName] || '-';
+        if (nisn === '-' && sub.email && /^\d+@/.test(sub.email)) {
+          nisn = sub.email.split('@')[0];
+        }
+
+        const score = sub.score || 0;
+        const isTuntas = score >= 75;
+        const statusText = isTuntas ? 'TUNTAS' : sub.is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL';
+        const statusBg = isTuntas ? '#dcfce7' : sub.is_remedial_open ? '#dbeafe' : '#fee2e2';
+        const statusColor = isTuntas ? '#15803d' : sub.is_remedial_open ? '#1d4ed8' : '#b91c1c';
+        const scoreColor = isTuntas ? '#15803d' : '#b91c1c';
+
+        // Feedback formatting
+        let feedbackClean = '-';
+        if (Array.isArray(sub.feedback)) {
+          feedbackClean = sub.feedback.join('; ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+        } else if (sub.feedback) {
+          feedbackClean = String(sub.feedback).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+        }
+
+        const caseTitle = caseStudiesMap[sub.case_key]?.title || 'Hitung Luas Segitiga';
+        const timeFormatted = sub.created_at
+          ? new Date(sub.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+          : '08:15';
+
+        return `<tr>
+          <td style="border: 1px solid #94a3b8; text-align: center; padding: 6px;">${idx + 1}</td>
+          <td style="border: 1px solid #94a3b8; text-align: center; padding: 6px; mso-number-format: '\\@';">${nisn}</td>
+          <td style="border: 1px solid #94a3b8; text-align: left; padding: 6px;"><strong>${studentName}</strong></td>
+          <td style="border: 1px solid #94a3b8; text-align: center; padding: 6px;">${sub.class_name || 'X TO 3'}</td>
+          <td style="border: 1px solid #94a3b8; text-align: left; padding: 6px;">${caseTitle}</td>
+          <td style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; font-size: 11pt; color: ${scoreColor}; padding: 6px;">${score}</td>
+          <td style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; background-color: ${statusBg}; color: ${statusColor}; padding: 6px;">${statusText}</td>
+          <td style="border: 1px solid #94a3b8; text-align: left; font-size: 10pt; padding: 6px;">${feedbackClean}</td>
+          <td style="border: 1px solid #94a3b8; text-align: center; font-size: 10pt; padding: 6px;">${timeFormatted}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const excelHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <!--[if gte mso 9]>
+  <xml>
+    <x:ExcelWorkbook>
+      <x:ExcelWorksheets>
+        <x:ExcelWorksheet>
+          <x:Name>Rekap Nilai Siswa</x:Name>
+          <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+        </x:ExcelWorksheet>
+      </x:ExcelWorksheets>
+    </x:ExcelWorkbook>
+  </xml>
+  <![endif]-->
+  <style>
+    body, table { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #0f172a; }
+    .th-header { background-color: #1e293b; color: #ffffff; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; padding: 8px 6px; }
+  </style>
+</head>
+<body>
+  <table>
+    <tr><td colspan="9" style="font-size: 15pt; font-weight: bold; color: #1e3a8a; text-align: center;">LABORATORIUM FLOWCHART & PEMROGRAMAN DASAR</td></tr>
+    <tr><td colspan="9" style="font-size: 12pt; font-weight: bold; color: #334155; text-align: center;">DAFTAR REKAPITULASI HASIL PENILAIAN PRAKTIKUM SISWA</td></tr>
+    <tr><td colspan="9" style="font-size: 10pt; color: #64748b; text-align: center; font-style: italic;">Waktu Cetak: ${dateStr}, ${timeStr} WIB</td></tr>
+    <tr><td colspan="9"></td></tr>
+
+    <tr>
+      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Guru Pengampu</td>
+      <td colspan="3" style="border: 1px solid #cbd5e1; padding: 5px;"><strong>${teacherName}</strong></td>
+      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Materi / Kasus</td>
+      <td colspan="4" style="border: 1px solid #cbd5e1; padding: 5px;">Hitung Luas Segitiga</td>
+    </tr>
+    <tr>
+      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Rombel / Kelas</td>
+      <td colspan="3" style="border: 1px solid #cbd5e1; padding: 5px;"><strong>${activeClass}</strong></td>
+      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Kriteria Kelulusan (KKM)</td>
+      <td colspan="4" style="border: 1px solid #cbd5e1; padding: 5px;"><strong>75 / 100</strong> (Nilai Minimal Tuntas)</td>
+    </tr>
+    <tr><td colspan="9"></td></tr>
+
+    <tr>
+      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Total Siswa</td>
+      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Tuntas (≥ 75)</td>
+      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Belum Tuntas / Remidial</td>
+      <td style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Rata-rata Nilai</td>
+      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Persentase Ketuntasan</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; padding: 6px;">${total} Siswa</td>
+      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; color: #15803d; background-color: #f0fdf4; padding: 6px;">${tuntas} Siswa</td>
+      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; color: #b91c1c; background-color: #fef2f2; padding: 6px;">${remedial} Siswa</td>
+      <td style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; padding: 6px;">${avg}</td>
+      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; color: #1e3a8a; background-color: #eff6ff; padding: 6px;">${pctTuntas}%</td>
+    </tr>
+    <tr><td colspan="9"></td></tr>
+
+    <thead>
+      <tr>
+        <th class="th-header" style="width: 40px;">NO</th>
+        <th class="th-header" style="width: 130px;">NISN</th>
+        <th class="th-header" style="width: 250px;">NAMA SISWA</th>
+        <th class="th-header" style="width: 100px;">KELAS</th>
+        <th class="th-header" style="width: 160px;">STUDI KASUS</th>
+        <th class="th-header" style="width: 80px;">SKOR</th>
+        <th class="th-header" style="width: 140px;">STATUS</th>
+        <th class="th-header" style="width: 380px;">CATATAN EVALUASI & FEEDBACK</th>
+        <th class="th-header" style="width: 120px;">WAKTU</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+  <br/><br/>
+  <table style="width: 100%;">
+    <tr>
+      <td colspan="6"></td>
+      <td colspan="3" style="text-align: center; font-size: 11pt;">
+        Kota Madiun, ${dateStr}<br/>
+        Guru Mata Pelajaran Informatika / Pemrograman Dasar
+        <br/><br/><br/><br/><br/>
+        <strong><u>${teacherName}</u></strong><br/>
+        NIP. -
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeClass = activeClass.replace(/[^A-Za-z0-9_-]/g, '_');
+    a.href = url;
+    a.download = `Rekap_Nilai_Flowchart_${safeClass}_${now.toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Simpan studi kasus baru buatan guru
   const handleCreateCase = (e) => {
     e.preventDefault();
@@ -2614,11 +2785,22 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
                   <button
                     type="button"
+                    onClick={handleExportExcel}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                    title="Cetak & Ekspor Hasil Penilaian ke Format Excel (.xls)"
+                  >
+                    <span>📊</span>
+                    <span>Cetak Excel</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => window.print()}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                    title="Cetak PDF / Print Fisik"
                   >
                     <span>🖨️</span>
-                    <span>Cetak</span>
+                    <span className="hidden sm:inline">Print</span>
                   </button>
                 </div>
               </div>
