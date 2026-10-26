@@ -1446,19 +1446,6 @@ function LoginForm({ onLogin }) {
               ⚡ Langsung Buka Kanvas Siswa (Tamu)
             </button>
           </div>
-
-          {/* Kotak Info Akun Default */}
-          <div className="mt-5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
-            <span className="font-bold text-slate-700 block mb-1">🔑 Akun Default Tersedia:</span>
-            <div className="flex justify-between items-center py-0.5 border-b border-slate-200/60">
-              <span><b>Guru:</b> guru@sekolah.id</span>
-              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">password123</span>
-            </div>
-            <div className="flex justify-between items-center py-0.5 mt-0.5">
-              <span><b>Siswa:</b> siswa@sekolah.id</span>
-              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">password123</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -1692,54 +1679,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   ];
 
   return (
-    <div className="space-y-6 pb-12 animate-fadeIn">
-      {/* Header Guru */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
-              👨‍🏫
-            </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Portal Pendidik Flowchart</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                  Guru
-                </span>
-              </h1>
-              <p className="text-xs text-slate-500">
-                {currentUser?.name || 'Budi Santoso, S.Kom.'} ({currentUser?.email || 'guru@sekolah.id'})
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <button
-              type="button"
-              onClick={onOpenCanvas}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
-            >
-              <span>⚡</span>
-              <span className="hidden sm:inline">Buka Kanvas Flowchart</span>
-              <span className="sm:hidden">Kanvas</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onLogout}
-              className="px-2.5 sm:px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95"
-              title="Keluar Akun"
-            >
-              <svg className="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
-                <line x1="12" y1="2" x2="12" y2="12" />
-              </svg>
-              <span className="hidden sm:inline">Keluar</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="space-y-6 pb-12 animate-fadeIn pt-4 sm:pt-6">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Navigasi Tab */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 no-print">
