@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-2jnfzs8T.css",
+    "file": "assets/app-CUmJBk57.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,12 +9,13 @@
     ]
   },
   "resources/js/flowchart.jsx": {
-    "file": "assets/flowchart-C3eLBTBR.js",
+    "file": "assets/flowchart-DcNaI-Ee.js",
     "name": "flowchart",
     "src": "resources/js/flowchart.jsx",
     "isEntry": true,
     "css": [
-      "assets/flowchart-BnuhLJ6X.css"
+      "assets/flowchart-BnuhLJ6X.css",
+      "assets/app-CUmJBk57.css"
     ]
   }
 }

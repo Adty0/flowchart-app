@@ -1270,7 +1270,7 @@ export default function FlowchartEditor() {
 
 // Inisialisasi Root React
 function initFlowchartApp() {
-  const container = document.getElementById('flowchart-app');
+  const container = document.getElementById('flowchart-app') || document.getElementById('flowchart-root');
   if (container && !container.dataset.reactMounted) {
     container.dataset.reactMounted = 'true';
     const root = createRoot(container);
