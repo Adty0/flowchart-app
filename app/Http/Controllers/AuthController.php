@@ -25,6 +25,28 @@ class AuthController extends Controller
     }
 
     /**
+     * Akses Cepat 1-Klik Masuk sebagai Siswa Demo (Kelas Demo).
+     */
+    public function loginDemo(Request $request)
+    {
+        $demoUser = User::firstOrCreate(
+            ['email' => 'demo@sekolah.id'],
+            [
+                'name'       => 'Siswa Demo',
+                'password'   => Hash::make('password123'),
+                'role'       => 'siswa',
+                'class_name' => 'Kelas Demo',
+            ]
+        );
+
+        Auth::login($demoUser);
+        $request->session()->regenerate();
+
+        return redirect()->route('flowchart.index')
+            ->with('success', 'Berhasil masuk sebagai Siswa Demo (Kelas Demo). Silakan mencoba kanvas flowchart.');
+    }
+
+    /**
      * Proses autentikasi login pengguna.
      */
     public function login(Request $request)

@@ -483,14 +483,15 @@
                     </form>
 
                     <div class="flex items-center gap-2">
-                        <a 
-                            href="{{ route('guru.export_excel', request()->query()) }}" 
+                        <button 
+                            type="button" 
+                            onclick="exportDashboardTableToXLSX()" 
                             class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                            title="Cetak & Ekspor Hasil Penilaian ke Format Excel (.xls)"
+                            title="Cetak & Ekspor Hasil Penilaian ke Format Asli Microsoft Excel (.xlsx)"
                         >
                             <span>📊</span>
                             <span>Cetak Excel</span>
-                        </a>
+                        </button>
 
                         <button 
                             type="button" 
@@ -1146,6 +1147,143 @@
         document.addEventListener('DOMContentLoaded', () => {
             updatePreview();
         });
+    </script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        function exportDashboardTableToXLSX() {
+            if (typeof XLSX === 'undefined') {
+                window.location.href = "{{ route('guru.export_excel', request()->query()) }}";
+                return;
+            }
+
+            const subs = @json($submissions);
+            if (!subs || !subs.length) {
+                alert('Tidak ada data penilaian untuk diekspor.');
+                return;
+            }
+
+            const nisnMap = {
+                'RAFIANSYAH CIPTA PRANATA': '0106572131',
+                'RAFIQI DWI SAPUTRA': '0109053073',
+                'RAIHAN NUR RAHMAN': '0102160972',
+                'RANGGA SAPUTRA': '0107837151',
+                'RAVAEL DEWA FAHLEVI': '0103998108',
+                'REHAN DWI OKTAVIAN': '0107376882',
+                'RENO ADIAN SAPUTRA': '0118540361',
+                'RIDWAN KURNIAWAN': '0103670451',
+                'RIZKY EDY HIKMAWAN': '0106392063',
+                "SA'I FADLI": '0106399619',
+                'SATRIA BAGUS NURROHMAN': '0111405486',
+                'SATRIA GUTAMA': '0107669333',
+                'SATYA NURIL TAQIYAN': '0107397653',
+                'SHAH SULTAN ARIFIN': '0101682196',
+                'TEGAR ABADY': '0101223593',
+                'TEGAR GUSTI WARDANA': '0101037491',
+                'TEXAS PUTRA WIJAYA': '0104999663',
+                'WISNU BUDI SANTOSO': '0114072927',
+                'YARDAN ATSAQIF': '0101294104',
+                'YUSUF BINTANG PRATAMA': '0104490586',
+                'YUSUF THORIQ EL FAROBI': '0103213869',
+                'ZUAN ADITYA FIRMANSYAH': '0116085711',
+                'ADDIN NOOR MAULANA': '0105535891',
+                'ARYA BAGUS NUGROHO': '0102018742',
+                'ARYA FAHREZA': '0108465352',
+                'CAKRAWALA LINTANG SABAKHALILLAH': '0101394467',
+                'EGIT MAHARDIKA': '0102727958',
+                'ENGGAR WIBOWO MUKTI': '0103349017',
+                'ERLINO DWI SAPUTRA': '0104382559',
+                'FAHRI RAHMADANI': '0107878508',
+                'HAFIZH MAULANA AHMAD': '0105540344',
+                'ILHAM NUR YUWANA': '0112054807',
+                'IQBAL RAFA SAPUTRA': '0108497094',
+                'IRFANO DIKA PRATAMA': '0107988726',
+                'LANJAR REZKY BAKTI AJI SAPUTRA': '0101764559',
+                'NAUFAL LATIF CHAIRUL HAKAN': '0108854779'
+            };
+
+            const teacherName = "{{ Auth::user() ? Auth::user()->name : 'Nur Aditya Romadhon S.Kom' }}";
+            const selectedClass = "{{ request('class_name', 'Semua Kelas (X TO 3)') }}";
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+            const total = subs.length;
+            const tuntas = subs.filter(s => (s.score || 0) >= 75).length;
+            const remedial = total - tuntas;
+            const avg = total > 0 ? (subs.reduce((a, c) => a + (c.score || 0), 0) / total).toFixed(1) : 0;
+            const pct = total > 0 ? ((tuntas / total) * 100).toFixed(1) : 0;
+
+            const rows = subs.map((s, idx) => {
+                const sName = (s.student_name || '').toUpperCase().trim();
+                let nisn = '-';
+                if (s.user && s.user.email && /^\d+@/.test(s.user.email)) {
+                    nisn = s.user.email.split('@')[0];
+                } else if (nisnMap[sName]) {
+                    nisn = nisnMap[sName];
+                }
+                const score = s.score || 0;
+                const status = score >= 75 ? 'TUNTAS' : (s.is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL');
+                let fb = '-';
+                if (Array.isArray(s.feedback)) {
+                    fb = s.feedback.join('; ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+                } else if (s.feedback) {
+                    fb = String(s.feedback).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+                }
+                const waktu = s.created_at ? new Date(s.created_at).toLocaleString('id-ID') : '-';
+                return [idx + 1, String(nisn), sName, s.class_name || 'X TO 3', 'Hitung Luas Segitiga', Number(score), status, fb, waktu];
+            });
+
+            const wsData = [
+                ['LABORATORIUM FLOWCHART & PEMROGRAMAN DASAR'],
+                ['DAFTAR REKAPITULASI HASIL PENILAIAN PRAKTIKUM SISWA'],
+                ['Waktu Cetak: ' + dateStr + ', ' + timeStr + ' WIB'],
+                [],
+                ['Guru Pengampu:', teacherName, '', 'Materi / Kasus:', 'Hitung Luas Segitiga'],
+                ['Rombel / Kelas:', selectedClass, '', 'Standar KKM:', '75 / 100 (Nilai Minimal Tuntas)'],
+                [],
+                ['Total Siswa', 'Tuntas (>= 75)', 'Remedial (< 75)', 'Rata-rata Nilai', 'Persentase Ketuntasan'],
+                [total + ' Siswa', tuntas + ' Siswa', remedial + ' Siswa', avg, pct + '%'],
+                [],
+                ['NO', 'NISN', 'NAMA SISWA', 'KELAS', 'STUDI KASUS', 'SKOR', 'STATUS', 'CATATAN EVALUASI & FEEDBACK', 'WAKTU'],
+                ...rows,
+                [],
+                [],
+                ['', '', '', '', '', '', 'Kota Madiun, ' + dateStr],
+                ['', '', '', '', '', '', 'Guru Mata Pelajaran Informatika'],
+                [],
+                [],
+                [],
+                ['', '', '', '', '', '', teacherName]
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            if (ws['!ref']) {
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let R = 10; R <= 10 + rows.length; ++R) {
+                    const cellRef = XLSX.utils.encode_cell({ c: 1, r: R });
+                    if (ws[cellRef]) ws[cellRef].t = 's';
+                }
+            }
+
+            ws['!cols'] = [
+                { wch: 6 },
+                { wch: 16 },
+                { wch: 35 },
+                { wch: 15 },
+                { wch: 25 },
+                { wch: 10 },
+                { wch: 18 },
+                { wch: 60 },
+                { wch: 20 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
+            const safeClass = selectedClass.replace(/[^A-Za-z0-9_-]/g, '_');
+            const dateKey = now.toISOString().slice(0, 10);
+            XLSX.writeFile(wb, 'Rekap_Nilai_Flowchart_' + safeClass + '_' + dateKey + '.xlsx');
+        }
     </script>
 </body>
 </html>

@@ -15,6 +15,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import '../css/app.css';
 import appLogo from '../images/logo.png';
+import * as XLSX from 'xlsx';
 
 // ============================================================================
 // DAFTAR STUDI KASUS & SOAL LATIHAN SISWA (DIPEROLEH DINAMIS DARI DATABASE GURU)
@@ -2117,11 +2118,11 @@ function LoginForm({ onLogin }) {
 
     // Cek login guru
     const isGuru =
-      inputVal.includes('guru') ||
-      inputVal.includes('aditya') ||
-      inputVal.includes('romadhon') ||
+      inputVal === 'guru' ||
       inputVal === 'guru@sekolah.id' ||
-      inputVal === 'nuraditya@sekolah.id';
+      inputVal === 'nuraditya@sekolah.id' ||
+      inputVal.includes('aditya') ||
+      inputVal.includes('romadhon');
 
     if (isGuru) {
       onLogin({
@@ -2133,7 +2134,13 @@ function LoginForm({ onLogin }) {
       return;
     }
 
-    // Cek daftar siswa kelas X TO 3
+    // Cek akun Demo Siswa
+    if (inputVal === 'demo' || inputVal === 'demo@sekolah.id' || inputVal.includes('demo')) {
+      loginAsDemoSiswa();
+      return;
+    }
+
+    // Cek daftar resmi 36 siswa kelas X TO 3
     const matched = STUDENTS_X_TO3.find(
       (s) =>
         (cleanNisn && s.nisn === cleanNisn) ||
@@ -2153,41 +2160,24 @@ function LoginForm({ onLogin }) {
       return;
     }
 
-    // Fallback: Siswa umum kelas X TO 3
+    // Fallback: Siswa uji coba / umum (masuk ke Kelas Demo agar tidak mencemari 36 siswa resmi X TO 3)
     const studentName = inputVal.includes('@') ? inputVal.split('@')[0].toUpperCase() : inputVal.toUpperCase();
     onLogin({
       name: studentName,
-      email: inputVal.includes('@') ? inputVal : `${cleanNisn || '0106572131'}@sekolah.id`,
+      email: inputVal.includes('@') ? inputVal : 'demo@sekolah.id',
       role: 'siswa',
-      className: 'X TO 3',
+      className: 'Kelas Demo',
+      nisn: '0000000000',
     });
   };
 
-  const loginAsGuru = () => {
+  const loginAsDemoSiswa = () => {
     onLogin({
-      name: 'Nur Aditya Romadhon S.Kom',
-      email: 'guru@sekolah.id',
-      role: 'guru',
-      className: null,
-    });
-  };
-
-  const loginAsSiswa = () => {
-    onLogin({
-      name: 'RAFIANSYAH CIPTA PRANATA',
-      email: '0106572131@sekolah.id',
+      name: 'Siswa Demo',
+      email: 'demo@sekolah.id',
       role: 'siswa',
-      className: 'X TO 3',
-      nisn: '0106572131',
-    });
-  };
-
-  const loginAsGuest = () => {
-    onLogin({
-      name: 'Siswa Tamu',
-      email: 'tamu@sekolah.id',
-      role: 'siswa',
-      className: 'X TO 3',
+      className: 'Kelas Demo',
+      nisn: '0000000000',
     });
   };
 
@@ -2250,36 +2240,21 @@ function LoginForm({ onLogin }) {
             </button>
           </form>
 
-          {/* Tombol Akses Cepat 1-Klik */}
+          {/* Akses Cepat Akun Demo Siswa */}
           <div className="mt-4 pt-3 border-t border-slate-100">
             <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
-              Akses Cepat 1-Klik:
+              Akses Cepat Demo Siswa:
             </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={loginAsGuru}
-                className="px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 shadow-2xs"
-              >
-                <span className="text-base">👨‍🏫</span>
-                <span>Masuk Guru</span>
-              </button>
-              <button
-                type="button"
-                onClick={loginAsSiswa}
-                className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 shadow-2xs"
-              >
-                <span className="text-base">👤</span>
-                <span>Masuk Siswa</span>
-              </button>
-            </div>
-
             <button
               type="button"
-              onClick={loginAsGuest}
-              className="w-full mt-2.5 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all text-center cursor-pointer"
+              onClick={loginAsDemoSiswa}
+              className="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 shadow-2xs"
             >
-              ⚡ Buka Kanvas Siswa Tamu
+              <span className="text-xl">👤</span>
+              <div className="text-left">
+                <span className="block font-black text-xs text-blue-950">Masuk Akun Demo Siswa</span>
+                <span className="block text-[10px] text-blue-700 font-medium">Record pengerjaan otomatis masuk ke Kelas Demo</span>
+              </div>
             </button>
           </div>
         </div>
@@ -2399,7 +2374,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
   };
 
-  // Cetak & Ekspor Hasil Penilaian ke Format Microsoft Excel (.xls)
+  // Cetak & Ekspor Hasil Penilaian ke Format Asli Microsoft Excel (.xlsx)
   const handleExportExcel = () => {
     const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
     if (listToExport.length === 0) {
@@ -2425,149 +2400,113 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       nisnMap[st.name.toUpperCase().trim()] = st.nisn;
     });
 
-    const rowsHtml = listToExport
-      .map((sub, idx) => {
-        const studentName = (sub.student_name || 'Siswa').toUpperCase().trim();
-        let nisn = sub.nisn || nisnMap[studentName] || '-';
-        if (nisn === '-' && sub.email && /^\d+@/.test(sub.email)) {
-          nisn = sub.email.split('@')[0];
+    const rowsData = listToExport.map((sub, idx) => {
+      const studentName = (sub.student_name || 'Siswa').toUpperCase().trim();
+      let nisn = sub.nisn || nisnMap[studentName] || '-';
+      if (nisn === '-' && sub.email && /^\d+@/.test(sub.email)) {
+        nisn = sub.email.split('@')[0];
+      }
+
+      const score = sub.score || 0;
+      const isTuntas = score >= 75;
+      const statusText = isTuntas ? 'TUNTAS' : sub.is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL';
+
+      let feedbackClean = '-';
+      if (Array.isArray(sub.feedback)) {
+        feedbackClean = sub.feedback.join('; ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+      } else if (sub.feedback) {
+        feedbackClean = String(sub.feedback).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+      }
+
+      const caseTitle = caseStudiesMap[sub.case_key]?.title || 'Hitung Luas Segitiga';
+      const timeFormatted = sub.created_at
+        ? new Date(sub.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        : '08:15';
+
+      return [
+        idx + 1,
+        String(nisn),
+        studentName,
+        sub.class_name || 'X TO 3',
+        caseTitle,
+        Number(score),
+        statusText,
+        feedbackClean,
+        timeFormatted,
+      ];
+    });
+
+    const wsData = [
+      ['LABORATORIUM FLOWCHART & PEMROGRAMAN DASAR'],
+      ['DAFTAR REKAPITULASI HASIL PENILAIAN PRAKTIKUM SISWA'],
+      ['Waktu Cetak: ' + dateStr + ', ' + timeStr + ' WIB'],
+      [],
+      ['Guru Pengampu:', teacherName, '', 'Materi / Kasus:', 'Hitung Luas Segitiga'],
+      ['Rombel / Kelas:', activeClass, '', 'Standar KKM:', '75 / 100 (Nilai Minimal Tuntas)'],
+      [],
+      ['Total Siswa', 'Tuntas (>= 75)', 'Remedial (< 75)', 'Rata-rata Nilai', 'Persentase Ketuntasan'],
+      [total + ' Siswa', tuntas + ' Siswa', remedial + ' Siswa', avg, pctTuntas + '%'],
+      [],
+      ['NO', 'NISN', 'NAMA SISWA', 'KELAS', 'STUDI KASUS', 'SKOR', 'STATUS', 'CATATAN EVALUASI & FEEDBACK', 'WAKTU'],
+      ...rowsData,
+      [],
+      [],
+      ['', '', '', '', '', '', 'Kota Madiun, ' + dateStr],
+      ['', '', '', '', '', '', 'Guru Mata Pelajaran Informatika'],
+      [],
+      [],
+      [],
+      ['', '', '', '', '', '', teacherName],
+    ];
+
+    try {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      // Kunci sel NISN sebagai string (type 's') agar leading zero tidak hilang
+      if (ws['!ref']) {
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = 10; R <= 10 + rowsData.length; ++R) {
+          const cellRef = XLSX.utils.encode_cell({ c: 1, r: R });
+          if (ws[cellRef]) {
+            ws[cellRef].t = 's';
+          }
         }
+      }
 
-        const score = sub.score || 0;
-        const isTuntas = score >= 75;
-        const statusText = isTuntas ? 'TUNTAS' : sub.is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL';
-        const statusBg = isTuntas ? '#dcfce7' : sub.is_remedial_open ? '#dbeafe' : '#fee2e2';
-        const statusColor = isTuntas ? '#15803d' : sub.is_remedial_open ? '#1d4ed8' : '#b91c1c';
-        const scoreColor = isTuntas ? '#15803d' : '#b91c1c';
+      ws['!cols'] = [
+        { wch: 6 },
+        { wch: 16 },
+        { wch: 35 },
+        { wch: 15 },
+        { wch: 25 },
+        { wch: 10 },
+        { wch: 18 },
+        { wch: 60 },
+        { wch: 20 },
+      ];
 
-        // Feedback formatting
-        let feedbackClean = '-';
-        if (Array.isArray(sub.feedback)) {
-          feedbackClean = sub.feedback.join('; ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-        } else if (sub.feedback) {
-          feedbackClean = String(sub.feedback).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-        }
-
-        const caseTitle = caseStudiesMap[sub.case_key]?.title || 'Hitung Luas Segitiga';
-        const timeFormatted = sub.created_at
-          ? new Date(sub.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-          : '08:15';
-
-        return `<tr>
-          <td style="border: 1px solid #94a3b8; text-align: center; padding: 6px;">${idx + 1}</td>
-          <td style="border: 1px solid #94a3b8; text-align: center; padding: 6px; mso-number-format: '\\@';">${nisn}</td>
-          <td style="border: 1px solid #94a3b8; text-align: left; padding: 6px;"><strong>${studentName}</strong></td>
-          <td style="border: 1px solid #94a3b8; text-align: center; padding: 6px;">${sub.class_name || 'X TO 3'}</td>
-          <td style="border: 1px solid #94a3b8; text-align: left; padding: 6px;">${caseTitle}</td>
-          <td style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; font-size: 11pt; color: ${scoreColor}; padding: 6px;">${score}</td>
-          <td style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; background-color: ${statusBg}; color: ${statusColor}; padding: 6px;">${statusText}</td>
-          <td style="border: 1px solid #94a3b8; text-align: left; font-size: 10pt; padding: 6px;">${feedbackClean}</td>
-          <td style="border: 1px solid #94a3b8; text-align: center; font-size: 10pt; padding: 6px;">${timeFormatted}</td>
-        </tr>`;
-      })
-      .join('');
-
-    const excelHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <!--[if gte mso 9]>
-  <xml>
-    <x:ExcelWorkbook>
-      <x:ExcelWorksheets>
-        <x:ExcelWorksheet>
-          <x:Name>Rekap Nilai Siswa</x:Name>
-          <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-        </x:ExcelWorksheet>
-      </x:ExcelWorksheets>
-    </x:ExcelWorkbook>
-  </xml>
-  <![endif]-->
-  <style>
-    body, table { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #0f172a; }
-    .th-header { background-color: #1e293b; color: #ffffff; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; padding: 8px 6px; }
-  </style>
-</head>
-<body>
-  <table>
-    <tr><td colspan="9" style="font-size: 15pt; font-weight: bold; color: #1e3a8a; text-align: center;">LABORATORIUM FLOWCHART & PEMROGRAMAN DASAR</td></tr>
-    <tr><td colspan="9" style="font-size: 12pt; font-weight: bold; color: #334155; text-align: center;">DAFTAR REKAPITULASI HASIL PENILAIAN PRAKTIKUM SISWA</td></tr>
-    <tr><td colspan="9" style="font-size: 10pt; color: #64748b; text-align: center; font-style: italic;">Waktu Cetak: ${dateStr}, ${timeStr} WIB</td></tr>
-    <tr><td colspan="9"></td></tr>
-
-    <tr>
-      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Guru Pengampu</td>
-      <td colspan="3" style="border: 1px solid #cbd5e1; padding: 5px;"><strong>${teacherName}</strong></td>
-      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Materi / Kasus</td>
-      <td colspan="4" style="border: 1px solid #cbd5e1; padding: 5px;">Hitung Luas Segitiga</td>
-    </tr>
-    <tr>
-      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Rombel / Kelas</td>
-      <td colspan="3" style="border: 1px solid #cbd5e1; padding: 5px;"><strong>${activeClass}</strong></td>
-      <td style="font-weight: bold; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px;">Kriteria Kelulusan (KKM)</td>
-      <td colspan="4" style="border: 1px solid #cbd5e1; padding: 5px;"><strong>75 / 100</strong> (Nilai Minimal Tuntas)</td>
-    </tr>
-    <tr><td colspan="9"></td></tr>
-
-    <tr>
-      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Total Siswa</td>
-      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Tuntas (≥ 75)</td>
-      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Belum Tuntas / Remidial</td>
-      <td style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Rata-rata Nilai</td>
-      <td colspan="2" style="background-color: #e2e8f0; font-weight: bold; border: 1px solid #94a3b8; text-align: center; padding: 6px;">Persentase Ketuntasan</td>
-    </tr>
-    <tr>
-      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; padding: 6px;">${total} Siswa</td>
-      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; color: #15803d; background-color: #f0fdf4; padding: 6px;">${tuntas} Siswa</td>
-      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; color: #b91c1c; background-color: #fef2f2; padding: 6px;">${remedial} Siswa</td>
-      <td style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; padding: 6px;">${avg}</td>
-      <td colspan="2" style="border: 1px solid #94a3b8; text-align: center; font-weight: bold; color: #1e3a8a; background-color: #eff6ff; padding: 6px;">${pctTuntas}%</td>
-    </tr>
-    <tr><td colspan="9"></td></tr>
-
-    <thead>
-      <tr>
-        <th class="th-header" style="width: 40px;">NO</th>
-        <th class="th-header" style="width: 130px;">NISN</th>
-        <th class="th-header" style="width: 250px;">NAMA SISWA</th>
-        <th class="th-header" style="width: 100px;">KELAS</th>
-        <th class="th-header" style="width: 160px;">STUDI KASUS</th>
-        <th class="th-header" style="width: 80px;">SKOR</th>
-        <th class="th-header" style="width: 140px;">STATUS</th>
-        <th class="th-header" style="width: 380px;">CATATAN EVALUASI & FEEDBACK</th>
-        <th class="th-header" style="width: 120px;">WAKTU</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHtml}
-    </tbody>
-  </table>
-
-  <br/><br/>
-  <table style="width: 100%;">
-    <tr>
-      <td colspan="6"></td>
-      <td colspan="3" style="text-align: center; font-size: 11pt;">
-        Kota Madiun, ${dateStr}<br/>
-        Guru Mata Pelajaran Informatika / Pemrograman Dasar
-        <br/><br/><br/><br/><br/>
-        <strong><u>${teacherName}</u></strong><br/>
-        NIP. -
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-    const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const safeClass = activeClass.replace(/[^A-Za-z0-9_-]/g, '_');
-    a.href = url;
-    a.download = `Rekap_Nilai_Flowchart_${safeClass}_${now.toISOString().slice(0, 10)}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
+      const safeClass = activeClass.replace(/[^A-Za-z0-9_-]/g, '_');
+      const dateKey = now.toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Rekap_Nilai_Flowchart_${safeClass}_${dateKey}.xlsx`);
+    } catch (err) {
+      console.error('XLSX export fallback to CSV:', err);
+      const csvLines = [
+        'sep=;',
+        'NO;NISN;NAMA SISWA;KELAS;STUDI KASUS;SKOR;STATUS;CATATAN EVALUASI;WAKTU',
+        ...rowsData.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')),
+      ];
+      const blob = new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Rekap_Nilai_Flowchart_${activeClass.replace(/[^A-Za-z0-9_-]/g, '_')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   // Simpan studi kasus baru buatan guru
@@ -2631,6 +2570,14 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
   // Filter hasil submission (otomatis bersihkan siswa yang diblokir)
   const cleanSubmissions = submissions.filter((s) => !isBlockedStudent(s.student_name));
+
+  const availableClasses = React.useMemo(() => {
+    const set = new Set(['X TO 3', 'Kelas Demo']);
+    cleanSubmissions.forEach((s) => {
+      if (s.class_name) set.add(s.class_name);
+    });
+    return Array.from(set);
+  }, [cleanSubmissions]);
 
   const filteredSubs = cleanSubmissions.filter((s) => {
     if (filterClass && s.class_name !== filterClass) return false;
@@ -2813,7 +2760,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none"
                 >
                   <option value="">Semua Rombel / Kelas</option>
-                  <option value="X TO 3">Kelas X TO 3</option>
+                  {availableClasses.map((cls) => (
+                    <option key={cls} value={cls}>Kelas {cls}</option>
+                  ))}
                 </select>
 
                 <select

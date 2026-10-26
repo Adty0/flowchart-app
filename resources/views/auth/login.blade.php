@@ -97,6 +97,23 @@
                 </button>
             </form>
 
+            <!-- Akses Cepat Demo Siswa -->
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
+                    Akses Cepat Demo Siswa:
+                </span>
+                <a 
+                    href="{{ route('login.demo') }}" 
+                    class="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-2xs"
+                >
+                    <span class="text-lg">👤</span>
+                    <div class="text-left">
+                        <span class="block font-black text-xs text-blue-950">Masuk Akun Demo Siswa</span>
+                        <span class="block text-[10px] text-blue-700 font-medium">Record pengerjaan otomatis masuk ke Kelas Demo</span>
+                    </div>
+                </a>
+            </div>
+
             <!-- Link Pendaftaran Siswa -->
             <div class="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-600">
                 Belum punya akun siswa? 
