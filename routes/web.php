@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
 // Portal Guru - Dashboard Rekapitulasi & Manajemen Studi Kasus (Khusus Role: Guru)
 Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('/dashboard', [GuruController::class, 'dashboard'])->name('dashboard');
+    Route::post('/submission/{id}/toggle-remedial', [GuruController::class, 'toggleRemedial'])->name('submission.toggle_remedial');
     Route::delete('/submission/{id}', [GuruController::class, 'destroy'])->name('submission.destroy');
     Route::post('/case-study', [GuruController::class, 'storeCaseStudy'])->name('case_study.store');
     Route::delete('/case-study/{id}', [GuruController::class, 'destroyCaseStudy'])->name('case_study.destroy');

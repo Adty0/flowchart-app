@@ -584,6 +584,10 @@
                                                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
                                                             <span>✓</span> Tuntas
                                                         </span>
+                                                    @elseif($sub->is_remedial_open)
+                                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 animate-pulse border border-blue-200">
+                                                            <span>🔓</span> Remidi Dibuka
+                                                        </span>
                                                     @else
                                                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700">
                                                             <span>!</span> Remedial
@@ -613,6 +617,19 @@
                                                 </td>
                                                 <td class="px-5 py-3.5 text-right no-print">
                                                     <div class="flex items-center justify-end gap-1.5">
+                                                        @if($sub->score < 75)
+                                                            <form action="{{ route('guru.submission.toggle_remedial', $sub->id) }}" method="POST">
+                                                                @csrf
+                                                                <button 
+                                                                    type="submit" 
+                                                                    class="px-2.5 py-1.5 {{ $sub->is_remedial_open ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white' }} rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95 flex items-center gap-1"
+                                                                    title="{{ $sub->is_remedial_open ? 'Klik untuk menutup akses remedial' : 'Klik untuk membuka akses remedial' }}"
+                                                                >
+                                                                    <span>{{ $sub->is_remedial_open ? '✅ Remidi Terbuka' : '🔓 Buka Remidi' }}</span>
+                                                                </button>
+                                                            </form>
+                                                        @endif
+
                                                         <button 
                                                             type="button" 
                                                             onclick='openDetailModal(@json($sub))'

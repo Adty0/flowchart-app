@@ -112,15 +112,98 @@ class FlowchartController extends Controller
         $caseKey = $validated['case_key'] ?? ($diagram['case_key'] ?? 'luas_segitiga');
         $assessment = $this->evaluateDiagram($diagram, $caseKey);
 
+        $studentName = $validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan');
+        $className = $validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3');
+
+        // Cari riwayat pengerjaan sebelumnya untuk siswa ini pada studi kasus yang sama
+        $existing = FlowchartSubmission::where('case_key', $caseKey)
+            ->where(function ($q) use ($user, $studentName) {
+                if ($user) {
+                    $q->where('user_id', $user->id)
+                      ->orWhere('student_name', $user->name);
+                } else {
+                    $q->where('student_name', $studentName);
+                }
+            })
+            ->latest()
+            ->first();
+
+        if ($existing) {
+            // Aturan 1: Jika sudah tuntas (>= 75), studi kasus hanya bisa dikerjakan 1 kali
+            if ($existing->score >= 75) {
+                return response()->json([
+                    'success'       => false,
+                    'is_locked'     => true,
+                    'message'       => 'Studi kasus ini sudah Anda kerjakan dan dinyatakan TUNTAS dengan skor ' . $existing->score . '/100. Setiap studi kasus hanya bisa dikerjakan 1 kali saja.',
+                    'submission_id' => $existing->id,
+                    'score'         => $existing->score,
+                    'feedback'      => $existing->feedback,
+                ], 403);
+            }
+
+            // Aturan 2: Jika belum tuntas (< 75), harus dicek apakah guru sudah membuka akses remedial
+            if (!$existing->is_remedial_open) {
+                return response()->json([
+                    'success'       => false,
+                    'is_locked'     => true,
+                    'need_remedial' => true,
+                    'message'       => 'Studi kasus ini sudah dikerjakan dengan skor belum tuntas (' . $existing->score . '/100). Setiap studi kasus hanya bisa dikerjakan 1 kali. Silakan minta Guru Anda untuk membuka tombol "Buka Remidi" di Rekap Nilai agar dapat mengerjakan ulang.',
+                    'submission_id' => $existing->id,
+                    'score'         => $existing->score,
+                    'feedback'      => $existing->feedback,
+                ], 403);
+            }
+
+            // Aturan 3: Guru telah membuka remedial
+            // Jika nilai baru tuntas (>= 75), nilai belum tuntas akan otomatis TERGANTI!
+            if ($assessment['score'] >= 75) {
+                $existing->update([
+                    'score'            => $assessment['score'],
+                    'feedback'         => $assessment['feedback'],
+                    'diagram_data'     => $diagram,
+                    'is_remedial_open' => false, // Tutup kembali remedial karena sudah tuntas
+                    'checked_at'       => now(),
+                ]);
+
+                return response()->json([
+                    'success'             => true,
+                    'is_remedial_updated' => true,
+                    'message'             => '🎉 Luar biasa! Remedial Anda berhasil dan nilai lama telah diganti menjadi TUNTAS (' . $assessment['score'] . '/100)!',
+                    'submission_id'       => $existing->id,
+                    'score'               => $assessment['score'],
+                    'feedback'            => $assessment['feedback'],
+                ]);
+            } else {
+                // Jika masih belum tuntas (< 75), perbarui catatan umpan balik
+                $existing->update([
+                    'score'        => max($existing->score, $assessment['score']),
+                    'feedback'     => $assessment['feedback'],
+                    'diagram_data' => $diagram,
+                    'checked_at'   => now(),
+                ]);
+
+                return response()->json([
+                    'success'             => true,
+                    'is_remedial_updated' => false,
+                    'message'             => 'Nilai pengerjaan ulang Anda (' . $assessment['score'] . '/100) masih belum mencapai kriteria tuntas (≥ 75). Silakan perbaiki diagram alir Anda.',
+                    'submission_id'       => $existing->id,
+                    'score'               => $assessment['score'],
+                    'feedback'            => $assessment['feedback'],
+                ]);
+            }
+        }
+
+        // Pengerjaan pertama kali
         $submission = FlowchartSubmission::create([
-            'user_id'      => $user ? $user->id : null,
-            'student_name' => $validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan'),
-            'class_name'   => $validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : '10 RPL 1'),
-            'case_key'     => $caseKey,
-            'diagram_data' => $diagram,
-            'score'        => $assessment['score'],
-            'feedback'     => $assessment['feedback'],
-            'checked_at'   => now(),
+            'user_id'          => $user ? $user->id : null,
+            'student_name'     => $studentName,
+            'class_name'       => $className,
+            'case_key'         => $caseKey,
+            'diagram_data'     => $diagram,
+            'score'            => $assessment['score'],
+            'is_remedial_open' => false,
+            'feedback'         => $assessment['feedback'],
+            'checked_at'       => now(),
         ]);
 
         return response()->json([

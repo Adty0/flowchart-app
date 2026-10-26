@@ -233,6 +233,30 @@ class GuruController extends Controller
     }
 
     /**
+     * Buka / Tutup akses remedial bagi siswa yang belum tuntas.
+     */
+    public function toggleRemedial($id)
+    {
+        $submission = FlowchartSubmission::findOrFail($id);
+        $submission->is_remedial_open = !$submission->is_remedial_open;
+        $submission->save();
+
+        $msg = $submission->is_remedial_open
+            ? 'Akses remedial untuk "' . $submission->student_name . '" berhasil DIBUKA. Siswa dapat mengerjakan ulang di kanvas.'
+            : 'Akses remedial untuk "' . $submission->student_name . '" berhasil DITUTUP.';
+
+        if (request()->expectsJson() || request()->isJson()) {
+            return response()->json([
+                'success'          => true,
+                'is_remedial_open' => $submission->is_remedial_open,
+                'message'          => $msg,
+            ]);
+        }
+
+        return redirect()->route('guru.dashboard')->with('success', $msg);
+    }
+
+    /**
      * Hapus submission tertentu oleh guru.
      */
     public function destroy($id)

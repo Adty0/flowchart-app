@@ -677,7 +677,33 @@ export default function FlowchartEditor({ currentUser }) {
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [submissionsHistoryVersion, setSubmissionsHistoryVersion] = useState(0);
   const assessmentRef = useRef(null);
+
+  // Cek apakah siswa sudah pernah mengerjakan studi kasus ini sebelumnya
+  const existingSubmission = React.useMemo(() => {
+    const cleanName = (studentName || '').trim().toLowerCase();
+    if (!cleanName || isBlockedStudent(cleanName)) return null;
+    try {
+      const history = JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]');
+      return history.find(
+        (s) =>
+          s.case_key === selectedCaseKey &&
+          (s.student_name || '').trim().toLowerCase() === cleanName &&
+          !isBlockedStudent(s.student_name)
+      );
+    } catch (e) {
+      return null;
+    }
+  }, [studentName, selectedCaseKey, assessment, submissionsHistoryVersion]);
+
+  // Aturan pengerjaan:
+  // 1. Jika sudah tuntas (>= 75): Terkunci permanen (hanya 1 kali pengerjaan)
+  // 2. Jika belum tuntas (< 75): Terkunci sampai guru membuka tombol "Buka Remidi"
+  // 3. Jika guru sudah membuka remedial: Siswa dapat mengerjakan ulang
+  const isCompletedAndLocked = Boolean(existingSubmission && (existingSubmission.score || 0) >= 75);
+  const isAwaitingRemedial = Boolean(existingSubmission && (existingSubmission.score || 0) < 75 && !existingSubmission.is_remedial_open);
+  const isRemedialOpen = Boolean(existingSubmission && (existingSubmission.score || 0) < 75 && existingSubmission.is_remedial_open);
 
   // Otomatis scroll halus ke bagian umpan balik & skor saat evaluasi selesai
   useEffect(() => {
@@ -901,10 +927,88 @@ export default function FlowchartEditor({ currentUser }) {
     }
   };
 
+  // Sinkronisasi riwayat pengerjaan lokal (termasuk pergantian nilai jika remedial tuntas)
+  const syncLocalSubmission = (newScore, newFeedback, subId) => {
+    try {
+      const cleanName = (studentName || '').trim();
+      if (!cleanName || isBlockedStudent(cleanName)) return;
+
+      const history = JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]')
+        .filter((s) => !isBlockedStudent(s.student_name));
+
+      const existingIndex = history.findIndex(
+        (s) =>
+          s.case_key === selectedCaseKey &&
+          (s.student_name || '').trim().toLowerCase() === cleanName.toLowerCase()
+      );
+
+      if (existingIndex >= 0) {
+        const existing = history[existingIndex];
+        // Jika sedang remedial:
+        if (existing.is_remedial_open) {
+          if (newScore >= 75) {
+            // ALGORITMA: JIKA SISWA YANG BELUM TUNTAS MENGERJAKAN ULANG DAN NILAINYA TUNTAS,
+            // NILAI YANG BELUM TUNTAS AKAN TERGANTI!
+            history[existingIndex] = {
+              ...existing,
+              score: newScore,
+              feedback: newFeedback,
+              is_remedial_open: false, // Remedial selesai
+              remedial_success: true,
+              updated_at: new Date().toISOString(),
+            };
+          } else {
+            // Jika remedial masih belum tuntas (< 75), catat umpan balik terbaru
+            history[existingIndex] = {
+              ...existing,
+              score: Math.max(existing.score || 0, newScore),
+              feedback: newFeedback,
+              updated_at: new Date().toISOString(),
+            };
+          }
+        } else {
+          // Pengerjaan biasa
+          history[existingIndex] = {
+            ...existing,
+            score: newScore,
+            feedback: newFeedback,
+            updated_at: new Date().toISOString(),
+          };
+        }
+      } else {
+        // Pengerjaan pertama kali
+        history.unshift({
+          id: subId,
+          student_name: cleanName || 'RAFIANSYAH CIPTA PRANATA',
+          class_name: studentClass.trim() || 'X TO 3',
+          case_key: selectedCaseKey,
+          score: newScore,
+          is_remedial_open: false,
+          feedback: newFeedback,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      localStorage.setItem('flowchart_submissions_history', JSON.stringify(history));
+    } catch (e) {}
+  };
+
   // Simpan & Validasi ke DB
   const handleValidateAndSave = async () => {
     if (nodes.length === 0) {
       alert('Kanvas masih kosong! Tambahkan simbol flowchart terlebih dahulu menggunakan tombol di atas.');
+      return;
+    }
+
+    // Aturan 1: Jika sudah tuntas, setiap studi kasus hanya bisa dikerjakan 1 kali
+    if (isCompletedAndLocked) {
+      alert(`Studi kasus ini sudah Anda kerjakan dan dinyatakan TUNTAS dengan skor ${existingSubmission.score}/100.\nSetiap studi kasus hanya dapat dikerjakan 1 kali saja.`);
+      return;
+    }
+
+    // Aturan 2: Jika belum tuntas tapi guru belum membuka remedial
+    if (isAwaitingRemedial) {
+      alert(`Nilai Anda sebelumnya adalah ${existingSubmission.score}/100 (Belum Tuntas).\nSetiap studi kasus hanya dapat dikerjakan 1 kali.\nSilakan hubungi Guru Anda untuk membuka tombol "Buka Remidi" di Rekap Nilai agar Anda dapat mengerjakan ulang.`);
       return;
     }
 
@@ -945,37 +1049,41 @@ export default function FlowchartEditor({ currentUser }) {
           feedback: data.feedback,
           id: data.submission_id,
         });
-        showToast(`🎉 Evaluasi selesai! Skor Anda: ${data.score}/100`, 'success');
+
+        syncLocalSubmission(data.score, data.feedback, data.submission_id);
+        showToast(data.message || `🎉 Evaluasi selesai! Skor Anda: ${data.score}/100`, 'success');
       } else {
+        const errorData = await res.json().catch(() => null);
+        if (errorData?.message) {
+          alert(errorData.message);
+          return;
+        }
         throw new Error('API server unavailable');
       }
     } catch (err) {
-      // Fallback otomatis ke evaluasi lokal (untuk GitHub Pages / mode offline)
+      // Evaluasi lokal (GitHub Pages / mode statis)
       const localResult = evaluateDiagramLocally(nodes, edges, selectedCaseKey, currentCase);
-      const subId = `sub_${Date.now()}`;
+      const subId = existingSubmission?.id || `sub_${Date.now()}`;
       setAssessment({
         score: localResult.score,
         feedback: localResult.feedback,
         id: subId,
       });
 
-      try {
-        const history = JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]');
-        history.unshift({
-          id: subId,
-          student_name: studentName.trim() || 'RAFIANSYAH CIPTA PRANATA',
-          class_name: studentClass.trim() || 'X TO 3',
-          case_key: selectedCaseKey,
-          score: localResult.score,
-          feedback: localResult.feedback,
-          created_at: new Date().toISOString(),
-        });
-        localStorage.setItem('flowchart_submissions_history', JSON.stringify(history.slice(0, 30)));
-      } catch (e) {}
+      syncLocalSubmission(localResult.score, localResult.feedback, subId);
 
-      showToast(`🎉 Evaluasi selesai! Skor Anda: ${localResult.score}/100`, 'success');
+      if (isRemedialOpen) {
+        if (localResult.score >= 75) {
+          showToast(`🎉 Luar biasa! Remedial berhasil, nilai Anda telah resmi diganti menjadi TUNTAS (${localResult.score}/100)!`, 'success');
+        } else {
+          showToast(`Nilai remedial (${localResult.score}/100) masih belum mencapai kriteria tuntas (≥ 75). Perbaiki alur diagram Anda!`, 'warning');
+        }
+      } else {
+        showToast(`🎉 Evaluasi selesai! Skor Anda: ${localResult.score}/100`, 'success');
+      }
     } finally {
       setLoading(false);
+      setSubmissionsHistoryVersion((v) => v + 1);
       setTimeout(() => {
         const el = assessmentRef.current || document.getElementById('hasil-penilaian');
         if (el) {
@@ -1092,6 +1200,43 @@ export default function FlowchartEditor({ currentUser }) {
         </p>
       </div>
 
+      {/* STATUS PENGERJAAN & AKSES REMEDIAL */}
+      {isCompletedAndLocked && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-start gap-2.5 shadow-2xs">
+          <span className="text-base flex-shrink-0">🔒</span>
+          <div>
+            <p className="font-bold">Studi Kasus Telah Selesai & Dinyatakan TUNTAS (Skor: {existingSubmission.score}/100)</p>
+            <p className="text-[11px] text-emerald-800/80 mt-0.5">
+              Setiap studi kasus hanya dapat dikerjakan 1 kali saja. Anda telah berhasil menuntaskan studi kasus ini dengan baik.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isAwaitingRemedial && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-start gap-2.5 shadow-2xs">
+          <span className="text-base flex-shrink-0">⚠️</span>
+          <div>
+            <p className="font-bold">Skor Pengerjaan Sebelumnya: {existingSubmission.score}/100 (Belum Tuntas)</p>
+            <p className="text-[11px] text-amber-800/80 mt-0.5">
+              Setiap studi kasus hanya dapat dikerjakan 1 kali. Silakan hubungi Guru Anda untuk mengklik tombol <b>"Buka Remidi"</b> di Rekap Nilai agar Anda dapat mengerjakan ulang.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isRemedialOpen && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs font-semibold flex items-start gap-2.5 shadow-2xs animate-fadeIn">
+          <span className="text-base flex-shrink-0">🔓</span>
+          <div>
+            <p className="font-bold">Akses Remedial Dibuka oleh Guru!</p>
+            <p className="text-[11px] text-blue-800/80 mt-0.5">
+              Perbaiki dan susun kembali diagram alir Anda. Jika hasil pengerjaan ulang Anda mencapai <b>≥ 75 (Tuntas)</b>, skor lama Anda ({existingSubmission.score}/100) akan <b>otomatis diganti</b> dengan skor baru!
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* PALET SIMBOL DENGAN WARNA SESUAI ASLINYA & TOMBOL AKSI */}
       <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col gap-3">
         {/* Palet Simbol */}
@@ -1157,24 +1302,66 @@ export default function FlowchartEditor({ currentUser }) {
             🗑️ Kosongkan
           </button>
 
-          <button
-            type="button"
-            onClick={handleValidateAndSave}
-            disabled={loading}
-            className="flex-2 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                <span>Memeriksa...</span>
-              </>
-            ) : (
-              <>
-                <span>🚀</span>
-                <span>Periksa & Simpan</span>
-              </>
-            )}
-          </button>
+          {isCompletedAndLocked ? (
+            <button
+              type="button"
+              disabled
+              className="flex-2 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold opacity-80 cursor-not-allowed shadow-xs"
+              title="Studi kasus ini sudah Anda kerjakan dan dinyatakan TUNTAS. Setiap studi kasus hanya bisa dikerjakan 1 kali."
+            >
+              <span>✓</span>
+              <span>Tuntas (Skor: {existingSubmission.score}/100)</span>
+            </button>
+          ) : isAwaitingRemedial ? (
+            <button
+              type="button"
+              disabled
+              className="flex-2 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 bg-slate-300 text-slate-600 rounded-xl text-xs font-bold cursor-not-allowed shadow-xs"
+              title="Nilai Anda belum tuntas. Minta Guru Anda untuk membuka tombol Buka Remidi di rekap nilai."
+            >
+              <span>🔒</span>
+              <span>Menunggu Akses Remidi</span>
+            </button>
+          ) : isRemedialOpen ? (
+            <button
+              type="button"
+              onClick={handleValidateAndSave}
+              disabled={loading}
+              className="flex-2 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer animate-pulse"
+              title="Klik untuk mengirim jawaban remedial Anda. Jika nilai tuntas, nilai lama akan terganti!"
+            >
+              {loading ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  <span>Memeriksa Remedial...</span>
+                </>
+              ) : (
+                <>
+                  <span>🚀</span>
+                  <span>Kirim Jawaban Remedial</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleValidateAndSave}
+              disabled={loading}
+              className="flex-2 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  <span>Memeriksa...</span>
+                </>
+              ) : (
+                <>
+                  <span>🚀</span>
+                  <span>Periksa & Simpan</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1343,6 +1530,21 @@ export const STUDENTS_X_TO3 = [
   { nisn: '0101764559', name: 'LANJAR REZKY BAKTI AJI SAPUTRA' },
   { nisn: '0108854779', name: 'NAUFAL LATIF CHAIRUL HAKAN' },
 ];
+
+// Filter nama respon yang dilarang / dihapus (Contoh1, adit)
+export const isBlockedStudent = (name = '') => {
+  if (!name) return false;
+  const n = String(name).trim().toLowerCase();
+  return (
+    n === 'contoh1' ||
+    n === 'contoh 1' ||
+    n.includes('contoh1') ||
+    n.includes('contoh 1') ||
+    n === 'adit' ||
+    n === 'adit pratama' ||
+    n === 'aditya pratama'
+  );
+};
 
 // Generator waktu pengerjaan siswa antara jam 08.00 - 08.30
 const makeSubmissionTime = (minute, second = 0) => {
@@ -1908,6 +2110,11 @@ function LoginForm({ onLogin }) {
     const inputVal = email.trim().toLowerCase();
     const cleanNisn = inputVal.replace(/[^0-9]/g, '');
 
+    if (isBlockedStudent(inputVal)) {
+      setError('Akun atau respon tersebut telah dihapus dari sistem.');
+      return;
+    }
+
     // Cek login guru
     const isGuru =
       inputVal.includes('guru') ||
@@ -2097,17 +2304,18 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     try {
       const v = localStorage.getItem('flowchart_submissions_v');
       const saved = localStorage.getItem('flowchart_submissions_history');
-      if (v === 'v3_luas_08' && saved) {
+      if (v === 'v4_remedial_rules' && saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 30) {
-          return parsed;
+          return parsed.filter((s) => !isBlockedStudent(s.student_name));
         }
       }
-      localStorage.setItem('flowchart_submissions_v', 'v3_luas_08');
-      localStorage.setItem('flowchart_submissions_history', JSON.stringify(DEFAULT_STUDENT_SUBMISSIONS));
-      return DEFAULT_STUDENT_SUBMISSIONS;
+      const initialClean = DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
+      localStorage.setItem('flowchart_submissions_v', 'v4_remedial_rules');
+      localStorage.setItem('flowchart_submissions_history', JSON.stringify(initialClean));
+      return initialClean;
     } catch (e) {
-      return DEFAULT_STUDENT_SUBMISSIONS;
+      return DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
     }
   });
 
@@ -2137,10 +2345,47 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   });
 
   const saveSubmissions = (newSubs) => {
-    setSubmissions(newSubs);
+    const cleanSubs = newSubs.filter((s) => !isBlockedStudent(s.student_name));
+    setSubmissions(cleanSubs);
     try {
-      localStorage.setItem('flowchart_submissions_history', JSON.stringify(newSubs));
+      localStorage.setItem('flowchart_submissions_history', JSON.stringify(cleanSubs));
     } catch (e) {}
+  };
+
+  // Fungsi Guru membuka / menutup remedial bagi siswa tertentu
+  const handleToggleRemedial = async (subId) => {
+    const target = submissions.find((s, idx) => s.id === subId || idx === subId);
+    if (!target) return;
+
+    const nextState = !target.is_remedial_open;
+    const updated = submissions.map((s, idx) => {
+      const match = s.id === subId || idx === subId;
+      if (match) {
+        return { ...s, is_remedial_open: nextState };
+      }
+      return s;
+    });
+
+    saveSubmissions(updated);
+    alert(
+      nextState
+        ? `Akses remedial untuk "${target.student_name}" berhasil DIBUKA!\nSiswa sekarang dapat mengerjakan ulang diagram di kanvas.`
+        : `Akses remedial untuk "${target.student_name}" DITUTUP.`
+    );
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken && target.id && !String(target.id).startsWith('sub_')) {
+      try {
+        await fetch(`/guru/submission/${target.id}/toggle-remedial`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+          },
+        });
+      } catch (e) {}
+    }
   };
 
   // Isi data simulasi seluruh 36 siswa kelas X TO 3
@@ -2213,8 +2458,10 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
   };
 
-  // Filter hasil submission
-  const filteredSubs = submissions.filter((s) => {
+  // Filter hasil submission (otomatis bersihkan siswa yang diblokir)
+  const cleanSubmissions = submissions.filter((s) => !isBlockedStudent(s.student_name));
+
+  const filteredSubs = cleanSubmissions.filter((s) => {
     if (filterClass && s.class_name !== filterClass) return false;
     if (filterStatus === 'lulus' && s.score < 75) return false;
     if (filterStatus === 'remedial' && s.score >= 75) return false;
@@ -2227,12 +2474,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     return true;
   });
 
-  const totalCount = submissions.length;
+  const totalCount = cleanSubmissions.length;
   const avgScore =
     totalCount > 0
-      ? Math.round(submissions.reduce((acc, cur) => acc + (cur.score || 0), 0) / totalCount)
+      ? Math.round(cleanSubmissions.reduce((acc, cur) => acc + (cur.score || 0), 0) / totalCount)
       : 0;
-  const lulusCount = submissions.filter((s) => (s.score || 0) >= 75).length;
+  const lulusCount = cleanSubmissions.filter((s) => (s.score || 0) >= 75).length;
   const remedialCount = totalCount - lulusCount;
 
   const allCasesList = [
@@ -2455,24 +2702,44 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                               </span>
                             </td>
                             <td className="py-3 px-3 text-center">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                  isLulus
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                    : 'bg-amber-100 text-amber-800 border border-amber-200'
-                                }`}
-                              >
-                                {isLulus ? 'Tuntas' : 'Remedial'}
-                              </span>
+                              {isLulus ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  {sub.remedial_success ? 'Tuntas (Remidi)' : 'Tuntas'}
+                                </span>
+                              ) : sub.is_remedial_open ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200 animate-pulse">
+                                  Remidi Dibuka
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                                  Remedial
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-3 text-right no-print">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedSubDetail(sub)}
-                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
-                              >
-                                Detail
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                {!isLulus && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleRemedial(sub.id || idx)}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-2xs flex items-center gap-1 ${
+                                      sub.is_remedial_open
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        : 'bg-amber-500 hover:bg-amber-600 text-white'
+                                    }`}
+                                    title={sub.is_remedial_open ? 'Klik untuk menutup akses remedial' : 'Klik untuk membuka akses remedial bagi siswa ini'}
+                                  >
+                                    <span>{sub.is_remedial_open ? '✅ Remidi Terbuka' : '🔓 Buka Remidi'}</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedSubDetail(sub)}
+                                  className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                                >
+                                  Detail
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -2799,7 +3066,11 @@ function StaticAppContainer() {
       const saved = localStorage.getItem('flowchart_auth_user');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.name?.includes('Budi Santoso') || parsed?.name?.includes('Aditya Pratama')) {
+        if (
+          parsed?.name?.includes('Budi Santoso') ||
+          parsed?.name?.includes('Aditya Pratama') ||
+          isBlockedStudent(parsed?.name)
+        ) {
           localStorage.removeItem('flowchart_auth_user');
           return null;
         }

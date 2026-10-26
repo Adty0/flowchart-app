@@ -13,6 +13,7 @@ class FlowchartSubmission extends Model
         'case_key',
         'diagram_data',
         'score',
+        'is_remedial_open',
         'feedback',
         'checked_at',
     ];
@@ -23,6 +24,7 @@ class FlowchartSubmission extends Model
             'diagram_data' => 'array',
             'feedback' => 'array',
             'checked_at' => 'datetime',
+            'is_remedial_open' => 'boolean',
         ];
     }
 
