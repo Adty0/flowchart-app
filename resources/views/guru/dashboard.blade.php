@@ -42,9 +42,8 @@
             <div class="flex items-center gap-2.5 sm:gap-3">
                 <a 
                     href="{{ route('flowchart.index') }}" 
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-2xs"
+                    class="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-2xs"
                 >
-                    <span>⚡</span>
                     <span class="hidden sm:inline">Buka Kanvas Flowchart</span>
                     <span class="sm:hidden">Kanvas</span>
                 </a>

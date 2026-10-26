@@ -2307,26 +2307,24 @@ function StaticAppContainer() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('guru')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                     currentView === 'guru'
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
                   }`}
                 >
-                  <span>👨‍🏫</span>
-                  <span className="hidden sm:inline">Portal Guru</span>
+                  Portal Guru
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentView('flowchart')}
-                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                     currentView === 'flowchart'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
                   }`}
                 >
-                  <span>⚡</span>
-                  <span className="hidden sm:inline">Kanvas Siswa</span>
+                  Kanvas Siswa
                 </button>
               </>
             )}

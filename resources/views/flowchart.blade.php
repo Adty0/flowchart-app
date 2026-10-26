@@ -46,10 +46,10 @@
                 @if(Auth::user() && Auth::user()->isGuru())
                     <a 
                         href="{{ route('guru.dashboard') }}" 
-                        class="px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                        class="px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all flex items-center"
                     >
-                        <span>👨‍🏫</span>
                         <span class="hidden sm:inline">Dashboard Rekap</span>
+                        <span class="sm:hidden">Dashboard</span>
                     </a>
                 @endif
 
