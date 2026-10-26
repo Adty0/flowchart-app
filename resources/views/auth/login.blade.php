@@ -21,9 +21,7 @@
 
     <div class="w-full sm:max-w-md mx-auto">
         <div class="text-center">
-            <div class="inline-flex w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 items-center justify-center text-white text-xl sm:text-2xl font-extrabold shadow-lg shadow-blue-500/25 mb-2.5 sm:mb-3">
-                ⚡
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="Laboratorium Flowchart" class="w-24 h-24 sm:w-28 sm:h-28 mx-auto object-contain drop-shadow-md mb-2 rounded-2xl">
             <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Laboratorium Flowchart</h2>
             <p class="text-xs text-slate-500 mt-1">Platform Belajar Logika Algoritma & Penilaian Otomatis</p>
         </div>

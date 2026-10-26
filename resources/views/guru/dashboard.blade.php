@@ -27,9 +27,7 @@
     <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
-                    👨‍🏫
-                </div>
+                <img src="{{ asset('images/logo.png') }}" alt="Logo" class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white border border-slate-200/80 p-0.5">
                 <div>
                     <h1 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
                         <span>Portal Pendidik Flowchart</span>

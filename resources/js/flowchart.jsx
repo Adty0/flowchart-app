@@ -14,6 +14,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import '../css/app.css';
+import appLogo from '../images/logo.png';
 
 // ============================================================================
 // DAFTAR STUDI KASUS & SOAL LATIHAN SISWA (DIPEROLEH DINAMIS DARI DATABASE GURU)
@@ -1361,9 +1362,11 @@ function LoginForm({ onLogin }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col justify-center py-8 sm:py-14 px-3 sm:px-6 lg:px-8 text-slate-800 animate-fadeIn">
       <div className="w-full sm:max-w-md mx-auto">
         <div className="text-center">
-          <div className="inline-flex w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 items-center justify-center text-white text-2xl sm:text-3xl font-extrabold shadow-lg shadow-blue-500/25 mb-3 sm:mb-4">
-            ⚡
-          </div>
+          <img
+            src={appLogo}
+            alt="Laboratorium Flowchart"
+            className="w-24 h-24 sm:w-28 sm:h-28 mx-auto object-contain drop-shadow-md mb-2 rounded-2xl"
+          />
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Laboratorium Flowchart</h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">Platform Belajar Logika Algoritma & Penilaian Otomatis</p>
         </div>
@@ -2274,9 +2277,11 @@ function StaticAppContainer() {
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex items-center justify-between gap-2">
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-base sm:text-lg shadow-md shadow-blue-500/20 flex-shrink-0">
-              ⚡
-            </div>
+            <img
+              src={appLogo}
+              alt="Logo Laboratorium Flowchart"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-contain shadow-xs flex-shrink-0 bg-white border border-slate-200/80 p-0.5"
+            />
             <div className="min-w-0">
               <h1 className="text-sm sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
                 <span className="truncate">Laboratorium Flowchart</span>
