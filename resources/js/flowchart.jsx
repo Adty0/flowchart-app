@@ -1461,7 +1461,7 @@ function LoginForm({ onLogin }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Email Guru / NISN Siswa (Kelas X TO 3)
+                Email Guru / NISN Siswa
               </label>
               <input
                 type="text"
@@ -1496,37 +1496,6 @@ function LoginForm({ onLogin }) {
             </button>
           </form>
 
-          {/* Pemilih Langsung Siswa Kelas X TO 3 */}
-          <div className="mt-4 pt-3.5 border-t border-slate-100">
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 text-center">
-              Atau Pilih Siswa Kelas X TO 3 (36 Siswa):
-            </label>
-            <select
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-500 outline-none"
-              onChange={(e) => {
-                if (!e.target.value) return;
-                const st = STUDENTS_X_TO3.find((s) => s.nisn === e.target.value);
-                if (st) {
-                  onLogin({
-                    name: st.name,
-                    email: `${st.nisn}@sekolah.id`,
-                    role: 'siswa',
-                    className: 'X TO 3',
-                    nisn: st.nisn,
-                  });
-                }
-              }}
-              defaultValue=""
-            >
-              <option value="" disabled>-- Klik untuk Pilih Nama Siswa --</option>
-              {STUDENTS_X_TO3.map((st, i) => (
-                <option key={st.nisn} value={st.nisn}>
-                  {i + 1}. {st.nisn} - {st.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Tombol Akses Cepat 1-Klik */}
           <div className="mt-4 pt-3 border-t border-slate-100">
             <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
@@ -1547,7 +1516,7 @@ function LoginForm({ onLogin }) {
                 className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 shadow-2xs"
               >
                 <span className="text-base">👤</span>
-                <span>Masuk Siswa (X TO 3)</span>
+                <span>Masuk Siswa</span>
               </button>
             </div>
 
