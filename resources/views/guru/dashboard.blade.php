@@ -483,15 +483,15 @@
                     </form>
 
                     <div class="flex items-center gap-2">
-                        <button 
-                            type="button" 
-                            onclick="exportDashboardTableToXLSX()" 
+                        <a 
+                            href="{{ route('guru.export_excel', request()->query()) }}" 
+                            onclick="exportDashboardTableToXLSX(event)" 
                             class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                            title="Cetak & Ekspor Hasil Penilaian ke Format Asli Microsoft Excel (.xlsx)"
+                            title="Cetak & Unduh Hasil Penilaian ke Format Excel (.xlsx)"
                         >
                             <span>📊</span>
                             <span>Cetak Excel</span>
-                        </button>
+                        </a>
 
                         <button 
                             type="button" 
@@ -1148,12 +1148,16 @@
             updatePreview();
         });
     </script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="{{ asset('js/xlsx.full.min.js') }}"></script>
     <script>
-        function exportDashboardTableToXLSX() {
+        function exportDashboardTableToXLSX(e) {
             if (typeof XLSX === 'undefined') {
-                window.location.href = "{{ route('guru.export_excel', request()->query()) }}";
-                return;
+                // Biarkan event default mengikuti link href ke server
+                return true;
+            }
+
+            if (e && e.preventDefault) {
+                e.preventDefault();
             }
 
             const subs = @json($submissions);
@@ -1256,33 +1260,51 @@
                 ['', '', '', '', '', '', teacherName]
             ];
 
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            try {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-            if (ws['!ref']) {
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = 10; R <= 10 + rows.length; ++R) {
-                    const cellRef = XLSX.utils.encode_cell({ c: 1, r: R });
-                    if (ws[cellRef]) ws[cellRef].t = 's';
+                if (ws['!ref']) {
+                    const range = XLSX.utils.decode_range(ws['!ref']);
+                    for (let R = 10; R <= 10 + rows.length; ++R) {
+                        const cellRef = XLSX.utils.encode_cell({ c: 1, r: R });
+                        if (ws[cellRef]) ws[cellRef].t = 's';
+                    }
                 }
+
+                ws['!cols'] = [
+                    { wch: 6 },
+                    { wch: 16 },
+                    { wch: 35 },
+                    { wch: 15 },
+                    { wch: 25 },
+                    { wch: 10 },
+                    { wch: 18 },
+                    { wch: 60 },
+                    { wch: 20 }
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
+                const safeClass = selectedClass.replace(/[^A-Za-z0-9_-]/g, '_');
+                const dateKey = now.toISOString().slice(0, 10);
+                const fileName = 'Rekap_Nilai_Flowchart_' + safeClass + '_' + dateKey + '.xlsx';
+
+                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 250);
+            } catch (err) {
+                console.error("XLSX export error, fallback to server download:", err);
+                window.location.href = "{{ route('guru.export_excel', request()->query()) }}";
             }
-
-            ws['!cols'] = [
-                { wch: 6 },
-                { wch: 16 },
-                { wch: 35 },
-                { wch: 15 },
-                { wch: 25 },
-                { wch: 10 },
-                { wch: 18 },
-                { wch: 60 },
-                { wch: 20 }
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
-            const safeClass = selectedClass.replace(/[^A-Za-z0-9_-]/g, '_');
-            const dateKey = now.toISOString().slice(0, 10);
-            XLSX.writeFile(wb, 'Rekap_Nilai_Flowchart_' + safeClass + '_' + dateKey + '.xlsx');
         }
     </script>
 </body>

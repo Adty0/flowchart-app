@@ -347,11 +347,13 @@ class GuruController extends Controller
         ))->render();
 
         return response($content, 200, [
-            'Content-Type'        => 'application/vnd.ms-excel; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Pragma'              => 'no-cache',
-            'Expires'             => '0',
-            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Content-Type'              => 'application/vnd.ms-excel; charset=utf-8',
+            'Content-Disposition'       => 'attachment; filename="' . $filename . '"',
+            'Content-Transfer-Encoding' => 'binary',
+            'Content-Length'            => strlen($content),
+            'Pragma'                    => 'public',
+            'Expires'                   => '0',
+            'Cache-Control'             => 'must-revalidate, post-check=0, pre-check=0',
         ]);
     }
 

@@ -2489,7 +2489,20 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
       const safeClass = activeClass.replace(/[^A-Za-z0-9_-]/g, '_');
       const dateKey = now.toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `Rekap_Nilai_Flowchart_${safeClass}_${dateKey}.xlsx`);
+      const fileName = `Rekap_Nilai_Flowchart_${safeClass}_${dateKey}.xlsx`;
+
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 250);
     } catch (err) {
       console.error('XLSX export fallback to CSV:', err);
       const csvLines = [
@@ -2504,8 +2517,10 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       a.download = `Rekap_Nilai_Flowchart_${activeClass.replace(/[^A-Za-z0-9_-]/g, '_')}.csv`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 250);
     }
   };
 
