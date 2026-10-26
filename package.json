@@ -4,7 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "node -e \"const fs=require('fs');if(fs.existsSync('public/hot'))fs.unlinkSync('public/hot')\" && vite build",
-        "build:pages": "vite build --config vite.config.pages.js",
+        "build:pages": "vite build --config vite.config.pages.js && node -e \"const fs=require('fs');if(fs.existsSync('docs/template.html')){fs.copyFileSync('docs/template.html','docs/index.html');fs.unlinkSync('docs/template.html');}fs.writeFileSync('docs/.nojekyll','');\"",
         "dev": "vite"
     },
     "devDependencies": {

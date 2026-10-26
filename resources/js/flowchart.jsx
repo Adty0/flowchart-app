@@ -50,31 +50,62 @@ const defaultCaseStudies = {
 };
 
 const getCaseStudiesMap = () => {
+  const map = {};
   const dynamicList = typeof window !== 'undefined' ? window.__FLOWCHART_CASE_STUDIES__ : null;
-  if (!Array.isArray(dynamicList) || dynamicList.length === 0) {
-    return defaultCaseStudies;
+
+  if (Array.isArray(dynamicList) && dynamicList.length > 0) {
+    dynamicList.forEach((c) => {
+      map[c.case_key] = {
+        id: c.case_key,
+        title: c.title,
+        icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
+        badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
+        formula: c.formula || '',
+        description: c.description || '',
+        flow_type: c.flow_type || 'sequential',
+        expected_inputs: c.expected_inputs || '',
+        expected_process: c.expected_process || '',
+        expected_decision: c.expected_decision || '',
+        expected_yes_output: c.expected_yes_output || '',
+        expected_no_output: c.expected_no_output || '',
+        expected_outputs: c.expected_outputs || '',
+        reference_flow: c.reference_flow || null,
+      };
+    });
+  } else {
+    Object.assign(map, defaultCaseStudies);
   }
 
-  const map = {};
-  dynamicList.forEach((c) => {
-    map[c.case_key] = {
-      id: c.case_key,
-      title: c.title,
-      icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
-      badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
-      formula: c.formula || '',
-      description: c.description || '',
-      flow_type: c.flow_type || 'sequential',
-      expected_inputs: c.expected_inputs || '',
-      expected_process: c.expected_process || '',
-      expected_decision: c.expected_decision || '',
-      expected_yes_output: c.expected_yes_output || '',
-      expected_no_output: c.expected_no_output || '',
-      expected_outputs: c.expected_outputs || '',
-      reference_flow: c.reference_flow || null,
-    };
-  });
-  return Object.keys(map).length > 0 ? map : defaultCaseStudies;
+  // Gabungkan studi kasus kustom yang dibuat guru di penyimpanan browser (localStorage)
+  try {
+    const customList = JSON.parse(localStorage.getItem('flowchart_custom_cases') || '[]');
+    if (Array.isArray(customList)) {
+      customList.forEach((c) => {
+        const k = c.case_key || c.id;
+        if (k) {
+          map[k] = {
+            id: k,
+            title: c.title,
+            icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
+            badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
+            formula: c.formula || '',
+            description: c.description || '',
+            flow_type: c.flow_type || 'sequential',
+            expected_inputs: c.expected_inputs || '',
+            expected_process: c.expected_process || '',
+            expected_decision: c.expected_decision || '',
+            expected_yes_output: c.expected_yes_output || '',
+            expected_no_output: c.expected_no_output || '',
+            expected_outputs: c.expected_outputs || '',
+            reference_flow: c.reference_flow || null,
+            is_custom: true,
+          };
+        }
+      });
+    }
+  } catch (e) {}
+
+  return map;
 };
 
 // ============================================================================
@@ -616,17 +647,19 @@ export function evaluateDiagramLocally(nodes, edges, caseKey, currentCase = {}) 
 // ============================================================================
 // KOMPONEN UTAMA EDITOR FLOWCHART SISWA
 // ============================================================================
-export default function FlowchartEditor() {
+export default function FlowchartEditor({ currentUser }) {
   const caseStudiesMap = React.useMemo(() => getCaseStudiesMap(), []);
   const caseKeys = Object.keys(caseStudiesMap);
 
   const [studentName, setStudentName] = useState(() => {
+    if (currentUser?.name) return currentUser.name;
     const metaUser = document.querySelector('meta[name="user-name"]')?.getAttribute('content');
     if (metaUser && metaUser.trim()) return metaUser.trim();
-    return localStorage.getItem('flowchart_student_name') || '';
+    return localStorage.getItem('flowchart_student_name') || 'Siswa Mandiri';
   });
 
   const [studentClass, setStudentClass] = useState(() => {
+    if (currentUser?.className) return currentUser.className;
     const metaClass = document.querySelector('meta[name="user-class"]')?.getAttribute('content');
     if (metaClass && metaClass.trim()) return metaClass.trim();
     return localStorage.getItem('flowchart_student_class') || '10 RPL 1';
@@ -1268,13 +1301,1216 @@ export default function FlowchartEditor() {
   );
 }
 
+// ============================================================================
+// KOMPONEN HALAMAN LOGIN (UNTUK HOSTING GITHUB PAGES / STANDALONE)
+// ============================================================================
+function LoginForm({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError('Silakan masukkan alamat email Anda.');
+      return;
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const isGuru = cleanEmail.includes('guru') || cleanEmail === 'guru@sekolah.id';
+    const userData = {
+      name: isGuru
+        ? 'Budi Santoso, S.Kom.'
+        : cleanEmail === 'siswa@sekolah.id'
+        ? 'Aditya Pratama'
+        : cleanEmail.split('@')[0],
+      email: cleanEmail,
+      role: isGuru ? 'guru' : 'siswa',
+      className: isGuru ? null : '10 RPL 1',
+    };
+    onLogin(userData);
+  };
+
+  const loginAsGuru = () => {
+    onLogin({
+      name: 'Budi Santoso, S.Kom.',
+      email: 'guru@sekolah.id',
+      role: 'guru',
+      className: null,
+    });
+  };
+
+  const loginAsSiswa = () => {
+    onLogin({
+      name: 'Aditya Pratama',
+      email: 'siswa@sekolah.id',
+      role: 'siswa',
+      className: '10 RPL 1',
+    });
+  };
+
+  const loginAsGuest = () => {
+    onLogin({
+      name: 'Siswa Tamu',
+      email: 'tamu@sekolah.id',
+      role: 'siswa',
+      className: '10 RPL 1',
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col justify-center py-8 sm:py-14 px-3 sm:px-6 lg:px-8 text-slate-800 animate-fadeIn">
+      <div className="w-full sm:max-w-md mx-auto">
+        <div className="text-center">
+          <div className="inline-flex w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 items-center justify-center text-white text-2xl sm:text-3xl font-extrabold shadow-lg shadow-blue-500/25 mb-3 sm:mb-4">
+            ⚡
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Laboratorium Flowchart</h2>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Platform Belajar Logika Algoritma & Penilaian Otomatis</p>
+        </div>
+
+        <div className="mt-6 sm:mt-8 bg-white py-7 px-5 sm:py-8 sm:px-9 shadow-xl shadow-slate-200/60 rounded-3xl border border-slate-200/90">
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Alamat Email
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@sekolah.id"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Kata Sandi
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-md shadow-blue-600/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>Masuk ke Sistem</span>
+              <span>➜</span>
+            </button>
+          </form>
+
+          {/* Tombol Akses Cepat 1-Klik */}
+          <div className="mt-5 pt-4 border-t border-slate-100">
+            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5 text-center">
+              Akses Cepat 1-Klik (Uji Coba Langsung):
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={loginAsGuru}
+                className="px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <span className="text-base">👨‍🏫</span>
+                <span>Masuk Guru</span>
+              </button>
+              <button
+                type="button"
+                onClick={loginAsSiswa}
+                className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <span className="text-base">👤</span>
+                <span>Masuk Siswa</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={loginAsGuest}
+              className="w-full mt-2.5 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all text-center cursor-pointer"
+            >
+              ⚡ Langsung Buka Kanvas Siswa (Tamu)
+            </button>
+          </div>
+
+          {/* Kotak Info Akun Default */}
+          <div className="mt-5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+            <span className="font-bold text-slate-700 block mb-1">🔑 Akun Default Tersedia:</span>
+            <div className="flex justify-between items-center py-0.5 border-b border-slate-200/60">
+              <span><b>Guru:</b> guru@sekolah.id</span>
+              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">password123</span>
+            </div>
+            <div className="flex justify-between items-center py-0.5 mt-0.5">
+              <span><b>Siswa:</b> siswa@sekolah.id</span>
+              <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-700">password123</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// KOMPONEN DASHBOARD & PORTAL GURU (STANDALONE GITHUB PAGES)
+// ============================================================================
+function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChanged }) {
+  const [activeTab, setActiveTab] = useState('rekap'); // 'rekap' | 'studi_kasus'
+  const [filterClass, setFilterClass] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubDetail, setSelectedSubDetail] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Ambil riwayat submission dari localStorage
+  const [submissions, setSubmissions] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]');
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Ambil studi kasus kustom buatan guru
+  const [customCases, setCustomCases] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('flowchart_custom_cases') || '[]');
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [newCase, setNewCase] = useState({
+    case_key: '',
+    title: '',
+    flow_type: 'sequential',
+    icon: '📐',
+    badge: 'Alur Sekuensial',
+    formula: '',
+    description: '',
+    expected_inputs: '',
+    expected_process: '',
+    expected_decision: '',
+    expected_yes_output: '',
+    expected_no_output: '',
+    expected_outputs: '',
+  });
+
+  const saveSubmissions = (newSubs) => {
+    setSubmissions(newSubs);
+    try {
+      localStorage.setItem('flowchart_submissions_history', JSON.stringify(newSubs));
+    } catch (e) {}
+  };
+
+  // Isi data simulasi agar tabel langsung memiliki data nyata
+  const handleSeedSamples = () => {
+    const samples = [
+      {
+        id: 'sub_demo_1',
+        student_name: 'Aditya Pratama',
+        class_name: '10 RPL 1',
+        case_key: 'luas_segitiga',
+        score: 100,
+        feedback: [
+          '✅ Simbol Mulai dan Selesai lengkap.',
+          '✅ Teks Input tepat: Terdeteksi variabel masukan (alas, tinggi).',
+          '✅ Teks Proses tepat: Rumus luas segitiga sesuai.',
+          '✅ Teks Output tepat: Menampilkan hasil luaran.',
+          '✅ Alur konektor panah terhubung dengan runtut.',
+        ],
+        created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      },
+      {
+        id: 'sub_demo_2',
+        student_name: 'Siti Aminah',
+        class_name: '10 RPL 1',
+        case_key: 'kelulusan',
+        score: 95,
+        feedback: [
+          '✅ Simbol Mulai dan Selesai lengkap.',
+          '✅ Teks Input terdeteksi.',
+          '✅ Teks Keputusan tepat: Terdeteksi kondisi kelulusan (>= 75).',
+          '✅ Simbol Keputusan memiliki 2 cabang alur keluar.',
+          '✅ Teks Output tepat untuk cabang LULUS & REMEDIAL.',
+        ],
+        created_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+      },
+      {
+        id: 'sub_demo_3',
+        student_name: 'Budi Santoso',
+        class_name: '10 RPL 2',
+        case_key: 'luas_segitiga',
+        score: 85,
+        feedback: [
+          '✅ Simbol Mulai dan Selesai lengkap.',
+          '✅ Teks Input terdeteksi.',
+          '✅ Teks Proses tepat.',
+          '⚠️ Lengkapi teks luaran dengan kata "Cetak".',
+          '✅ Garis panah terhubung dengan baik.',
+        ],
+        created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+      },
+      {
+        id: 'sub_demo_4',
+        student_name: 'Dewi Lestari',
+        class_name: '10 RPL 1',
+        case_key: 'kelulusan',
+        score: 65,
+        feedback: [
+          '✅ Simbol Mulai dan Selesai lengkap.',
+          '⚠️ Syarat kondisi pada belah ketupat belum lengkap.',
+          '⚠️ Garis alir cabang Tidak belum terhubung.',
+          '✅ Output cabang Ya telah ditambahkan.',
+        ],
+        created_at: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+      },
+      {
+        id: 'sub_demo_5',
+        student_name: 'Rizky Ramadhan',
+        class_name: '10 RPL 2',
+        case_key: 'luas_segitiga',
+        score: 90,
+        feedback: [
+          '✅ Simbol Mulai dan Selesai lengkap.',
+          '✅ Teks Input dan Proses valid.',
+          '✅ Teks Output valid.',
+          '✅ Alur terhubung.',
+        ],
+        created_at: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+      },
+    ];
+    saveSubmissions(samples);
+  };
+
+  const handleClearHistory = () => {
+    if (confirm('Yakin ingin membersihkan semua riwayat submission siswa?')) {
+      saveSubmissions([]);
+    }
+  };
+
+  // Simpan studi kasus baru buatan guru
+  const handleCreateCase = (e) => {
+    e.preventDefault();
+    if (!newCase.title.trim()) {
+      alert('Judul studi kasus wajib diisi!');
+      return;
+    }
+    const key = (
+      newCase.case_key.trim() ||
+      newCase.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
+    ).replace(/^_+|_+$/g, '');
+
+    const item = {
+      ...newCase,
+      case_key: key,
+      id: key,
+      badge: newCase.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial',
+      icon: newCase.icon || (newCase.flow_type === 'branching' ? '🔀' : '📐'),
+      created_at: new Date().toISOString(),
+    };
+
+    const updated = [...customCases.filter((c) => (c.case_key || c.id) !== key), item];
+    setCustomCases(updated);
+    try {
+      localStorage.setItem('flowchart_custom_cases', JSON.stringify(updated));
+    } catch (e) {}
+
+    setShowCreateModal(false);
+    setNewCase({
+      case_key: '',
+      title: '',
+      flow_type: 'sequential',
+      icon: '📐',
+      badge: 'Alur Sekuensial',
+      formula: '',
+      description: '',
+      expected_inputs: '',
+      expected_process: '',
+      expected_decision: '',
+      expected_yes_output: '',
+      expected_no_output: '',
+      expected_outputs: '',
+    });
+
+    if (onCaseStudiesChanged) onCaseStudiesChanged();
+    alert(`Studi kasus "${item.title}" berhasil disimpan! Soal ini langsung tersedia di kanvas siswa.`);
+  };
+
+  const handleDeleteCase = (key) => {
+    if (confirm(`Hapus studi kasus "${key}"?`)) {
+      const updated = customCases.filter((c) => (c.case_key || c.id) !== key);
+      setCustomCases(updated);
+      try {
+        localStorage.setItem('flowchart_custom_cases', JSON.stringify(updated));
+      } catch (e) {}
+      if (onCaseStudiesChanged) onCaseStudiesChanged();
+    }
+  };
+
+  // Filter hasil submission
+  const filteredSubs = submissions.filter((s) => {
+    if (filterClass && s.class_name !== filterClass) return false;
+    if (filterStatus === 'lulus' && s.score < 75) return false;
+    if (filterStatus === 'remedial' && s.score >= 75) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = (s.student_name || '').toLowerCase().includes(q);
+      const matchKey = (s.case_key || '').toLowerCase().includes(q);
+      if (!matchName && !matchKey) return false;
+    }
+    return true;
+  });
+
+  const totalCount = submissions.length;
+  const avgScore =
+    totalCount > 0
+      ? Math.round(submissions.reduce((acc, cur) => acc + (cur.score || 0), 0) / totalCount)
+      : 0;
+  const lulusCount = submissions.filter((s) => (s.score || 0) >= 75).length;
+  const remedialCount = totalCount - lulusCount;
+
+  const allCasesList = [
+    { ...defaultCaseStudies.luas_segitiga, is_default: true },
+    { ...defaultCaseStudies.kelulusan, is_default: true },
+    { ...defaultCaseStudies.bebas, is_default: true },
+    ...customCases.map((c) => ({ ...c, is_default: false })),
+  ];
+
+  return (
+    <div className="space-y-6 pb-12 animate-fadeIn">
+      {/* Header Guru */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs no-print">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
+              👨‍🏫
+            </div>
+            <div>
+              <h1 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Portal Pendidik Flowchart</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                  Guru
+                </span>
+              </h1>
+              <p className="text-xs text-slate-500">
+                {currentUser?.name || 'Budi Santoso, S.Kom.'} ({currentUser?.email || 'guru@sekolah.id'})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={onOpenCanvas}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+            >
+              <span>⚡</span>
+              <span className="hidden sm:inline">Buka Kanvas Flowchart</span>
+              <span className="sm:hidden">Kanvas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onLogout}
+              className="px-2.5 sm:px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95"
+              title="Keluar Akun"
+            >
+              <svg className="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                <line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* Navigasi Tab */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 no-print">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('rekap')}
+              className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'rekap'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <span>📊</span>
+              <span>Rekap Nilai Siswa</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeTab === 'rekap' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {totalCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('studi_kasus')}
+              className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'studi_kasus'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <span>📚</span>
+              <span>Kelola Studi Kasus & Kunci Koreksi</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] ${activeTab === 'studi_kasus' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {allCasesList.length}
+              </span>
+            </button>
+          </div>
+
+          {activeTab === 'studi_kasus' && (
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs sm:text-sm font-extrabold shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+            >
+              <span>➕</span>
+              <span>Tambah Studi Kasus Baru</span>
+            </button>
+          )}
+        </div>
+
+        {/* TAB 1: REKAP NILAI SISWA */}
+        {activeTab === 'rekap' && (
+          <div className="space-y-6">
+            {/* Stat Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs">
+                <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Submission</span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900">{totalCount}</span>
+                  <span className="text-xs text-slate-400 font-medium">kali submit</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs">
+                <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Rata-rata Nilai</span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-indigo-600">{avgScore}</span>
+                  <span className="text-xs text-slate-400 font-medium">/ 100</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-100 shadow-xs bg-emerald-50/20">
+                <span className="text-[11px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wider block">Tuntas (≥ 75)</span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-600">{lulusCount}</span>
+                  <span className="text-xs text-emerald-600 font-medium">siswa</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs bg-amber-50/20">
+                <span className="text-[11px] sm:text-xs font-bold text-amber-700 uppercase tracking-wider block">Remedial (&lt; 75)</span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl sm:text-3xl font-black text-amber-600">{remedialCount}</span>
+                  <span className="text-xs text-amber-600 font-medium">siswa</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Toolbar */}
+            <div className="bg-white rounded-3xl shadow-xs border border-slate-200 p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-slate-100 gap-3 no-print">
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>📑</span>
+                    <span>Rekapitulasi Hasil Praktikum Siswa</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">Hasil pengerjaan flowchart siswa tersimpan rapi secara lokal.</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {totalCount === 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSeedSamples}
+                      className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                    >
+                      <span>✨</span>
+                      <span>Isi Data Simulasi Siswa</span>
+                    </button>
+                  )}
+
+                  {totalCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearHistory}
+                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      <span>🗑️</span>
+                      <span>Bersihkan Riwayat</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>🖨️</span>
+                    <span>Cetak</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2.5 no-print">
+                <select
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Semua Rombel / Kelas</option>
+                  <option value="10 RPL 1">Kelas 10 RPL 1</option>
+                  <option value="10 RPL 2">Kelas 10 RPL 2</option>
+                  <option value="10 TKJ 1">Kelas 10 TKJ 1</option>
+                </select>
+
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Semua Status Nilai</option>
+                  <option value="lulus">🟢 Tuntas (≥ 75)</option>
+                  <option value="remedial">🟡 Remedial (&lt; 75)</option>
+                </select>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari nama siswa..."
+                    className="px-3.5 py-1.5 pl-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-indigo-500 outline-none w-44 transition-all"
+                  />
+                  <span className="absolute left-2.5 top-1.5 text-xs text-slate-400">🔍</span>
+                </div>
+              </div>
+
+              {/* Tabel Submission */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold bg-slate-50/60">
+                      <th className="py-3 px-3">No</th>
+                      <th className="py-3 px-3">Waktu</th>
+                      <th className="py-3 px-3">Nama Siswa</th>
+                      <th className="py-3 px-3">Kelas</th>
+                      <th className="py-3 px-3">Studi Kasus</th>
+                      <th className="py-3 px-3 text-center">Skor</th>
+                      <th className="py-3 px-3 text-center">Status</th>
+                      <th className="py-3 px-3 text-right no-print">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredSubs.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="py-8 text-center text-slate-400">
+                          <p className="font-semibold text-sm">Belum ada riwayat submission siswa.</p>
+                          <p className="text-xs mt-1">Siswa dapat mengerjakan diagram di kanvas, atau klik "Isi Data Simulasi Siswa" di atas untuk mencoba.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSubs.map((sub, idx) => {
+                        const isLulus = (sub.score || 0) >= 75;
+                        const dateFormatted = sub.created_at
+                          ? new Date(sub.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
+                          : '-';
+                        return (
+                          <tr key={sub.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-3 font-mono text-slate-400">{idx + 1}</td>
+                            <td className="py-3 px-3 font-mono text-slate-500 text-[11px] whitespace-nowrap">{dateFormatted}</td>
+                            <td className="py-3 px-3 font-bold text-slate-900">{sub.student_name}</td>
+                            <td className="py-3 px-3 font-semibold text-slate-600">{sub.class_name}</td>
+                            <td className="py-3 px-3">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono text-[11px] text-slate-700">
+                                {sub.case_key}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-center font-extrabold text-sm">
+                              <span className={isLulus ? 'text-emerald-600' : 'text-amber-600'}>
+                                {sub.score}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                  isLulus
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                }`}
+                              >
+                                {isLulus ? 'Tuntas' : 'Remedial'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right no-print">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedSubDetail(sub)}
+                                className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                              >
+                                Detail
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: KELOLA STUDI KASUS */}
+        {activeTab === 'studi_kasus' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl relative overflow-hidden">
+              <div className="max-w-2xl">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold text-indigo-100 mb-2.5">
+                  <span>⚙️</span> Modul Manajemen Soal & Mesin Penilaian Otomatis
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+                  Katalog Studi Kasus & Kunci Jawaban Acuan
+                </h2>
+                <p className="text-xs sm:text-sm text-indigo-100/90 mt-1.5 leading-relaxed">
+                  Definisikan soal algoritma baru untuk siswa Anda. Masukkan kata kunci input, formula rumus, atau kondisi percabangan Ya/Tidak. Sistem akan mencocokkan diagram alir siswa secara otomatis dan memberikan skor dari 0 hingga 100 secara instan.
+                </p>
+              </div>
+            </div>
+
+            {/* Grid Kartu Soal */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {allCasesList.map((cs) => (
+                <div key={cs.id || cs.case_key} className="bg-white rounded-3xl border border-slate-200 shadow-xs hover:shadow-md transition-all p-5 sm:p-6 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-2xl flex-shrink-0">
+                          {cs.icon || '📐'}
+                        </div>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-base font-black text-slate-900">{cs.title}</h3>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-blue-100 text-blue-800">
+                              {cs.badge || (cs.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[11px] font-mono text-slate-400">key: {cs.id || cs.case_key}</span>
+                            {cs.is_default ? (
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">
+                                🔒 Bawaan Sistem
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-bold">
+                                ✍️ Buatan Guru
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {!cs.is_default && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCase(cs.id || cs.case_key)}
+                          className="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-rose-200 cursor-pointer"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+
+                    {cs.formula && (
+                      <div className="p-2.5 bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 border border-slate-200/60">
+                        {cs.formula}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {cs.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Modal Detail Submission */}
+      {selectedSubDetail && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-black text-slate-900">Detail Hasil Praktikum</h3>
+                <p className="text-xs text-slate-500">{selectedSubDetail.student_name} ({selectedSubDetail.class_name})</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSubDetail(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl">
+              <div>
+                <span className="text-xs text-slate-500 font-bold uppercase">Studi Kasus:</span>
+                <p className="text-sm font-black text-slate-900">{selectedSubDetail.case_key}</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-slate-500 font-bold uppercase">Skor Evaluasi:</span>
+                <p className="text-xl font-black text-indigo-600">{selectedSubDetail.score} / 100</p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Catatan Evaluasi Sistem:</h4>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {Array.isArray(selectedSubDetail.feedback) && selectedSubDetail.feedback.map((fb, i) => (
+                  <div
+                    key={i}
+                    className={`p-2.5 rounded-xl text-xs font-medium border ${
+                      fb.includes('✅') || fb.includes('valid') || fb.includes('tepat')
+                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                        : 'bg-amber-50/70 border-amber-200 text-amber-900'
+                    }`}
+                  >
+                    {fb}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedSubDetail(null)}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Studi Kasus Baru */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-black text-slate-900">Tambah Studi Kasus Baru</h3>
+                <p className="text-xs text-slate-500">Tentukan soal dan kata kunci evaluasi untuk siswa.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCase} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 uppercase mb-1">Judul Soal / Studi Kasus</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Menghitung Keliling Persegi"
+                  value={newCase.title}
+                  onChange={(e) => setNewCase({ ...newCase, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase mb-1">Tipe Alur</label>
+                  <select
+                    value={newCase.flow_type}
+                    onChange={(e) => setNewCase({ ...newCase, flow_type: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold focus:bg-white focus:border-indigo-500 outline-none"
+                  >
+                    <option value="sequential">Sekuensial (Lurus)</option>
+                    <option value="branching">Percabangan (Kondisi Ya/Tidak)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase mb-1">Icon Simbol (Emoji)</label>
+                  <input
+                    type="text"
+                    value={newCase.icon}
+                    onChange={(e) => setNewCase({ ...newCase, icon: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-center font-bold text-base focus:bg-white focus:border-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 uppercase mb-1">Rumus / Petunjuk Ringkas</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Rumus: Keliling = 4 × Sisi"
+                  value={newCase.formula}
+                  onChange={(e) => setNewCase({ ...newCase, formula: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 uppercase mb-1">Deskripsi Soal untuk Siswa</label>
+                <textarea
+                  rows="2"
+                  placeholder="Rancang flowchart yang membaca masukan..."
+                  value={newCase.description}
+                  onChange={(e) => setNewCase({ ...newCase, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 uppercase mb-1">Kata Kunci Input (Pisahkan dengan koma)</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: sisi, s, panjang"
+                  value={newCase.expected_inputs}
+                  onChange={(e) => setNewCase({ ...newCase, expected_inputs: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                />
+              </div>
+
+              {newCase.flow_type === 'sequential' ? (
+                <>
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase mb-1">Kata Kunci Rumus / Proses</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 4 * sisi, keliling"
+                      value={newCase.expected_process}
+                      onChange={(e) => setNewCase({ ...newCase, expected_process: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase mb-1">Kata Kunci Output</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: cetak, hasil, keliling"
+                      value={newCase.expected_outputs}
+                      onChange={(e) => setNewCase({ ...newCase, expected_outputs: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase mb-1">Syarat Kondisi Keputusan</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Nilai >= 75?"
+                      value={newCase.expected_decision}
+                      onChange={(e) => setNewCase({ ...newCase, expected_decision: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase mb-1">Teks Output Cabang [Ya]</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Lulus"
+                        value={newCase.expected_yes_output}
+                        onChange={(e) => setNewCase({ ...newCase, expected_yes_output: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase mb-1">Teks Output Cabang [Tidak]</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: Remedial"
+                        value={newCase.expected_no_output}
+                        onChange={(e) => setNewCase({ ...newCase, expected_no_output: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl cursor-pointer shadow-md shadow-indigo-600/20"
+                >
+                  Simpan Studi Kasus
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// WIDGET UTAMA HOSTING STATIS (GITHUB PAGES)
+// ============================================================================
+function StaticAppContainer() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('flowchart_auth_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [currentView, setCurrentView] = useState(() => {
+    if (!currentUser) return 'login';
+    return currentUser.role === 'guru' ? 'guru' : 'flowchart';
+  });
+
+  const [caseVersion, setCaseVersion] = useState(0);
+
+  const handleLogin = (user) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('flowchart_auth_user', JSON.stringify(user));
+    } catch (e) {}
+    setCurrentView(user.role === 'guru' ? 'guru' : 'flowchart');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('flowchart_auth_user');
+    } catch (e) {}
+    setCurrentView('login');
+  };
+
+  if (!currentUser || currentView === 'login') {
+    return <LoginForm onLogin={handleLogin} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans antialiased selection:bg-blue-100 selection:text-blue-800">
+      {/* Top Navigation Bar */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-base sm:text-lg shadow-md shadow-blue-500/20 flex-shrink-0">
+              ⚡
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+                <span className="truncate">Laboratorium Flowchart</span>
+                {currentUser.role === 'guru' ? (
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 flex-shrink-0">
+                    Guru
+                  </span>
+                ) : (
+                  <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">
+                    Siswa
+                  </span>
+                )}
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                {currentUser.name} {currentUser.className ? `• ${currentUser.className}` : `(${currentUser.email})`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            {currentUser.role === 'guru' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('guru')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    currentView === 'guru'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+                  }`}
+                >
+                  <span>👨‍🏫</span>
+                  <span className="hidden sm:inline">Portal Guru</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('flowchart')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    currentView === 'flowchart'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+                  }`}
+                >
+                  <span>⚡</span>
+                  <span className="hidden sm:inline">Kanvas Siswa</span>
+                </button>
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="px-2.5 sm:px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5 active:scale-95"
+              title="Keluar Akun"
+            >
+              <svg className="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                <line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Tampilan Halaman */}
+      {currentView === 'guru' ? (
+        <GuruPortalView
+          currentUser={currentUser}
+          onOpenCanvas={() => setCurrentView('flowchart')}
+          onLogout={handleLogout}
+          onCaseStudiesChanged={() => setCaseVersion((v) => v + 1)}
+        />
+      ) : (
+        <main className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-6 space-y-4 sm:space-y-6">
+          {/* Welcome Card */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2">
+                <span>✨</span>
+                <span>Ruang Praktik Mandiri Siswa</span>
+              </div>
+              <h2 className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 mb-1">
+                Susun Flowchart, Uji Logika Algoritma, dan Raih Skor Maksimal!
+              </h2>
+              <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+                Pilih studi kasus yang ingin dikerjakan di bawah. Rangkai simbol dan panah alir secara mandiri pada kanvas.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 self-start md:self-auto">
+              <div className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-600">
+                <span>💡</span>
+                <span>Sistem memeriksa kesesuaian alur secara otomatis</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Panduan Simbol Flowchart Standar (ANSI/ISO) */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
+            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2 mb-3 sm:mb-4">
+              <span>📖</span>
+              <span>Panduan Simbol Flowchart Standar (ANSI/ISO)</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs">
+                <div className="font-extrabold text-amber-950 flex items-center gap-1.5 mb-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                  <span>Terminator</span>
+                </div>
+                <p className="text-amber-900 leading-relaxed text-[11px]">
+                  Bentuk oval/kapsul. Menandakan awal (<b>Mulai</b>) dan akhir (<b>Selesai</b>) dari alur algoritma.
+                </p>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-sky-50/70 border border-sky-200 text-xs">
+                <div className="font-extrabold text-sky-950 flex items-center gap-1.5 mb-1.5">
+                  <span className="w-2.5 h-2.5 bg-sky-500 -skew-x-12 rounded-xs inline-block" />
+                  <span>Input / Output (I/O)</span>
+                </div>
+                <p className="text-sky-900 leading-relaxed text-[11px]">
+                  Jajar genjang. Digunakan untuk membaca masukan dari pengguna atau menampilkan hasil/cetakan.
+                </p>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs">
+                <div className="font-extrabold text-emerald-950 flex items-center gap-1.5 mb-1.5">
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-xs inline-block" />
+                  <span>Proses (Process)</span>
+                </div>
+                <p className="text-emerald-900 leading-relaxed text-[11px]">
+                  Persegi panjang. Digunakan untuk langkah perhitungan rumus matematika atau manipulasi data.
+                </p>
+              </div>
+
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-orange-50/70 border border-orange-200 text-xs">
+                <div className="font-extrabold text-orange-950 flex items-center gap-1.5 mb-1.5">
+                  <span className="w-2.5 h-2.5 bg-orange-500 rotate-45 rounded-xs inline-block" />
+                  <span>Keputusan (Decision)</span>
+                </div>
+                <p className="text-orange-900 leading-relaxed text-[11px]">
+                  Belah ketupat. Digunakan untuk kondisi logika percabangan yang menghasilkan nilai <b>Ya</b> atau <b>Tidak</b>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Flowchart Editor React */}
+          <section className="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 p-2 sm:p-6 transition-all">
+            <FlowchartEditor currentUser={currentUser} key={caseVersion} />
+          </section>
+        </main>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// ROOT COMPONENT (MEMISAHKAN MODE LARAVEL VS MODE GITHUB PAGES STATIS)
+// ============================================================================
+function AppRoot() {
+  const isLaravel = Boolean(document.querySelector('meta[name="csrf-token"]'));
+  if (isLaravel) {
+    return <FlowchartEditor />;
+  }
+  return <StaticAppContainer />;
+}
+
 // Inisialisasi Root React
 function initFlowchartApp() {
   const container = document.getElementById('flowchart-app') || document.getElementById('flowchart-root');
   if (container && !container.dataset.reactMounted) {
     container.dataset.reactMounted = 'true';
     const root = createRoot(container);
-    root.render(<FlowchartEditor />);
+    root.render(<AppRoot />);
   }
 }
 
