@@ -56,14 +56,14 @@
                 @csrf
 
                 <div>
-                    <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Alamat Email</label>
+                    <label for="email" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email Guru / NISN Siswa</label>
                     <input 
-                        type="email" 
+                        type="text" 
                         name="email" 
                         id="email" 
                         value="{{ old('email') }}" 
                         required 
-                        placeholder="Tuliskan email" 
+                        placeholder="Contoh: 0106572131 atau guru@sekolah.id" 
                         class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                     >
                 </div>

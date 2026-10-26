@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\FlowchartSubmission;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,167 +16,122 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Akun Guru
-        $guru = User::updateOrCreate(
-            ['email' => 'guru@sekolah.id'],
-            [
-                'name' => 'Bpk. Budi Santoso, M.Kom',
-                'role' => 'guru',
-                'class_name' => 'Guru Informatika',
-                'password' => Hash::make('password123'),
-            ]
-        );
-
-        // 2. Akun Siswa 1 - Kelas 10 RPL 1
-        $siswa1 = User::updateOrCreate(
-            ['email' => 'siswa@sekolah.id'],
-            [
-                'name' => 'Ahmad Pratama',
-                'role' => 'siswa',
-                'class_name' => '10 RPL 1',
-                'password' => Hash::make('password123'),
-            ]
-        );
-
-        // 3. Akun Siswa 2 - Kelas 10 RPL 1
-        $siswa2 = User::updateOrCreate(
-            ['email' => 'siti@sekolah.id'],
-            [
-                'name' => 'Siti Nurhaliza',
-                'role' => 'siswa',
-                'class_name' => '10 RPL 1',
-                'password' => Hash::make('password123'),
-            ]
-        );
-
-        // 4. Akun Siswa 3 - Kelas 10 RPL 2
-        $siswa3 = User::updateOrCreate(
-            ['email' => 'reza@sekolah.id'],
-            [
-                'name' => 'Reza Fahlevi',
-                'role' => 'siswa',
-                'class_name' => '10 RPL 2',
-                'password' => Hash::make('password123'),
-            ]
-        );
-
-        // 5. Akun Siswa 4 - Kelas 10 TKJ 1
-        $siswa4 = User::updateOrCreate(
-            ['email' => 'dina@sekolah.id'],
-            [
-                'name' => 'Dina Oktavia',
-                'role' => 'siswa',
-                'class_name' => '10 TKJ 1',
-                'password' => Hash::make('password123'),
-            ]
-        );
-
-        // Update atau buat submission yang sudah ada
+        // Nonaktifkan foreign key checks sementara untuk membersihkan data
+        Schema::disableForeignKeyConstraints();
         FlowchartSubmission::truncate();
+        User::truncate();
+        Schema::enableForeignKeyConstraints();
 
-        FlowchartSubmission::create([
-            'user_id' => $siswa1->id,
-            'student_name' => $siswa1->name,
-            'class_name' => '10 RPL 1',
-            'diagram_data' => [
-                'nodes' => [
-                    ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai']],
-                    ['id' => '2', 'type' => 'io', 'data' => ['label' => 'Input alas & tinggi']],
-                    ['id' => '3', 'type' => 'process', 'data' => ['label' => 'luas = 0.5 * alas * tinggi']],
-                    ['id' => '4', 'type' => 'io', 'data' => ['label' => 'Tampilkan luas']],
-                    ['id' => '5', 'type' => 'terminator', 'data' => ['label' => 'Selesai']],
-                ],
-                'edges' => [
-                    ['id' => 'e1', 'source' => '1', 'target' => '2'],
-                    ['id' => 'e2', 'source' => '2', 'target' => '3'],
-                    ['id' => 'e3', 'source' => '3', 'target' => '4'],
-                    ['id' => 'e4', 'source' => '4', 'target' => '5'],
-                ],
-            ],
-            'score' => 100,
-            'feedback' => [
-                '✅ Simbol Mulai (Terminator) sudah tersedia.',
-                '✅ Simbol Selesai (Terminator) sudah tersedia.',
-                '✅ Simbol Proses / Input-Output sudah disertakan.',
-                '✅ Garis alir (konektor) sudah menghubungkan simbol.',
-                '✅ Semua konektor terhubung dengan valid antar simbol.',
-            ],
-            'checked_at' => now()->subHours(3),
+        // 1. Akun Guru Utama
+        $guru = User::create([
+            'name' => 'Nur Aditya Romadhon S.Kom',
+            'email' => 'guru@sekolah.id',
+            'role' => 'guru',
+            'class_name' => 'Guru Pengampu',
+            'password' => Hash::make('password123'),
         ]);
 
-        FlowchartSubmission::create([
-            'user_id' => $siswa2->id,
-            'student_name' => $siswa2->name,
-            'class_name' => '10 RPL 1',
-            'diagram_data' => [
-                'nodes' => [
-                    ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai']],
-                    ['id' => '2', 'type' => 'process', 'data' => ['label' => 'Hitung luas']],
-                    ['id' => '3', 'type' => 'terminator', 'data' => ['label' => 'Selesai']],
-                ],
-                'edges' => [
-                    ['id' => 'e1', 'source' => '1', 'target' => '2'],
-                    ['id' => 'e2', 'source' => '2', 'target' => '3'],
-                ],
-            ],
-            'score' => 80,
-            'feedback' => [
-                '✅ Simbol Mulai (Terminator) sudah tersedia.',
-                '✅ Simbol Selesai (Terminator) sudah tersedia.',
-                '✅ Simbol Proses / Input-Output sudah disertakan.',
-                '✅ Garis alir (konektor) sudah menghubungkan simbol.',
-                '⚠️ Tambahkan juga simbol Input/Output data.',
-            ],
-            'checked_at' => now()->subHours(2),
+        // Akun Guru sekunder untuk kemudahan login dengan nama
+        User::create([
+            'name' => 'Nur Aditya Romadhon S.Kom',
+            'email' => 'nuraditya@sekolah.id',
+            'role' => 'guru',
+            'class_name' => 'Guru Pengampu',
+            'password' => Hash::make('password123'),
         ]);
 
-        FlowchartSubmission::create([
-            'user_id' => $siswa3->id,
-            'student_name' => $siswa3->name,
-            'class_name' => '10 RPL 2',
-            'diagram_data' => [
-                'nodes' => [
-                    ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai']],
-                    ['id' => '2', 'type' => 'process', 'data' => ['label' => 'Inisialisasi']],
-                ],
-                'edges' => [],
-            ],
-            'score' => 40,
-            'feedback' => [
-                '✅ Simbol Mulai (Terminator) sudah tersedia.',
-                '⚠️ Tambahkan simbol Terminator dengan teks "Selesai".',
-                '✅ Simbol Proses / Input-Output sudah disertakan.',
-                '⚠️ Hubungkan simbol menggunakan garis panah penghubung.',
-            ],
-            'checked_at' => now()->subHours(1),
+        // 2. Data 36 Siswa Kelas X TO 3
+        $students = [
+            ['nisn' => '0106572131', 'name' => 'RAFIANSYAH CIPTA PRANATA'],
+            ['nisn' => '0109053073', 'name' => 'RAFIQI DWI SAPUTRA'],
+            ['nisn' => '0102160972', 'name' => 'RAIHAN NUR RAHMAN'],
+            ['nisn' => '0107837151', 'name' => 'RANGGA SAPUTRA'],
+            ['nisn' => '0103998108', 'name' => 'RAVAEL DEWA FAHLEVI'],
+            ['nisn' => '0107376882', 'name' => 'REHAN DWI OKTAVIAN'],
+            ['nisn' => '0118540361', 'name' => 'RENO ADIAN SAPUTRA'],
+            ['nisn' => '0103670451', 'name' => 'RIDWAN KURNIAWAN'],
+            ['nisn' => '0106392063', 'name' => 'RIZKY EDY HIKMAWAN'],
+            ['nisn' => '0106399619', 'name' => "SA'I FADLI"],
+            ['nisn' => '0111405486', 'name' => 'SATRIA BAGUS NURROHMAN'],
+            ['nisn' => '0107669333', 'name' => 'SATRIA GUTAMA'],
+            ['nisn' => '0107397653', 'name' => 'SATYA NURIL TAQIYAN'],
+            ['nisn' => '0101682196', 'name' => 'SHAH SULTAN ARIFIN'],
+            ['nisn' => '0101223593', 'name' => 'TEGAR ABADY'],
+            ['nisn' => '0101037491', 'name' => 'TEGAR GUSTI WARDANA'],
+            ['nisn' => '0104999663', 'name' => 'TEXAS PUTRA WIJAYA'],
+            ['nisn' => '0114072927', 'name' => 'WISNU BUDI SANTOSO'],
+            ['nisn' => '0101294104', 'name' => 'YARDAN ATSAQIF'],
+            ['nisn' => '0104490586', 'name' => 'YUSUF BINTANG PRATAMA'],
+            ['nisn' => '0103213869', 'name' => 'YUSUF THORIQ EL FAROBI'],
+            ['nisn' => '0116085711', 'name' => 'ZUAN ADITYA FIRMANSYAH'],
+            ['nisn' => '0105535891', 'name' => 'ADDIN NOOR MAULANA'],
+            ['nisn' => '0102018742', 'name' => 'ARYA BAGUS NUGROHO'],
+            ['nisn' => '0108465352', 'name' => 'ARYA FAHREZA'],
+            ['nisn' => '0101394467', 'name' => 'CAKRAWALA LINTANG SABAKHALILLAH'],
+            ['nisn' => '0102727958', 'name' => 'EGIT MAHARDIKA'],
+            ['nisn' => '0103349017', 'name' => 'ENGGAR WIBOWO MUKTI'],
+            ['nisn' => '0104382559', 'name' => 'ERLINO DWI SAPUTRA'],
+            ['nisn' => '0107878508', 'name' => 'FAHRI RAHMADANI'],
+            ['nisn' => '0105540344', 'name' => 'HAFIZH MAULANA AHMAD'],
+            ['nisn' => '0112054807', 'name' => 'ILHAM NUR YUWANA'],
+            ['nisn' => '0108497094', 'name' => 'IQBAL RAFA SAPUTRA'],
+            ['nisn' => '0107988726', 'name' => 'IRFANO DIKA PRATAMA'],
+            ['nisn' => '0101764559', 'name' => 'LANJAR REZKY BAKTI AJI SAPUTRA'],
+            ['nisn' => '0108854779', 'name' => 'NAUFAL LATIF CHAIRUL HAKAN'],
+        ];
+
+        $studentModels = [];
+        foreach ($students as $st) {
+            $studentModels[] = User::create([
+                'name' => $st['name'],
+                'email' => $st['nisn'] . '@sekolah.id',
+                'role' => 'siswa',
+                'class_name' => 'X TO 3',
+                'password' => Hash::make('password123'),
+            ]);
+        }
+
+        // Akun siswa alias umum untuk pengujian cepat
+        User::create([
+            'name' => 'RAFIANSYAH CIPTA PRANATA',
+            'email' => 'siswa@sekolah.id',
+            'role' => 'siswa',
+            'class_name' => 'X TO 3',
+            'password' => Hash::make('password123'),
         ]);
 
-        FlowchartSubmission::create([
-            'user_id' => $siswa4->id,
-            'student_name' => $siswa4->name,
-            'class_name' => '10 TKJ 1',
-            'diagram_data' => [
-                'nodes' => [
-                    ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai']],
-                    ['id' => '2', 'type' => 'io', 'data' => ['label' => 'Input data']],
-                    ['id' => '3', 'type' => 'process', 'data' => ['label' => 'Proses']],
-                    ['id' => '4', 'type' => 'terminator', 'data' => ['label' => 'Selesai']],
+        // Contoh submission awal untuk siswa pertama kelas X TO 3
+        if (!empty($studentModels[0])) {
+            FlowchartSubmission::create([
+                'user_id' => $studentModels[0]->id,
+                'student_name' => $studentModels[0]->name,
+                'class_name' => 'X TO 3',
+                'case_key' => 'luas_segitiga',
+                'diagram_data' => [
+                    'nodes' => [
+                        ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai']],
+                        ['id' => '2', 'type' => 'io', 'data' => ['label' => 'Input alas & tinggi']],
+                        ['id' => '3', 'type' => 'process', 'data' => ['label' => 'luas = 0.5 * alas * tinggi']],
+                        ['id' => '4', 'type' => 'io', 'data' => ['label' => 'Cetak hasil luas']],
+                        ['id' => '5', 'type' => 'terminator', 'data' => ['label' => 'Selesai']],
+                    ],
+                    'edges' => [
+                        ['id' => 'e1', 'source' => '1', 'target' => '2'],
+                        ['id' => 'e2', 'source' => '2', 'target' => '3'],
+                        ['id' => 'e3', 'source' => '3', 'target' => '4'],
+                        ['id' => 'e4', 'source' => '4', 'target' => '5'],
+                    ],
                 ],
-                'edges' => [
-                    ['id' => 'e1', 'source' => '1', 'target' => '2'],
-                    ['id' => 'e2', 'source' => '2', 'target' => '3'],
-                    ['id' => 'e3', 'source' => '3', 'target' => '4'],
+                'score' => 100,
+                'feedback' => [
+                    '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+                    '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+                    '✅ Rumus perhitungan matematika tepat.',
+                    '✅ Simbol cetak hasil output sesuai.',
+                    '✅ Seluruh garis panah konektor terhubung runtut.',
                 ],
-            ],
-            'score' => 100,
-            'feedback' => [
-                '✅ Simbol Mulai (Terminator) sudah tersedia.',
-                '✅ Simbol Selesai (Terminator) sudah tersedia.',
-                '✅ Simbol Proses / Input-Output sudah disertakan.',
-                '✅ Garis alir (konektor) sudah menghubungkan simbol.',
-                '✅ Semua konektor terhubung dengan valid antar simbol.',
-            ],
-            'checked_at' => now()->subMinutes(15),
-        ]);
+                'checked_at' => now()->subMinutes(10),
+            ]);
+        }
     }
 }

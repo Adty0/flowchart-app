@@ -656,14 +656,14 @@ export default function FlowchartEditor({ currentUser }) {
     if (currentUser?.name) return currentUser.name;
     const metaUser = document.querySelector('meta[name="user-name"]')?.getAttribute('content');
     if (metaUser && metaUser.trim()) return metaUser.trim();
-    return localStorage.getItem('flowchart_student_name') || 'Siswa Mandiri';
+    return localStorage.getItem('flowchart_student_name') || 'RAFIANSYAH CIPTA PRANATA';
   });
 
   const [studentClass, setStudentClass] = useState(() => {
     if (currentUser?.className) return currentUser.className;
     const metaClass = document.querySelector('meta[name="user-class"]')?.getAttribute('content');
     if (metaClass && metaClass.trim()) return metaClass.trim();
-    return localStorage.getItem('flowchart_student_class') || '10 RPL 1';
+    return localStorage.getItem('flowchart_student_class') || 'X TO 3';
   });
 
   const [selectedCaseKey, setSelectedCaseKey] = useState(() => {
@@ -912,8 +912,8 @@ export default function FlowchartEditor({ currentUser }) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     const payload = {
-      student_name: studentName.trim() || 'Siswa Mandiri',
-      class_name: studentClass.trim() || '10 RPL 1',
+      student_name: studentName.trim() || 'RAFIANSYAH CIPTA PRANATA',
+      class_name: studentClass.trim() || 'X TO 3',
       case_key: selectedCaseKey,
       diagram_data: {
         case_key: selectedCaseKey,
@@ -963,8 +963,8 @@ export default function FlowchartEditor({ currentUser }) {
         const history = JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]');
         history.unshift({
           id: subId,
-          student_name: studentName.trim() || 'Siswa Mandiri',
-          class_name: studentClass.trim() || '10 RPL 1',
+          student_name: studentName.trim() || 'RAFIANSYAH CIPTA PRANATA',
+          class_name: studentClass.trim() || 'X TO 3',
           case_key: selectedCaseKey,
           score: localResult.score,
           feedback: localResult.feedback,
@@ -1303,6 +1303,48 @@ export default function FlowchartEditor({ currentUser }) {
 }
 
 // ============================================================================
+// DATA RESMI SISWA KELAS X TO 3 (36 SISWA)
+// ============================================================================
+export const STUDENTS_X_TO3 = [
+  { nisn: '0106572131', name: 'RAFIANSYAH CIPTA PRANATA' },
+  { nisn: '0109053073', name: 'RAFIQI DWI SAPUTRA' },
+  { nisn: '0102160972', name: 'RAIHAN NUR RAHMAN' },
+  { nisn: '0107837151', name: 'RANGGA SAPUTRA' },
+  { nisn: '0103998108', name: 'RAVAEL DEWA FAHLEVI' },
+  { nisn: '0107376882', name: 'REHAN DWI OKTAVIAN' },
+  { nisn: '0118540361', name: 'RENO ADIAN SAPUTRA' },
+  { nisn: '0103670451', name: 'RIDWAN KURNIAWAN' },
+  { nisn: '0106392063', name: 'RIZKY EDY HIKMAWAN' },
+  { nisn: '0106399619', name: "SA'I FADLI" },
+  { nisn: '0111405486', name: 'SATRIA BAGUS NURROHMAN' },
+  { nisn: '0107669333', name: 'SATRIA GUTAMA' },
+  { nisn: '0107397653', name: 'SATYA NURIL TAQIYAN' },
+  { nisn: '0101682196', name: 'SHAH SULTAN ARIFIN' },
+  { nisn: '0101223593', name: 'TEGAR ABADY' },
+  { nisn: '0101037491', name: 'TEGAR GUSTI WARDANA' },
+  { nisn: '0104999663', name: 'TEXAS PUTRA WIJAYA' },
+  { nisn: '0114072927', name: 'WISNU BUDI SANTOSO' },
+  { nisn: '0101294104', name: 'YARDAN ATSAQIF' },
+  { nisn: '0104490586', name: 'YUSUF BINTANG PRATAMA' },
+  { nisn: '0103213869', name: 'YUSUF THORIQ EL FAROBI' },
+  { nisn: '0116085711', name: 'ZUAN ADITYA FIRMANSYAH' },
+  { nisn: '0105535891', name: 'ADDIN NOOR MAULANA' },
+  { nisn: '0102018742', name: 'ARYA BAGUS NUGROHO' },
+  { nisn: '0108465352', name: 'ARYA FAHREZA' },
+  { nisn: '0101394467', name: 'CAKRAWALA LINTANG SABAKHALILLAH' },
+  { nisn: '0102727958', name: 'EGIT MAHARDIKA' },
+  { nisn: '0103349017', name: 'ENGGAR WIBOWO MUKTI' },
+  { nisn: '0104382559', name: 'ERLINO DWI SAPUTRA' },
+  { nisn: '0107878508', name: 'FAHRI RAHMADANI' },
+  { nisn: '0105540344', name: 'HAFIZH MAULANA AHMAD' },
+  { nisn: '0112054807', name: 'ILHAM NUR YUWANA' },
+  { nisn: '0108497094', name: 'IQBAL RAFA SAPUTRA' },
+  { nisn: '0107988726', name: 'IRFANO DIKA PRATAMA' },
+  { nisn: '0101764559', name: 'LANJAR REZKY BAKTI AJI SAPUTRA' },
+  { nisn: '0108854779', name: 'NAUFAL LATIF CHAIRUL HAKAN' },
+];
+
+// ============================================================================
 // KOMPONEN HALAMAN LOGIN (UNTUK HOSTING GITHUB PAGES / STANDALONE)
 // ============================================================================
 function LoginForm({ onLogin }) {
@@ -1313,27 +1355,63 @@ function LoginForm({ onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email.trim()) {
-      setError('Silakan masukkan alamat email Anda.');
+      setError('Silakan masukkan NISN siswa atau email guru.');
       return;
     }
-    const cleanEmail = email.trim().toLowerCase();
-    const isGuru = cleanEmail.includes('guru') || cleanEmail === 'guru@sekolah.id';
-    const userData = {
-      name: isGuru
-        ? 'Budi Santoso, S.Kom.'
-        : cleanEmail === 'siswa@sekolah.id'
-        ? 'Aditya Pratama'
-        : cleanEmail.split('@')[0],
-      email: cleanEmail,
-      role: isGuru ? 'guru' : 'siswa',
-      className: isGuru ? null : '10 RPL 1',
-    };
-    onLogin(userData);
+    const inputVal = email.trim().toLowerCase();
+    const cleanNisn = inputVal.replace(/[^0-9]/g, '');
+
+    // Cek login guru
+    const isGuru =
+      inputVal.includes('guru') ||
+      inputVal.includes('aditya') ||
+      inputVal.includes('romadhon') ||
+      inputVal === 'guru@sekolah.id' ||
+      inputVal === 'nuraditya@sekolah.id';
+
+    if (isGuru) {
+      onLogin({
+        name: 'Nur Aditya Romadhon S.Kom',
+        email: 'guru@sekolah.id',
+        role: 'guru',
+        className: null,
+      });
+      return;
+    }
+
+    // Cek daftar siswa kelas X TO 3
+    const matched = STUDENTS_X_TO3.find(
+      (s) =>
+        (cleanNisn && s.nisn === cleanNisn) ||
+        inputVal.includes(s.nisn) ||
+        s.name.toLowerCase() === inputVal ||
+        s.name.toLowerCase().includes(inputVal)
+    );
+
+    if (matched) {
+      onLogin({
+        name: matched.name,
+        email: `${matched.nisn}@sekolah.id`,
+        role: 'siswa',
+        className: 'X TO 3',
+        nisn: matched.nisn,
+      });
+      return;
+    }
+
+    // Fallback: Siswa umum kelas X TO 3
+    const studentName = inputVal.includes('@') ? inputVal.split('@')[0].toUpperCase() : inputVal.toUpperCase();
+    onLogin({
+      name: studentName,
+      email: inputVal.includes('@') ? inputVal : `${cleanNisn || '0106572131'}@sekolah.id`,
+      role: 'siswa',
+      className: 'X TO 3',
+    });
   };
 
   const loginAsGuru = () => {
     onLogin({
-      name: 'Budi Santoso, S.Kom.',
+      name: 'Nur Aditya Romadhon S.Kom',
       email: 'guru@sekolah.id',
       role: 'guru',
       className: null,
@@ -1342,10 +1420,11 @@ function LoginForm({ onLogin }) {
 
   const loginAsSiswa = () => {
     onLogin({
-      name: 'Aditya Pratama',
-      email: 'siswa@sekolah.id',
+      name: 'RAFIANSYAH CIPTA PRANATA',
+      email: '0106572131@sekolah.id',
       role: 'siswa',
-      className: '10 RPL 1',
+      className: 'X TO 3',
+      nisn: '0106572131',
     });
   };
 
@@ -1354,7 +1433,7 @@ function LoginForm({ onLogin }) {
       name: 'Siswa Tamu',
       email: 'tamu@sekolah.id',
       role: 'siswa',
-      className: '10 RPL 1',
+      className: 'X TO 3',
     });
   };
 
@@ -1382,14 +1461,14 @@ function LoginForm({ onLogin }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Alamat Email
+                Email Guru / NISN Siswa (Kelas X TO 3)
               </label>
               <input
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@sekolah.id"
+                placeholder="Contoh: 0106572131 atau guru@sekolah.id"
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
               />
             </div>
@@ -1417,10 +1496,41 @@ function LoginForm({ onLogin }) {
             </button>
           </form>
 
+          {/* Pemilih Langsung Siswa Kelas X TO 3 */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 text-center">
+              Atau Pilih Siswa Kelas X TO 3 (36 Siswa):
+            </label>
+            <select
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-500 outline-none"
+              onChange={(e) => {
+                if (!e.target.value) return;
+                const st = STUDENTS_X_TO3.find((s) => s.nisn === e.target.value);
+                if (st) {
+                  onLogin({
+                    name: st.name,
+                    email: `${st.nisn}@sekolah.id`,
+                    role: 'siswa',
+                    className: 'X TO 3',
+                    nisn: st.nisn,
+                  });
+                }
+              }}
+              defaultValue=""
+            >
+              <option value="" disabled>-- Klik untuk Pilih Nama Siswa --</option>
+              {STUDENTS_X_TO3.map((st, i) => (
+                <option key={st.nisn} value={st.nisn}>
+                  {i + 1}. {st.nisn} - {st.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Tombol Akses Cepat 1-Klik */}
-          <div className="mt-5 pt-4 border-t border-slate-100">
-            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5 text-center">
-              Akses Cepat 1-Klik (Uji Coba Langsung):
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
+              Akses Cepat 1-Klik:
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -1437,7 +1547,7 @@ function LoginForm({ onLogin }) {
                 className="px-3 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all text-center flex flex-col items-center justify-center gap-0.5 cursor-pointer active:scale-95 shadow-2xs"
               >
                 <span className="text-base">👤</span>
-                <span>Masuk Siswa</span>
+                <span>Masuk Siswa (X TO 3)</span>
               </button>
             </div>
 
@@ -1446,7 +1556,7 @@ function LoginForm({ onLogin }) {
               onClick={loginAsGuest}
               className="w-full mt-2.5 py-2 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all text-center cursor-pointer"
             >
-              ⚡ Langsung Buka Kanvas Siswa (Tamu)
+              ⚡ Buka Kanvas Siswa Tamu
             </button>
           </div>
         </div>
@@ -1512,8 +1622,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     const samples = [
       {
         id: 'sub_demo_1',
-        student_name: 'Aditya Pratama',
-        class_name: '10 RPL 1',
+        student_name: 'RAFIANSYAH CIPTA PRANATA',
+        class_name: 'X TO 3',
         case_key: 'luas_segitiga',
         score: 100,
         feedback: [
@@ -1527,8 +1637,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       },
       {
         id: 'sub_demo_2',
-        student_name: 'Siti Aminah',
-        class_name: '10 RPL 1',
+        student_name: 'RAFIQI DWI SAPUTRA',
+        class_name: 'X TO 3',
         case_key: 'kelulusan',
         score: 95,
         feedback: [
@@ -1542,8 +1652,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       },
       {
         id: 'sub_demo_3',
-        student_name: 'Budi Santoso',
-        class_name: '10 RPL 2',
+        student_name: 'RAIHAN NUR RAHMAN',
+        class_name: 'X TO 3',
         case_key: 'luas_segitiga',
         score: 85,
         feedback: [
@@ -1557,8 +1667,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       },
       {
         id: 'sub_demo_4',
-        student_name: 'Dewi Lestari',
-        class_name: '10 RPL 1',
+        student_name: 'RANGGA SAPUTRA',
+        class_name: 'X TO 3',
         case_key: 'kelulusan',
         score: 65,
         feedback: [
@@ -1571,8 +1681,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       },
       {
         id: 'sub_demo_5',
-        student_name: 'Rizky Ramadhan',
-        class_name: '10 RPL 2',
+        student_name: 'ZUAN ADITYA FIRMANSYAH',
+        class_name: 'X TO 3',
         case_key: 'luas_segitiga',
         score: 90,
         feedback: [
@@ -1823,9 +1933,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none"
                 >
                   <option value="">Semua Rombel / Kelas</option>
-                  <option value="10 RPL 1">Kelas 10 RPL 1</option>
-                  <option value="10 RPL 2">Kelas 10 RPL 2</option>
-                  <option value="10 TKJ 1">Kelas 10 TKJ 1</option>
+                  <option value="X TO 3">Kelas X TO 3</option>
                 </select>
 
                 <select
@@ -2238,7 +2346,15 @@ function StaticAppContainer() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('flowchart_auth_user');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name?.includes('Budi Santoso') || parsed?.name?.includes('Aditya Pratama')) {
+          localStorage.removeItem('flowchart_auth_user');
+          return null;
+        }
+        return parsed;
+      }
+      return null;
     } catch (e) {
       return null;
     }

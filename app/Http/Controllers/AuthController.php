@@ -29,14 +29,23 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email'    => ['required', 'email'],
+        $request->validate([
+            'email'    => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'email.required'    => 'Email wajib diisi.',
-            'email.email'       => 'Format email tidak valid.',
+            'email.required'    => 'Email atau NISN siswa wajib diisi.',
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
+
+        $loginInput = trim($request->input('email'));
+        if (!str_contains($loginInput, '@')) {
+            $loginInput .= '@sekolah.id';
+        }
+
+        $credentials = [
+            'email' => $loginInput,
+            'password' => $request->input('password'),
+        ];
 
         $remember = $request->boolean('remember');
 
