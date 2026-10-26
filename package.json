@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "node -e \"const fs=require('fs');if(fs.existsSync('public/hot'))fs.unlinkSync('public/hot')\" && vite build",
+        "build:pages": "vite build --config vite.config.pages.js",
         "dev": "vite"
     },
     "devDependencies": {

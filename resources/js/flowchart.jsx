@@ -13,6 +13,7 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import '../css/app.css';
 
 // ============================================================================
 // DAFTAR STUDI KASUS & SOAL LATIHAN SISWA (DIPEROLEH DINAMIS DARI DATABASE GURU)
@@ -279,6 +280,338 @@ const nodeTypes = {
   process: ProcessNode,
   decision: DecisionNode,
 };
+
+// ============================================================================
+// MESIN EVALUASI CLIENT-SIDE (FALLBACK OFFLINE & GITHUB PAGES STATIS)
+// Menjamin aplikasi tetap berjalan 100% dan menilai diagram bahkan saat server Laravel mati
+// ============================================================================
+export function evaluateDiagramLocally(nodes, edges, caseKey, currentCase = {}) {
+  let score = 0;
+  const feedback = [];
+
+  const terminatorNodes = nodes.filter((n) => n.type === 'terminator');
+  const ioNodes = nodes.filter((n) => n.type === 'io');
+  const processNodes = nodes.filter((n) => n.type === 'process');
+  const decisionNodes = nodes.filter((n) => n.type === 'decision');
+
+  const cleanLabel = (n) => (n.data?.label || '').toLowerCase().trim();
+
+  // 1. EVALUASI TERMINATOR (Mulai & Selesai) - 20 Poin
+  let hasStart = false;
+  let hasEnd = false;
+
+  terminatorNodes.forEach((node) => {
+    const lbl = cleanLabel(node);
+    if (lbl.includes('mulai') || lbl.includes('start') || lbl.includes('begin')) {
+      hasStart = true;
+    } else if (lbl.includes('selesai') || lbl.includes('end') || lbl.includes('stop') || lbl.includes('tamat')) {
+      hasEnd = true;
+    }
+  });
+
+  if (hasStart) {
+    score += 10;
+    feedback.push('✅ Simbol Mulai (Terminator) dengan teks "Mulai" sudah tepat.');
+  } else {
+    feedback.push('⚠️ Belum ada simbol Terminator dengan teks "Mulai".');
+  }
+
+  if (hasEnd) {
+    score += 10;
+    feedback.push('✅ Simbol Selesai (Terminator) dengan teks "Selesai" sudah tepat.');
+  } else {
+    feedback.push('⚠️ Belum ada simbol Terminator dengan teks "Selesai".');
+  }
+
+  // 2. KESESUAIAN TEKS SESUAI STUDI KASUS
+  if (caseKey === 'luas_segitiga') {
+    // A. Teks Input (15 Poin)
+    let hasAlas = false;
+    let hasTinggi = false;
+
+    ioNodes.forEach((node) => {
+      const lbl = cleanLabel(node);
+      if (lbl.includes('alas')) hasAlas = true;
+      if (lbl.includes('tinggi')) hasTinggi = true;
+    });
+
+    if (hasAlas && hasTinggi) {
+      score += 15;
+      feedback.push('✅ Teks Input tepat: Terdeteksi masukan data alas dan tinggi.');
+    } else if (hasAlas || hasTinggi) {
+      score += 8;
+      feedback.push('⚠️ Teks Input belum lengkap: Hanya terdeteksi ' + (hasAlas ? 'alas' : 'tinggi') + '. Masukkan alas dan tinggi.');
+    } else if (ioNodes.length > 0) {
+      score += 5;
+      feedback.push('⚠️ Teks Input masih default. Tuliskan "Input Alas, Tinggi".');
+    } else {
+      feedback.push('⚠️ Tambahkan simbol Input/Output (Jajar Genjang) dengan teks "Input Alas, Tinggi".');
+    }
+
+    // B. Teks Proses Rumus Luas (25 Poin)
+    let hasValidFormula = false;
+    let hasPartialFormula = false;
+
+    processNodes.forEach((node) => {
+      const lbl = cleanLabel(node);
+      if (
+        (lbl.includes('0.5') || lbl.includes('1/2')) &&
+        lbl.includes('alas') &&
+        lbl.includes('tinggi')
+      ) {
+        hasValidFormula = true;
+      } else if (lbl.includes('alas') && lbl.includes('tinggi') && lbl.includes('/')) {
+        hasValidFormula = true;
+      } else if (lbl.includes('luas') || lbl.includes('alas') || lbl.includes('tinggi')) {
+        hasPartialFormula = true;
+      }
+    });
+
+    if (hasValidFormula) {
+      score += 25;
+      feedback.push('✅ Teks Proses tepat: Rumus perhitungan luas (Luas = 0.5 × Alas × Tinggi) sudah sesuai.');
+    } else if (hasPartialFormula) {
+      score += 12;
+      feedback.push('⚠️ Teks Proses belum memuat rumus lengkap: "Luas = 0.5 * alas * tinggi".');
+    } else if (processNodes.length > 0) {
+      score += 5;
+      feedback.push('⚠️ Teks Proses masih default. Ubah dengan rumus: "Luas = 0.5 * alas * tinggi".');
+    } else {
+      feedback.push('⚠️ Tambahkan simbol Proses (Persegi Panjang) dengan rumus: "Luas = 0.5 * alas * tinggi".');
+    }
+
+    // C. Teks Output Luas (15 Poin)
+    let hasOutputLuas = false;
+    ioNodes.forEach((node) => {
+      const lbl = cleanLabel(node);
+      if ((lbl.includes('cetak') || lbl.includes('output') || lbl.includes('tampilkan') || lbl.includes('print')) && lbl.includes('luas')) {
+        hasOutputLuas = true;
+      } else if (lbl === 'luas' || lbl.includes('luas segitiga')) {
+        hasOutputLuas = true;
+      }
+    });
+
+    if (hasOutputLuas) {
+      score += 15;
+      feedback.push('✅ Teks Output tepat: Terdeteksi pencetakan/keluaran nilai luas ke layar.');
+    } else if (ioNodes.length > 1) {
+      score += 8;
+      feedback.push('⚠️ Teks Output belum spesifik. Tuliskan instruksi luaran seperti "Cetak Luas".');
+    } else {
+      feedback.push('⚠️ Tambahkan simbol Input/Output kedua untuk mencetak hasil luas: "Cetak Luas".');
+    }
+
+  } else if (caseKey === 'kelulusan') {
+    // A. Teks Input Nilai (15 Poin)
+    let hasInputNilai = false;
+    ioNodes.forEach((node) => {
+      const lbl = cleanLabel(node);
+      if (lbl.includes('nilai') || lbl.includes('ujian') || lbl.includes('skor') || lbl.includes('score')) {
+        hasInputNilai = true;
+      }
+    });
+
+    if (hasInputNilai) {
+      score += 15;
+      feedback.push('✅ Teks Input tepat: Terdeteksi pembacaan masukan nilai ujian siswa.');
+    } else if (ioNodes.length > 0) {
+      score += 8;
+      feedback.push('⚠️ Teks Input belum spesifik: Tuliskan masukan untuk nilai ujian (contoh: "Input Nilai Ujian").');
+    } else {
+      feedback.push('⚠️ Tambahkan simbol Input/Output (Jajar Genjang) untuk membaca nilai: "Input Nilai Ujian".');
+    }
+
+    // B. Teks Keputusan (15 Poin) + Cabang (10 Poin)
+    let hasDecisionText = false;
+    decisionNodes.forEach((node) => {
+      const lbl = cleanLabel(node);
+      if (lbl.includes('75') || lbl.includes('74') || lbl.includes('>=') || (lbl.includes('nilai') && (lbl.includes('>') || lbl.includes('<')))) {
+        hasDecisionText = true;
+      }
+    });
+
+    if (hasDecisionText) {
+      score += 15;
+      feedback.push('✅ Teks Keputusan tepat: Terdeteksi pengujian syarat kriteria kelulusan (Apakah Nilai >= 75?).');
+    } else if (decisionNodes.length > 0) {
+      score += 6;
+      feedback.push('⚠️ Teks Keputusan belum spesifik. Tuliskan syarat kondisi: "Apakah Nilai >= 75?".');
+    } else {
+      feedback.push('⚠️ Tambahkan simbol Keputusan (Belah Ketupat) untuk memeriksa kondisi kelulusan: "Nilai >= 75?".');
+    }
+
+    // Check branching edges
+    let hasTwoBranches = false;
+    let hasBranchLabels = false;
+    decisionNodes.forEach((node) => {
+      const outEdges = edges.filter((e) => e.source === node.id);
+      if (outEdges.length >= 2) {
+        hasTwoBranches = true;
+        const labels = outEdges.map((e) => (e.label || '').toLowerCase().trim());
+        const handles = outEdges.map((e) => (e.sourceHandle || '').toLowerCase().trim());
+        const hasYes = labels.includes('ya') || labels.includes('yes') || handles.includes('left');
+        const hasNo = labels.includes('tidak') || labels.includes('no') || handles.includes('right');
+        if (hasYes && hasNo) hasBranchLabels = true;
+      }
+    });
+
+    if (hasTwoBranches && hasBranchLabels) {
+      score += 10;
+      feedback.push('✅ Struktur percabangan sangat baik: Simbol Keputusan memiliki 2 cabang alur keluar lengkap dengan cabang "Ya" dan "Tidak".');
+    } else if (hasTwoBranches) {
+      score += 5;
+      feedback.push('⚠️ Simbol Keputusan memiliki cabang keluar, namun belum diberi label "Ya" dan "Tidak" yang jelas.');
+    } else if (decisionNodes.length > 0) {
+      feedback.push('⚠️ Simbol Keputusan harus menghubungkan minimal 2 cabang alur keluar (Cabang Ya dan Cabang Tidak).');
+    }
+
+    // C. Teks Output Lulus & Remedial (15 Poin)
+    let hasLulus = false;
+    let hasRemedial = false;
+    const outputCandidates = [...ioNodes, ...processNodes];
+    outputCandidates.forEach((node) => {
+      const lbl = cleanLabel(node);
+      if (lbl.includes('lulus') && !lbl.includes('tidak lulus')) hasLulus = true;
+      if (lbl.includes('remedial') || lbl.includes('tidak lulus') || lbl.includes('gagal') || lbl.includes('mengulang')) hasRemedial = true;
+    });
+
+    if (hasLulus && hasRemedial) {
+      score += 15;
+      feedback.push('✅ Teks Output tepat: Terdeteksi penanganan kedua kemungkinan status kelulusan ("LULUS" dan "REMEDIAL").');
+    } else if (hasLulus || hasRemedial) {
+      score += 8;
+      feedback.push('⚠️ Teks Output baru menangani satu status. Pastikan menampilkan kedua status: "LULUS" dan "REMEDIAL".');
+    } else {
+      feedback.push('⚠️ Tambahkan simbol Output untuk menampilkan hasil: "LULUS" dan "REMEDIAL".');
+    }
+
+  } else {
+    // Dynamic or Bebas
+    const expectedInputs = (currentCase.expected_inputs || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+    const allIoText = ioNodes.map(cleanLabel).join(' ');
+    let matchedInputs = expectedInputs.filter((kw) => allIoText.includes(kw));
+
+    if (expectedInputs.length > 0) {
+      if (matchedInputs.length > 0) {
+        score += 15;
+        feedback.push(`✅ Teks Input tepat: Terdeteksi masukan data (${matchedInputs.join(', ')}).`);
+      } else {
+        feedback.push(`⚠️ Masukkan data input yang sesuai: ${currentCase.expected_inputs || 'Data'}.`);
+      }
+    } else if (ioNodes.length > 0) {
+      score += 15;
+      feedback.push('✅ Teks Input terdeteksi dengan instruksi data.');
+    }
+
+    if (currentCase.flow_type === 'branching') {
+      const decWords = (currentCase.expected_decision || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+      let matchDec = false;
+      decisionNodes.forEach((node) => {
+        const lbl = cleanLabel(node);
+        if (decWords.some((w) => lbl.includes(w)) || (lbl.length > 3 && lbl !== 'kondisi ?')) {
+          matchDec = true;
+        }
+      });
+      if (matchDec) {
+        score += 15;
+        feedback.push(`✅ Teks Keputusan tepat: Terdeteksi syarat kondisi (${currentCase.expected_decision || 'Kondisi'}).`);
+      } else {
+        feedback.push(`⚠️ Masukkan syarat keputusan: "${currentCase.expected_decision || 'Kondisi?'}".`);
+      }
+
+      // Check branches
+      let hasTwoBranches = false;
+      decisionNodes.forEach((node) => {
+        const outEdges = edges.filter((e) => e.source === node.id);
+        if (outEdges.length >= 2) hasTwoBranches = true;
+      });
+      if (hasTwoBranches) {
+        score += 10;
+        feedback.push('✅ Simbol Keputusan memiliki 2 cabang alur keluar.');
+      }
+
+      // Check yes/no outputs
+      const expYes = (currentCase.expected_yes_output || '').toLowerCase().trim();
+      const expNo = (currentCase.expected_no_output || '').toLowerCase().trim();
+      let matchYes = false;
+      let matchNo = false;
+      [...ioNodes, ...processNodes].forEach((node) => {
+        const lbl = cleanLabel(node);
+        if (expYes && lbl.includes(expYes)) matchYes = true;
+        if (expNo && lbl.includes(expNo)) matchNo = true;
+      });
+      if (expYes && expNo && matchYes && matchNo) {
+        score += 15;
+        feedback.push(`✅ Teks Output tepat: Terdeteksi penanganan hasil ('${expYes}' dan '${expNo}').`);
+      } else if (ioNodes.length > 1) {
+        score += 15;
+        feedback.push('✅ Teks Output terdeteksi untuk kedua jalur.');
+      } else {
+        score += 8;
+        feedback.push('💡 Tambahkan simbol Output untuk masing-masing cabang.');
+      }
+    } else {
+      // Sequential process & output
+      const procWords = (currentCase.expected_process || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+      let matchProc = false;
+      processNodes.forEach((node) => {
+        const lbl = cleanLabel(node);
+        if (procWords.some((w) => lbl.includes(w)) || (lbl.length > 3 && lbl !== 'hitung data')) {
+          matchProc = true;
+        }
+      });
+      if (matchProc) {
+        score += 25;
+        feedback.push(`✅ Teks Proses tepat: Rumus/proses (${currentCase.expected_process || 'Perhitungan'}) sesuai.`);
+      } else if (processNodes.length > 0) {
+        score += 10;
+        feedback.push(`⚠️ Ubah teks proses dengan rumus yang sesuai.`);
+      } else {
+        feedback.push(`⚠️ Tambahkan simbol Proses (Persegi Panjang).`);
+      }
+
+      const outWords = (currentCase.expected_outputs || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+      let matchOut = false;
+      ioNodes.forEach((node) => {
+        const lbl = cleanLabel(node);
+        if (outWords.some((w) => lbl.includes(w)) || (lbl.includes('cetak') || lbl.includes('output'))) {
+          matchOut = true;
+        }
+      });
+      if (matchOut) {
+        score += 15;
+        feedback.push(`✅ Teks Output tepat: Menampilkan hasil luaran.`);
+      } else if (ioNodes.length > 1) {
+        score += 10;
+        feedback.push('⚠️ Tuliskan instruksi luaran seperti "Cetak Hasil".');
+      }
+    }
+  }
+
+  // 3. EVALUASI PANAH (25 Poin)
+  const nodeIds = nodes.map((n) => n.id);
+  let validEdges = 0;
+  edges.forEach((e) => {
+    if (e.source && e.target && nodeIds.includes(e.source) && nodeIds.includes(e.target) && e.source !== e.target) {
+      validEdges++;
+    }
+  });
+
+  if (edges.length > 0 && validEdges === edges.length) {
+    score += 25;
+    feedback.push('✅ Alur konektor panah terhubung dengan runtut dan valid dari awal hingga akhir.');
+  } else if (edges.length > 0) {
+    score += 12;
+    feedback.push('⚠️ Terdapat beberapa garis penghubung yang belum terpasang ke simbol yang sah.');
+  } else {
+    feedback.push('⚠️ Hubungkan simbol-simbol di atas menggunakan garis panah penghubung.');
+  }
+
+  return {
+    score: Math.min(100, Math.max(0, score)),
+    feedback,
+  };
+}
 
 // ============================================================================
 // KOMPONEN UTAMA EDITOR FLOWCHART SISWA
@@ -571,30 +904,50 @@ export default function FlowchartEditor() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setAssessment({
           score: data.score,
           feedback: data.feedback,
           id: data.submission_id,
         });
         showToast(`🎉 Evaluasi selesai! Skor Anda: ${data.score}/100`, 'success');
-
-        // Langsung arahkan tampilan siswa ke bagian umpan balik dan nilai
-        setTimeout(() => {
-          const el = assessmentRef.current || document.getElementById('hasil-penilaian');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 120);
       } else {
-        alert('Gagal mengevaluasi: ' + (data.message || 'Terjadi galat'));
+        throw new Error('API server unavailable');
       }
     } catch (err) {
-      console.error(err);
-      alert('Gagal terhubung ke server Laravel.');
+      // Fallback otomatis ke evaluasi lokal (untuk GitHub Pages / mode offline)
+      const localResult = evaluateDiagramLocally(nodes, edges, selectedCaseKey, currentCase);
+      const subId = `sub_${Date.now()}`;
+      setAssessment({
+        score: localResult.score,
+        feedback: localResult.feedback,
+        id: subId,
+      });
+
+      try {
+        const history = JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]');
+        history.unshift({
+          id: subId,
+          student_name: studentName.trim() || 'Siswa Mandiri',
+          class_name: studentClass.trim() || '10 RPL 1',
+          case_key: selectedCaseKey,
+          score: localResult.score,
+          feedback: localResult.feedback,
+          created_at: new Date().toISOString(),
+        });
+        localStorage.setItem('flowchart_submissions_history', JSON.stringify(history.slice(0, 30)));
+      } catch (e) {}
+
+      showToast(`🎉 Evaluasi selesai! Skor Anda: ${localResult.score}/100`, 'success');
     } finally {
       setLoading(false);
+      setTimeout(() => {
+        const el = assessmentRef.current || document.getElementById('hasil-penilaian');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 120);
     }
   };
 
