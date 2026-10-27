@@ -2933,26 +2933,6 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
                   <button
                     type="button"
-                    onClick={handleExportExcel}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                    title="Cetak & Unduh Hasil Penilaian ke Format Excel (.xlsx)"
-                  >
-                    <span>📊</span>
-                    <span>Cetak Excel (.xlsx)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleExportCSV}
-                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
-                    title="Unduh Format CSV (Kompatibel Semua Versi Excel)"
-                  >
-                    <span>📑</span>
-                    <span className="hidden sm:inline">CSV</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => window.print()}
                     className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                     title="Cetak PDF / Print Fisik"
