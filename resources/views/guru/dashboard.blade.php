@@ -336,24 +336,29 @@
         <!-- TAB 1: REKAPITULASI PENILAIAN SISWA (PER ROMBEL / KELAS)          -->
         <!-- ================================================================= -->
 
-        <!-- KARTU STATISTIK GLOBAL -->
+        <!-- KARTU STATISTIK (SESUAI DATA ROMBEL AKTIF) -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Submission</div>
+                <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Total Submission</span>
+                    @if($selectedClass)
+                        <span class="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">{{ $selectedClass }}</span>
+                    @endif
+                </div>
                 <div class="text-2xl font-black text-slate-900">{{ $totalSubmissions }}</div>
-                <div class="text-[11px] text-slate-400 mt-1">Diagram alir terkumpul</div>
+                <div class="text-[11px] text-slate-400 mt-1">{{ $selectedClass ? 'Rombel ' . $selectedClass : 'Seluruh kelas terdata' }}</div>
             </div>
 
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Siswa Praktikan</div>
                 <div class="text-2xl font-black text-blue-600">{{ $siswaSubmit }} <span class="text-xs text-slate-400 font-normal">/ {{ $totalSiswa }} siswa</span></div>
-                <div class="text-[11px] text-slate-400 mt-1">Partisipasi kelas</div>
+                <div class="text-[11px] text-slate-400 mt-1">Partisipasi {{ $selectedClass ? 'Rombel ' . $selectedClass : 'kelas' }}</div>
             </div>
 
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
                 <div class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Rata-Rata Nilai</div>
                 <div class="text-2xl font-black text-indigo-600">{{ $averageScore }} <span class="text-xs text-slate-400 font-normal">/ 100</span></div>
-                <div class="text-[11px] text-indigo-500 font-semibold mt-1">Nilai gabungan kelas</div>
+                <div class="text-[11px] text-indigo-500 font-semibold mt-1">Nilai {{ $selectedClass ? 'Rombel ' . $selectedClass : 'gabungan kelas' }}</div>
             </div>
 
             <div class="bg-white p-5 rounded-2xl border border-emerald-200 bg-emerald-50/30 shadow-xs">

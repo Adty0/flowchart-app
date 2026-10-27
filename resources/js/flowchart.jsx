@@ -2268,7 +2268,7 @@ function LoginForm({ onLogin }) {
 // ============================================================================
 function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChanged }) {
   const [activeTab, setActiveTab] = useState('rekap'); // 'rekap' | 'studi_kasus'
-  const [filterClass, setFilterClass] = useState('');
+  const [filterClass, setFilterClass] = useState('X TO 3');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubDetail, setSelectedSubDetail] = useState(null);
@@ -2698,12 +2698,17 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     return true;
   });
 
-  const totalCount = cleanSubmissions.length;
+  // Hitung statistik khusus berdasarkan rombel yang aktif dipilih (default: X TO 3)
+  const activeSubsForStats = filterClass
+    ? cleanSubmissions.filter((s) => s.class_name === filterClass)
+    : cleanSubmissions;
+
+  const totalCount = activeSubsForStats.length;
   const avgScore =
     totalCount > 0
-      ? Math.round(cleanSubmissions.reduce((acc, cur) => acc + (cur.score || 0), 0) / totalCount)
+      ? Math.round(activeSubsForStats.reduce((acc, cur) => acc + (cur.score || 0), 0) / totalCount)
       : 0;
-  const lulusCount = cleanSubmissions.filter((s) => (s.score || 0) >= 75).length;
+  const lulusCount = activeSubsForStats.filter((s) => (s.score || 0) >= 75).length;
   const remedialCount = totalCount - lulusCount;
 
   const allCasesList = [
@@ -2770,10 +2775,20 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
             {/* Stat Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
               <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Submission</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Submission</span>
+                  {filterClass && (
+                    <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                      {filterClass}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-2xl sm:text-3xl font-black text-slate-900">{totalCount}</span>
                   <span className="text-xs text-slate-400 font-medium">kali submit</span>
+                </div>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  {filterClass ? `Siswa Rombel ${filterClass}` : 'Semua rombel terdata'}
                 </div>
               </div>
 
@@ -2783,6 +2798,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   <span className="text-2xl sm:text-3xl font-black text-indigo-600">{avgScore}</span>
                   <span className="text-xs text-slate-400 font-medium">/ 100</span>
                 </div>
+                <div className="text-[11px] text-indigo-500 font-semibold mt-1">
+                  {filterClass ? `Nilai Rombel ${filterClass}` : 'Nilai gabungan kelas'}
+                </div>
               </div>
 
               <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-100 shadow-xs bg-emerald-50/20">
@@ -2791,6 +2809,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   <span className="text-2xl sm:text-3xl font-black text-emerald-600">{lulusCount}</span>
                   <span className="text-xs text-emerald-600 font-medium">siswa</span>
                 </div>
+                <div className="text-[11px] text-emerald-600 font-semibold mt-1">
+                  {totalCount > 0 ? Math.round((lulusCount / totalCount) * 100) : 0}% ketuntasan
+                </div>
               </div>
 
               <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-100 shadow-xs bg-amber-50/20">
@@ -2798,6 +2819,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                 <div className="flex items-baseline gap-2 mt-2">
                   <span className="text-2xl sm:text-3xl font-black text-amber-600">{remedialCount}</span>
                   <span className="text-xs text-amber-600 font-medium">siswa</span>
+                </div>
+                <div className="text-[11px] text-amber-600 font-semibold mt-1">
+                  Perlu perbaikan alur
                 </div>
               </div>
             </div>

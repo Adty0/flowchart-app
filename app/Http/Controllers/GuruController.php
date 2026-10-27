@@ -61,14 +61,20 @@ class GuruController extends Controller
             return $item->class_name ?: 'Kelas Umum';
         });
 
-        // Statistik Keseluruhan
+        // Statistik Sesuai Rombel yang Dipilih (atau Keseluruhan jika Semua Rombel)
         $allSubmissions = FlowchartSubmission::all();
-        $totalSubmissions = $allSubmissions->count();
-        $totalSiswa = User::where('role', 'siswa')->count();
-        $siswaSubmit = $allSubmissions->pluck('student_name')->unique()->count();
-        $averageScore = $totalSubmissions > 0 ? round($allSubmissions->avg('score'), 1) : 0;
-        $lulusCount = $allSubmissions->where('score', '>=', 75)->count();
-        $remedialCount = $allSubmissions->where('score', '<', 75)->count();
+        $statSubmissions = $selectedClass
+            ? $allSubmissions->where('class_name', $selectedClass)
+            : $allSubmissions;
+
+        $totalSubmissions = $statSubmissions->count();
+        $totalSiswa = $selectedClass
+            ? User::where('role', 'siswa')->where('class_name', $selectedClass)->count()
+            : User::where('role', 'siswa')->count();
+        $siswaSubmit = $statSubmissions->pluck('student_name')->unique()->count();
+        $averageScore = $totalSubmissions > 0 ? round($statSubmissions->avg('score'), 1) : 0;
+        $lulusCount = $statSubmissions->where('score', '>=', 75)->count();
+        $remedialCount = $statSubmissions->where('score', '<', 75)->count();
 
         // Statistik Per Kelas (Untuk Ringkasan Komparasi Performa)
         $classStats = [];
