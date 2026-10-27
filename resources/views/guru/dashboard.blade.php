@@ -484,13 +484,23 @@
 
                     <div class="flex items-center gap-2">
                         <a 
-                            href="{{ route('guru.export_excel', request()->query()) }}" 
-                            onclick="exportDashboardTableToXLSX(event)" 
+                            href="{{ route('guru.export_excel', request()->query(), false) }}" 
+                            download
                             class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                            title="Cetak & Unduh Hasil Penilaian ke Format Excel (.xlsx)"
+                            title="Cetak & Unduh Hasil Penilaian ke Format Asli Microsoft Excel (.xlsx)"
                         >
                             <span>📊</span>
-                            <span>Cetak Excel</span>
+                            <span>Cetak Excel (.xlsx)</span>
+                        </a>
+
+                        <a 
+                            href="{{ route('guru.export_excel', array_merge(request()->query(), ['format' => 'csv']), false) }}" 
+                            download
+                            class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                            title="Unduh Format CSV (Kompatibel Semua Versi Excel)"
+                        >
+                            <span>📑</span>
+                            <span class="hidden sm:inline">CSV</span>
                         </a>
 
                         <button 
@@ -784,13 +794,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">
-                            Rumus / Syarat Kriteria (Panduan Singkat)
+                            Rumus / Petunjuk Ringkas
                         </label>
                         <input 
                             type="text" 
                             name="formula" 
                             id="caseFormulaInput"
-                            placeholder="Contoh: Rumus: K = 2 × 3.14 × r" 
+                            placeholder="Contoh: Rumus: Keliling = 4 × Sisi" 
                             class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
                             oninput="updatePreview()"
                         >
@@ -811,13 +821,13 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">
-                        Deskripsi / Petunjuk Soal Lengkap untuk Siswa <span class="text-rose-500">*</span>
+                        Deskripsi Soal untuk Siswa <span class="text-rose-500">*</span>
                     </label>
                     <textarea 
                         name="description" 
                         required 
                         rows="2" 
-                        placeholder="Contoh: Buatlah flowchart yang membaca input nilai jari-jari (r), menghitung keliling lingkaran dengan rumus K = 2 * 3.14 * r, lalu menampilkan hasil keliling ke layar." 
+                        placeholder="Rancang flowchart yang membaca masukan..." 
                         class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none leading-relaxed"
                     ></textarea>
                 </div>
@@ -830,74 +840,112 @@
                             <h4 class="text-xs font-black text-indigo-950 uppercase tracking-wider">
                                 Kunci Jawaban & Parameter Koreksi Otomatis
                             </h4>
-                            <p class="text-[11px] text-slate-500">Sistem akan memeriksa diagram siswa berdasarkan kata kunci dan struktur yang Anda isi di bawah ini.</p>
+                            <p class="text-[11px] text-slate-500">Definisikan masukan, proses rumus matematika, atau kondisi percabangan yang harus ada pada diagram siswa.</p>
                         </div>
                     </div>
 
-                    <!-- Input Umum: Masukan Data yang Diharapkan -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">
-                            Kata Kunci Input (Masukan Siswa)
+                    <!-- Input Utama & Opsi Tambah Input Tambahan -->
+                    <div class="p-3 bg-white/80 rounded-xl border border-sky-200/80">
+                        <label class="block text-xs font-bold text-sky-950 mb-1 flex items-center justify-between">
+                            <span>Kata Kunci Input (Pisahkan dengan koma)</span>
+                            <span class="text-[10px] text-sky-600 font-semibold">Simbol Jajar Genjang (I/O)</span>
                         </label>
                         <input 
                             type="text" 
                             name="expected_inputs" 
                             id="expectedInputs"
-                            placeholder="Contoh: jari-jari, r, radius (pisahkan koma jika ada alternatif)" 
-                            class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-sky-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                            placeholder="Contoh: sisi, s, panjang" 
+                            class="w-full px-3.5 py-2 bg-white border border-sky-300 rounded-xl text-xs font-bold text-sky-950 focus:border-sky-500 focus:ring-2 focus:ring-sky-100 outline-none"
                             oninput="updatePreview()"
                         >
-                        <span class="text-[10px] text-slate-500 mt-0.5 block">Siswa harus menambahkan simbol I/O yang memuat kata kunci ini.</span>
+                        <div id="extraInputsContainer" class="space-y-2 mt-2"></div>
+                        <button 
+                            type="button" 
+                            onclick="addExtraInputRow()" 
+                            class="mt-2 text-[11px] font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                            <span>➕</span>
+                            <span>Tambah Input Tambahan (Input 2, Input 3, dst)</span>
+                        </button>
                     </div>
 
                     <!-- Mode Sekuensial: Proses & Output -->
                     <div id="sequentialFields" class="space-y-3">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">
-                                Rumus / Perhitungan Proses yang Diharapkan
+                        <!-- Rumus / Proses & Opsi Tambahan -->
+                        <div class="p-3 bg-white/80 rounded-xl border border-emerald-200/80">
+                            <label class="block text-xs font-bold text-emerald-950 mb-1 flex items-center justify-between">
+                                <span>Kata Kunci Rumus / Proses</span>
+                                <span class="text-[10px] text-emerald-600 font-semibold">Simbol Persegi Panjang (Proses)</span>
                             </label>
                             <input 
                                 type="text" 
                                 name="expected_process" 
                                 id="expectedProcess"
-                                placeholder="Contoh: 2 * 3.14 * r, keliling" 
-                                class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-emerald-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                placeholder="Contoh: 4 * sisi, keliling" 
+                                class="w-full px-3.5 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
                                 oninput="updatePreview()"
                             >
-                            <span class="text-[10px] text-slate-500 mt-0.5 block">Simbol Persegi Panjang (Proses) siswa harus memuat rumus/perhitungan ini.</span>
+                            <div id="extraProcessContainer" class="space-y-2 mt-2"></div>
+                            <button 
+                                type="button" 
+                                onclick="addExtraProcessRow()" 
+                                class="mt-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                                <span>➕</span>
+                                <span>Tambah Rumus / Proses Tambahan</span>
+                            </button>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">
-                                Luaran / Output yang Diharapkan
+                        <!-- Luaran / Output & Opsi Tambahan -->
+                        <div class="p-3 bg-white/80 rounded-xl border border-blue-200/80">
+                            <label class="block text-xs font-bold text-blue-950 mb-1 flex items-center justify-between">
+                                <span>Kata Kunci Output</span>
+                                <span class="text-[10px] text-blue-600 font-semibold">Simbol Jajar Genjang (Cetak)</span>
                             </label>
                             <input 
                                 type="text" 
                                 name="expected_outputs" 
                                 id="expectedOutputs"
-                                placeholder="Contoh: keliling, cetak keliling" 
-                                class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-blue-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                placeholder="Contoh: cetak, hasil, keliling" 
+                                class="w-full px-3.5 py-2 bg-white border border-blue-300 rounded-xl text-xs font-bold text-blue-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
                                 oninput="updatePreview()"
                             >
-                            <span class="text-[10px] text-slate-500 mt-0.5 block">Simbol I/O kedua siswa harus mencetak hasil luaran ini.</span>
+                            <div id="extraOutputContainer" class="space-y-2 mt-2"></div>
+                            <button 
+                                type="button" 
+                                onclick="addExtraOutputRow()" 
+                                class="mt-2 text-[11px] font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                                <span>➕</span>
+                                <span>Tambah Output Tambahan</span>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Mode Percabangan: Syarat Decision, Output Ya, Output Tidak -->
                     <div id="branchingFields" class="space-y-3 hidden">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">
-                                Syarat Keputusan / Kondisi Belah Ketupat
+                        <div class="p-3 bg-white/80 rounded-xl border border-orange-200/80">
+                            <label class="block text-xs font-bold text-orange-950 mb-1 flex items-center justify-between">
+                                <span>Syarat Keputusan / Kondisi Belah Ketupat</span>
+                                <span class="text-[10px] text-orange-600 font-semibold">Simbol Decision</span>
                             </label>
                             <input 
                                 type="text" 
                                 name="expected_decision" 
                                 id="expectedDecision"
                                 placeholder="Contoh: nilai >= 75? atau belanja >= 100000?" 
-                                class="w-full px-3.5 py-2 bg-white border border-indigo-200 rounded-xl text-xs font-bold text-orange-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none"
+                                class="w-full px-3.5 py-2 bg-white border border-orange-300 rounded-xl text-xs font-bold text-orange-950 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 outline-none"
                                 oninput="updatePreview()"
                             >
-                            <span class="text-[10px] text-slate-500 mt-0.5 block">Simbol Belah Ketupat (Keputusan) siswa harus memuat kondisi logika ini.</span>
+                            <div id="extraDecisionContainer" class="space-y-2 mt-2"></div>
+                            <button 
+                                type="button" 
+                                onclick="addExtraDecisionRow()" 
+                                class="mt-2 text-[11px] font-bold text-orange-700 hover:text-orange-800 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                                <span>➕</span>
+                                <span>Tambah Keputusan / Syarat Tambahan</span>
+                            </button>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1049,33 +1097,146 @@
             updatePreview();
         }
 
+        function addExtraInputRow() {
+            const container = document.getElementById('extraInputsContainer');
+            if (!container) return;
+            const count = container.children.length + 2;
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+            row.innerHTML = `
+                <input 
+                    type="text" 
+                    name="extra_inputs[]" 
+                    placeholder="Input Tambahan ${count} (misal: tinggi, t, lebar)" 
+                    class="w-full px-3.5 py-1.5 bg-white border border-sky-300 rounded-xl text-xs font-bold text-sky-950 focus:border-sky-500 outline-none"
+                    oninput="updatePreview()"
+                >
+                <button type="button" onclick="this.parentElement.remove(); updatePreview();" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer" title="Hapus">✕</button>
+            `;
+            container.appendChild(row);
+            updatePreview();
+        }
+
+        function addExtraProcessRow() {
+            const container = document.getElementById('extraProcessContainer');
+            if (!container) return;
+            const count = container.children.length + 2;
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+            row.innerHTML = `
+                <input 
+                    type="text" 
+                    name="extra_process[]" 
+                    placeholder="Rumus/Proses Tambahan ${count} (misal: luas = panjang * lebar)" 
+                    class="w-full px-3.5 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-emerald-950 focus:border-emerald-500 outline-none"
+                    oninput="updatePreview()"
+                >
+                <button type="button" onclick="this.parentElement.remove(); updatePreview();" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer" title="Hapus">✕</button>
+            `;
+            container.appendChild(row);
+            updatePreview();
+        }
+
+        function addExtraDecisionRow() {
+            const container = document.getElementById('extraDecisionContainer');
+            if (!container) return;
+            const count = container.children.length + 2;
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+            row.innerHTML = `
+                <input 
+                    type="text" 
+                    name="extra_decisions[]" 
+                    placeholder="Syarat Keputusan Tambahan ${count} (misal: kehadiran >= 80%?)" 
+                    class="w-full px-3.5 py-1.5 bg-white border border-orange-300 rounded-xl text-xs font-bold text-orange-950 focus:border-orange-500 outline-none"
+                    oninput="updatePreview()"
+                >
+                <button type="button" onclick="this.parentElement.remove(); updatePreview();" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer" title="Hapus">✕</button>
+            `;
+            container.appendChild(row);
+            updatePreview();
+        }
+
+        function addExtraOutputRow() {
+            const container = document.getElementById('extraOutputContainer');
+            if (!container) return;
+            const count = container.children.length + 2;
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2';
+            row.innerHTML = `
+                <input 
+                    type="text" 
+                    name="extra_outputs[]" 
+                    placeholder="Output Tambahan ${count} (misal: cetak keliling)" 
+                    class="w-full px-3.5 py-1.5 bg-white border border-blue-300 rounded-xl text-xs font-bold text-blue-950 focus:border-blue-500 outline-none"
+                    oninput="updatePreview()"
+                >
+                <button type="button" onclick="this.parentElement.remove(); updatePreview();" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer" title="Hapus">✕</button>
+            `;
+            container.appendChild(row);
+            updatePreview();
+        }
+
         function updatePreview() {
             const container = document.getElementById('livePreviewContainer');
             if (!container) return;
 
-            const inputs = document.getElementById('expectedInputs')?.value?.trim() || 'Data';
+            // Kumpulkan semua input
+            const mainInput = document.getElementById('expectedInputs')?.value?.trim();
+            const extraInputEls = document.querySelectorAll('input[name="extra_inputs[]"]');
+            const allInputs = [];
+            if (mainInput) allInputs.push(mainInput);
+            extraInputEls.forEach(el => {
+                if (el.value.trim()) allInputs.push(el.value.trim());
+            });
+            const inputLabel = allInputs.length > 0 ? allInputs.join(', ') : 'Data Masukan';
+
             const badges = [];
 
             // 1. Terminator Mulai
             badges.push({ label: 'Mulai', color: 'bg-amber-100 border-amber-300 text-amber-950' });
 
             // 2. I/O Input
-            badges.push({ label: 'Input ' + inputs, color: 'bg-sky-100 border-sky-300 text-sky-950' });
+            badges.push({ label: 'Input (' + inputLabel + ')', color: 'bg-sky-100 border-sky-300 text-sky-950' });
 
             if (currentFlowType === 'branching') {
-                const decision = document.getElementById('expectedDecision')?.value?.trim() || 'Kondisi ?';
+                const mainDec = document.getElementById('expectedDecision')?.value?.trim() || 'Kondisi ?';
+                const extraDecEls = document.querySelectorAll('input[name="extra_decisions[]"]');
+                badges.push({ label: mainDec, color: 'bg-orange-100 border-orange-300 text-orange-950' });
+                extraDecEls.forEach(el => {
+                    if (el.value.trim()) badges.push({ label: el.value.trim(), color: 'bg-orange-100 border-orange-300 text-orange-950' });
+                });
+
                 const yesOut = document.getElementById('expectedYesOutput')?.value?.trim() || 'Output Ya';
                 const noOut = document.getElementById('expectedNoOutput')?.value?.trim() || 'Output Tidak';
 
-                badges.push({ label: decision, color: 'bg-orange-100 border-orange-300 text-orange-950' });
                 badges.push({ label: '[Ya] ' + yesOut, color: 'bg-emerald-100 border-emerald-300 text-emerald-950' });
                 badges.push({ label: '[Tidak] ' + noOut, color: 'bg-rose-100 border-rose-300 text-rose-950' });
             } else {
-                const proc = document.getElementById('expectedProcess')?.value?.trim() || 'Rumus / Proses';
-                const out = document.getElementById('expectedOutputs')?.value?.trim() || 'Hasil';
+                const mainProc = document.getElementById('expectedProcess')?.value?.trim();
+                const extraProcEls = document.querySelectorAll('input[name="extra_process[]"]');
+                const allProc = [];
+                if (mainProc) allProc.push(mainProc);
+                extraProcEls.forEach(el => {
+                    if (el.value.trim()) allProc.push(el.value.trim());
+                });
+                if (allProc.length > 0) {
+                    allProc.forEach(p => {
+                        badges.push({ label: p, color: 'bg-emerald-100 border-emerald-300 text-emerald-950' });
+                    });
+                } else {
+                    badges.push({ label: 'Rumus / Proses', color: 'bg-emerald-100 border-emerald-300 text-emerald-950' });
+                }
 
-                badges.push({ label: proc, color: 'bg-emerald-100 border-emerald-300 text-emerald-950' });
-                badges.push({ label: 'Cetak ' + out, color: 'bg-sky-100 border-sky-300 text-sky-950' });
+                const mainOut = document.getElementById('expectedOutputs')?.value?.trim();
+                const extraOutEls = document.querySelectorAll('input[name="extra_outputs[]"]');
+                const allOut = [];
+                if (mainOut) allOut.push(mainOut);
+                extraOutEls.forEach(el => {
+                    if (el.value.trim()) allOut.push(el.value.trim());
+                });
+                const outLabel = allOut.length > 0 ? allOut.join(', ') : 'Hasil';
+                badges.push({ label: 'Cetak ' + outLabel, color: 'bg-sky-100 border-sky-300 text-sky-950' });
             }
 
             // Terminator Selesai
@@ -1148,163 +1309,10 @@
             updatePreview();
         });
     </script>
-    <script src="{{ asset('js/xlsx.full.min.js') }}"></script>
     <script>
         function exportDashboardTableToXLSX(e) {
-            if (typeof XLSX === 'undefined') {
-                // Biarkan event default mengikuti link href ke server
-                return true;
-            }
-
-            if (e && e.preventDefault) {
-                e.preventDefault();
-            }
-
-            const subs = @json($submissions);
-            if (!subs || !subs.length) {
-                alert('Tidak ada data penilaian untuk diekspor.');
-                return;
-            }
-
-            const nisnMap = {
-                'RAFIANSYAH CIPTA PRANATA': '0106572131',
-                'RAFIQI DWI SAPUTRA': '0109053073',
-                'RAIHAN NUR RAHMAN': '0102160972',
-                'RANGGA SAPUTRA': '0107837151',
-                'RAVAEL DEWA FAHLEVI': '0103998108',
-                'REHAN DWI OKTAVIAN': '0107376882',
-                'RENO ADIAN SAPUTRA': '0118540361',
-                'RIDWAN KURNIAWAN': '0103670451',
-                'RIZKY EDY HIKMAWAN': '0106392063',
-                "SA'I FADLI": '0106399619',
-                'SATRIA BAGUS NURROHMAN': '0111405486',
-                'SATRIA GUTAMA': '0107669333',
-                'SATYA NURIL TAQIYAN': '0107397653',
-                'SHAH SULTAN ARIFIN': '0101682196',
-                'TEGAR ABADY': '0101223593',
-                'TEGAR GUSTI WARDANA': '0101037491',
-                'TEXAS PUTRA WIJAYA': '0104999663',
-                'WISNU BUDI SANTOSO': '0114072927',
-                'YARDAN ATSAQIF': '0101294104',
-                'YUSUF BINTANG PRATAMA': '0104490586',
-                'YUSUF THORIQ EL FAROBI': '0103213869',
-                'ZUAN ADITYA FIRMANSYAH': '0116085711',
-                'ADDIN NOOR MAULANA': '0105535891',
-                'ARYA BAGUS NUGROHO': '0102018742',
-                'ARYA FAHREZA': '0108465352',
-                'CAKRAWALA LINTANG SABAKHALILLAH': '0101394467',
-                'EGIT MAHARDIKA': '0102727958',
-                'ENGGAR WIBOWO MUKTI': '0103349017',
-                'ERLINO DWI SAPUTRA': '0104382559',
-                'FAHRI RAHMADANI': '0107878508',
-                'HAFIZH MAULANA AHMAD': '0105540344',
-                'ILHAM NUR YUWANA': '0112054807',
-                'IQBAL RAFA SAPUTRA': '0108497094',
-                'IRFANO DIKA PRATAMA': '0107988726',
-                'LANJAR REZKY BAKTI AJI SAPUTRA': '0101764559',
-                'NAUFAL LATIF CHAIRUL HAKAN': '0108854779'
-            };
-
-            const teacherName = "{{ Auth::user() ? Auth::user()->name : 'Nur Aditya Romadhon S.Kom' }}";
-            const selectedClass = "{{ request('class_name', 'Semua Kelas (X TO 3)') }}";
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-            const total = subs.length;
-            const tuntas = subs.filter(s => (s.score || 0) >= 75).length;
-            const remedial = total - tuntas;
-            const avg = total > 0 ? (subs.reduce((a, c) => a + (c.score || 0), 0) / total).toFixed(1) : 0;
-            const pct = total > 0 ? ((tuntas / total) * 100).toFixed(1) : 0;
-
-            const rows = subs.map((s, idx) => {
-                const sName = (s.student_name || '').toUpperCase().trim();
-                let nisn = '-';
-                if (s.user && s.user.email && /^\d+@/.test(s.user.email)) {
-                    nisn = s.user.email.split('@')[0];
-                } else if (nisnMap[sName]) {
-                    nisn = nisnMap[sName];
-                }
-                const score = s.score || 0;
-                const status = score >= 75 ? 'TUNTAS' : (s.is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL');
-                let fb = '-';
-                if (Array.isArray(s.feedback)) {
-                    fb = s.feedback.join('; ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-                } else if (s.feedback) {
-                    fb = String(s.feedback).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-                }
-                const waktu = s.created_at ? new Date(s.created_at).toLocaleString('id-ID') : '-';
-                return [idx + 1, String(nisn), sName, s.class_name || 'X TO 3', 'Hitung Luas Segitiga', Number(score), status, fb, waktu];
-            });
-
-            const wsData = [
-                ['LABORATORIUM FLOWCHART & PEMROGRAMAN DASAR'],
-                ['DAFTAR REKAPITULASI HASIL PENILAIAN PRAKTIKUM SISWA'],
-                ['Waktu Cetak: ' + dateStr + ', ' + timeStr + ' WIB'],
-                [],
-                ['Guru Pengampu:', teacherName, '', 'Materi / Kasus:', 'Hitung Luas Segitiga'],
-                ['Rombel / Kelas:', selectedClass, '', 'Standar KKM:', '75 / 100 (Nilai Minimal Tuntas)'],
-                [],
-                ['Total Siswa', 'Tuntas (>= 75)', 'Remedial (< 75)', 'Rata-rata Nilai', 'Persentase Ketuntasan'],
-                [total + ' Siswa', tuntas + ' Siswa', remedial + ' Siswa', avg, pct + '%'],
-                [],
-                ['NO', 'NISN', 'NAMA SISWA', 'KELAS', 'STUDI KASUS', 'SKOR', 'STATUS', 'CATATAN EVALUASI & FEEDBACK', 'WAKTU'],
-                ...rows,
-                [],
-                [],
-                ['', '', '', '', '', '', 'Kota Madiun, ' + dateStr],
-                ['', '', '', '', '', '', 'Guru Mata Pelajaran Informatika'],
-                [],
-                [],
-                [],
-                ['', '', '', '', '', '', teacherName]
-            ];
-
-            try {
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-                if (ws['!ref']) {
-                    const range = XLSX.utils.decode_range(ws['!ref']);
-                    for (let R = 10; R <= 10 + rows.length; ++R) {
-                        const cellRef = XLSX.utils.encode_cell({ c: 1, r: R });
-                        if (ws[cellRef]) ws[cellRef].t = 's';
-                    }
-                }
-
-                ws['!cols'] = [
-                    { wch: 6 },
-                    { wch: 16 },
-                    { wch: 35 },
-                    { wch: 15 },
-                    { wch: 25 },
-                    { wch: 10 },
-                    { wch: 18 },
-                    { wch: 60 },
-                    { wch: 20 }
-                ];
-
-                XLSX.utils.book_append_sheet(wb, ws, 'Rekap Nilai');
-                const safeClass = selectedClass.replace(/[^A-Za-z0-9_-]/g, '_');
-                const dateKey = now.toISOString().slice(0, 10);
-                const fileName = 'Rekap_Nilai_Flowchart_' + safeClass + '_' + dateKey + '.xlsx';
-
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 250);
-            } catch (err) {
-                console.error("XLSX export error, fallback to server download:", err);
-                window.location.href = "{{ route('guru.export_excel', request()->query()) }}";
-            }
+            // Biarkan browser langsung mengunduh file .xlsx asli yang digenerate oleh server
+            return true;
         }
     </script>
 </body>

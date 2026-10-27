@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FlowchartSubmission;
 use App\Models\User;
 use App\Models\CaseStudy;
+use App\Services\XlsxGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -117,15 +118,47 @@ class GuruController extends Controller
             'flow_type'           => 'required|in:sequential,branching',
             'icon'                => 'nullable|string|max:30',
             'badge'               => 'nullable|string|max:60',
-            'formula'             => 'nullable|string|max:255',
+            'formula'             => 'nullable|string|max:500',
             'description'         => 'required|string',
-            'expected_inputs'     => 'nullable|string|max:255',
-            'expected_process'    => 'nullable|string|max:255',
-            'expected_decision'   => 'nullable|string|max:255',
-            'expected_yes_output' => 'nullable|string|max:100',
-            'expected_no_output'  => 'nullable|string|max:100',
-            'expected_outputs'    => 'nullable|string|max:255',
+            'expected_inputs'     => 'nullable|string|max:1000',
+            'expected_process'    => 'nullable|string|max:1000',
+            'expected_decision'   => 'nullable|string|max:1000',
+            'expected_yes_output' => 'nullable|string|max:255',
+            'expected_no_output'  => 'nullable|string|max:255',
+            'expected_outputs'    => 'nullable|string|max:1000',
+            'extra_inputs'        => 'nullable|array',
+            'extra_process'       => 'nullable|array',
+            'extra_decisions'     => 'nullable|array',
+            'extra_outputs'       => 'nullable|array',
         ]);
+
+        // Gabungkan seluruh masukan input (utama + tambahan opsional)
+        $inputsList = array_values(array_filter(array_merge(
+            !empty($validated['expected_inputs']) ? array_map('trim', explode(',', $validated['expected_inputs'])) : [],
+            isset($validated['extra_inputs']) ? array_map('trim', (array)$validated['extra_inputs']) : []
+        )));
+        $combinedInputs = implode(', ', array_unique($inputsList));
+
+        // Gabungkan seluruh proses/rumus (utama + tambahan opsional)
+        $processList = array_values(array_filter(array_merge(
+            !empty($validated['expected_process']) ? array_map('trim', explode(',', $validated['expected_process'])) : [],
+            isset($validated['extra_process']) ? array_map('trim', (array)$validated['extra_process']) : []
+        )));
+        $combinedProcess = implode(', ', array_unique($processList));
+
+        // Gabungkan seluruh keputusan/syarat (utama + tambahan opsional)
+        $decisionList = array_values(array_filter(array_merge(
+            !empty($validated['expected_decision']) ? [$validated['expected_decision']] : [],
+            isset($validated['extra_decisions']) ? array_map('trim', (array)$validated['extra_decisions']) : []
+        )));
+        $combinedDecision = implode(', ', array_unique($decisionList));
+
+        // Gabungkan seluruh output luaran (utama + tambahan opsional)
+        $outputList = array_values(array_filter(array_merge(
+            !empty($validated['expected_outputs']) ? array_map('trim', explode(',', $validated['expected_outputs'])) : [],
+            isset($validated['extra_outputs']) ? array_map('trim', (array)$validated['extra_outputs']) : []
+        )));
+        $combinedOutputs = implode(', ', array_unique($outputList));
 
         $slug = Str::slug($validated['title'], '_');
         if (empty($slug)) {
@@ -142,26 +175,37 @@ class GuruController extends Controller
         $steps = [];
         $steps[] = ['type' => 'terminator', 'label' => 'Mulai', 'desc' => 'Titik awal alur algoritma'];
 
-        if (!empty($validated['expected_inputs'])) {
-            $steps[] = ['type' => 'io', 'label' => 'Input ' . $validated['expected_inputs'], 'desc' => 'Membaca masukan: ' . $validated['expected_inputs']];
+        if (!empty($inputsList)) {
+            foreach ($inputsList as $inp) {
+                $steps[] = ['type' => 'io', 'label' => 'Input ' . $inp, 'desc' => 'Membaca masukan: ' . $inp];
+            }
         } else {
             $steps[] = ['type' => 'io', 'label' => 'Input Data', 'desc' => 'Membaca data masukan'];
         }
 
         if ($validated['flow_type'] === 'branching') {
-            $decText = !empty($validated['expected_decision']) ? $validated['expected_decision'] : 'Syarat Kondisi?';
-            $steps[] = ['type' => 'decision', 'label' => $decText, 'desc' => 'Pemeriksaan kondisi logika'];
+            if (!empty($decisionList)) {
+                foreach ($decisionList as $dec) {
+                    $steps[] = ['type' => 'decision', 'label' => $dec, 'desc' => 'Pemeriksaan kondisi logika'];
+                }
+            } else {
+                $steps[] = ['type' => 'decision', 'label' => 'Syarat Kondisi?', 'desc' => 'Pemeriksaan kondisi logika'];
+            }
             $steps[] = ['type' => 'io', 'label' => ($validated['expected_yes_output'] ? 'Cetak ' . $validated['expected_yes_output'] : 'Output Ya'), 'desc' => 'Cabang YA (Kondisi Terpenuhi)'];
             $steps[] = ['type' => 'io', 'label' => ($validated['expected_no_output'] ? 'Cetak ' . $validated['expected_no_output'] : 'Output Tidak'), 'desc' => 'Cabang TIDAK (Kondisi Tidak Terpenuhi)'];
         } else {
-            if (!empty($validated['expected_process'])) {
-                $steps[] = ['type' => 'process', 'label' => $validated['expected_process'], 'desc' => 'Rumus perhitungan: ' . $validated['expected_process']];
+            if (!empty($processList)) {
+                foreach ($processList as $prc) {
+                    $steps[] = ['type' => 'process', 'label' => $prc, 'desc' => 'Rumus perhitungan: ' . $prc];
+                }
             } else {
                 $steps[] = ['type' => 'process', 'label' => 'Hitung / Proses Data', 'desc' => 'Komputasi manipulasi data'];
             }
 
-            if (!empty($validated['expected_outputs'])) {
-                $steps[] = ['type' => 'io', 'label' => 'Cetak ' . $validated['expected_outputs'], 'desc' => 'Menampilkan hasil nilai luaran'];
+            if (!empty($outputList)) {
+                foreach ($outputList as $out) {
+                    $steps[] = ['type' => 'io', 'label' => 'Cetak ' . $out, 'desc' => 'Menampilkan hasil nilai: ' . $out];
+                }
             } else {
                 $steps[] = ['type' => 'io', 'label' => 'Cetak Hasil', 'desc' => 'Menampilkan hasil luaran'];
             }
@@ -171,12 +215,12 @@ class GuruController extends Controller
 
         $connections = $validated['flow_type'] === 'branching'
             ? [
-                'Mulai ➔ Input ➔ Keputusan (' . ($validated['expected_decision'] ?: 'Kondisi') . ')',
+                'Mulai ➔ Input (' . ($combinedInputs ?: 'Data') . ') ➔ Keputusan (' . ($combinedDecision ?: 'Kondisi') . ')',
                 'Keputusan [Ya] ➔ ' . ($validated['expected_yes_output'] ?: 'Output Lulus') . ' ➔ Selesai',
                 'Keputusan [Tidak] ➔ ' . ($validated['expected_no_output'] ?: 'Output Remedial') . ' ➔ Selesai',
             ]
             : [
-                'Mulai ➔ Input (' . ($validated['expected_inputs'] ?: 'Data') . ') ➔ Proses (' . ($validated['expected_process'] ?: 'Rumus') . ') ➔ Output (' . ($validated['expected_outputs'] ?: 'Hasil') . ') ➔ Selesai'
+                'Mulai ➔ Input (' . ($combinedInputs ?: 'Data') . ') ➔ Proses (' . ($combinedProcess ?: 'Rumus') . ') ➔ Output (' . ($combinedOutputs ?: 'Hasil') . ') ➔ Selesai'
             ];
 
         $referenceFlow = [
@@ -196,12 +240,12 @@ class GuruController extends Controller
             'formula'             => $validated['formula'],
             'description'         => $validated['description'],
             'flow_type'           => $validated['flow_type'],
-            'expected_inputs'     => $validated['expected_inputs'],
-            'expected_process'    => $validated['expected_process'],
-            'expected_decision'   => $validated['expected_decision'],
-            'expected_yes_output' => $validated['expected_yes_output'],
-            'expected_no_output'  => $validated['expected_no_output'],
-            'expected_outputs'    => $validated['expected_outputs'],
+            'expected_inputs'     => $combinedInputs,
+            'expected_process'    => $combinedProcess,
+            'expected_decision'   => $combinedDecision,
+            'expected_yes_output' => $validated['expected_yes_output'] ?? null,
+            'expected_no_output'  => $validated['expected_no_output'] ?? null,
+            'expected_outputs'    => $combinedOutputs,
             'reference_flow'      => $referenceFlow,
             'scoring_rubric'      => $scoringRubric,
             'is_default'          => false,
@@ -332,29 +376,120 @@ class GuruController extends Controller
         $caseStudyTitle = 'Hitung Luas Segitiga';
 
         $safeClass = $selectedClass ? preg_replace('/[^A-Za-z0-9_-]/', '_', $selectedClass) : 'X_TO_3';
-        $filename = 'Rekap_Nilai_Flowchart_' . $safeClass . '_' . date('Ymd_His') . '.xls';
+        $format = $request->query('format', 'xlsx');
 
-        $content = view('guru.export_excel', compact(
-            'submissions',
-            'totalSubmissions',
-            'tuntasCount',
-            'remedialCount',
-            'averageScore',
-            'percentageTuntas',
-            'teacherName',
-            'selectedClass',
-            'caseStudyTitle'
-        ))->render();
+        // Siapkan Baris Data untuk Ekspor
+        $headers = [
+            'NO',
+            'NISN',
+            'NAMA SISWA',
+            'KELAS',
+            'STUDI KASUS',
+            'SKOR',
+            'STATUS',
+            'CATATAN EVALUASI & FEEDBACK',
+            'WAKTU'
+        ];
 
-        return response($content, 200, [
-            'Content-Type'              => 'application/vnd.ms-excel; charset=utf-8',
-            'Content-Disposition'       => 'attachment; filename="' . $filename . '"',
-            'Content-Transfer-Encoding' => 'binary',
-            'Content-Length'            => strlen($content),
-            'Pragma'                    => 'public',
-            'Expires'                   => '0',
-            'Cache-Control'             => 'must-revalidate, post-check=0, pre-check=0',
-        ]);
+        $rows = [];
+        foreach ($submissions as $idx => $sub) {
+            $score = $sub->score ?? 0;
+            $status = $score >= 75 ? 'TUNTAS' : ($sub->is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL');
+
+            $fb = '-';
+            if (is_array($sub->feedback)) {
+                $fb = implode('; ', $sub->feedback);
+            } elseif ($sub->feedback) {
+                $fb = (string)$sub->feedback;
+            }
+            $fb = preg_replace('/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u', '', $fb);
+
+            $waktu = $sub->created_at ? $sub->created_at->format('H:i') : '08:15';
+
+            $rows[] = [
+                $idx + 1,
+                (string)$sub->calculated_nisn,
+                strtoupper(trim($sub->student_name ?? '')),
+                $sub->class_name ?: 'X TO 3',
+                $caseStudyTitle,
+                $score,
+                $status,
+                trim($fb),
+                $waktu,
+            ];
+        }
+
+        // Format CSV (Fallback super-ringan & kompatibel 100%)
+        if ($format === 'csv') {
+            $csvFilename = 'Rekap_Nilai_Flowchart_' . $safeClass . '_' . date('Ymd_His') . '.csv';
+            $csvLines = [];
+            $csvLines[] = 'sep=;';
+            $csvLines[] = implode(';', $headers);
+            foreach ($rows as $r) {
+                $escaped = array_map(function ($val) {
+                    return '"' . str_replace('"', '""', (string)$val) . '"';
+                }, $r);
+                $csvLines[] = implode(';', $escaped);
+            }
+            $csvOutput = "\xEF\xBB\xBF" . implode("\r\n", $csvLines);
+
+            return response($csvOutput, 200, [
+                'Content-Type'        => 'text/csv; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename="' . $csvFilename . '"',
+                'Content-Length'      => strlen($csvOutput),
+                'Pragma'              => 'public',
+                'Expires'             => '0',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            ]);
+        }
+
+        // Format Asli Microsoft Excel (.xlsx) OpenXML
+        $xlsxFilename = 'Rekap_Nilai_Flowchart_' . $safeClass . '_' . date('Ymd_His') . '.xlsx';
+        $meta = [
+            'Guru Pengampu'       => $teacherName,
+            'Rombel / Kelas'      => $selectedClass ?: 'Semua Kelas (X TO 3)',
+            'Materi / Kasus'      => $caseStudyTitle,
+            'Standar KKM'         => '75 / 100',
+            'Total Siswa Dinilai' => $totalSubmissions . ' Siswa',
+            'Ketuntasan'          => $tuntasCount . ' Tuntas | ' . $remedialCount . ' Remedial (' . $percentageTuntas . '%)',
+            'Rata-rata Kelas'     => $averageScore . ' / 100',
+            'Waktu Unduh'         => date('d F Y, H:i') . ' WIB',
+        ];
+
+        try {
+            $xlsxBinary = XlsxGenerator::generate('LABORATORIUM FLOWCHART & PEMROGRAMAN DASAR', $meta, $headers, $rows);
+
+            return response($xlsxBinary, 200, [
+                'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $xlsxFilename . '"',
+                'Content-Length'      => strlen($xlsxBinary),
+                'Pragma'              => 'public',
+                'Expires'             => '0',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            ]);
+        } catch (\Throwable $e) {
+            // Fallback jika terjadi kegagalan sistem kompresi zip
+            $csvFilename = 'Rekap_Nilai_Flowchart_' . $safeClass . '_' . date('Ymd_His') . '.csv';
+            $csvLines = [];
+            $csvLines[] = 'sep=;';
+            $csvLines[] = implode(';', $headers);
+            foreach ($rows as $r) {
+                $escaped = array_map(function ($val) {
+                    return '"' . str_replace('"', '""', (string)$val) . '"';
+                }, $r);
+                $csvLines[] = implode(';', $escaped);
+            }
+            $csvOutput = "\xEF\xBB\xBF" . implode("\r\n", $csvLines);
+
+            return response($csvOutput, 200, [
+                'Content-Type'        => 'text/csv; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename="' . $csvFilename . '"',
+                'Content-Length'      => strlen($csvOutput),
+                'Pragma'              => 'public',
+                'Expires'             => '0',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            ]);
+        }
     }
 
     /**

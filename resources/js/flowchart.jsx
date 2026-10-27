@@ -2319,6 +2319,11 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     expected_outputs: '',
   });
 
+  const [extraInputs, setExtraInputs] = useState([]);
+  const [extraProcesses, setExtraProcesses] = useState([]);
+  const [extraDecisions, setExtraDecisions] = useState([]);
+  const [extraOutputs, setExtraOutputs] = useState([]);
+
   const saveSubmissions = (newSubs) => {
     const cleanSubs = newSubs.filter((s) => !isBlockedStudent(s.student_name));
     setSubmissions(cleanSubs);
@@ -2514,7 +2519,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Rekap_Nilai_Flowchart_${activeClass.replace(/[^A-Za-z0-9_-]/g, '_')}.csv`;
+      a.download = `Rekap_Nilai_Flowchart_${activeClass.replace(/[^A-Za-z0-9_-]/g, '_')}_${now.toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
@@ -2522,6 +2527,60 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
         URL.revokeObjectURL(url);
       }, 250);
     }
+  };
+
+  // Unduh langsung format CSV murni ber-BOM UTF-8 (100% kompatibel seluruh Excel)
+  const handleExportCSV = () => {
+    const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
+    if (listToExport.length === 0) {
+      alert('Tidak ada data penilaian untuk dicetak ke CSV.');
+      return;
+    }
+
+    const nisnMap = {};
+    STUDENTS_X_TO3.forEach((st) => {
+      nisnMap[st.name.toUpperCase().trim()] = st.nisn;
+    });
+
+    const activeClass = filterClass || 'Semua Kelas (X TO 3)';
+    const now = new Date();
+    const rowsData = listToExport.map((sub, idx) => {
+      const studentName = (sub.student_name || 'Siswa').toUpperCase().trim();
+      let nisn = sub.nisn || nisnMap[studentName] || '-';
+      if (nisn === '-' && sub.email && /^\d+@/.test(sub.email)) {
+        nisn = sub.email.split('@')[0];
+      }
+      const score = sub.score || 0;
+      const statusText = score >= 75 ? 'TUNTAS' : sub.is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL';
+      let feedbackClean = '-';
+      if (Array.isArray(sub.feedback)) {
+        feedbackClean = sub.feedback.join('; ').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+      } else if (sub.feedback) {
+        feedbackClean = String(sub.feedback).replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+      }
+      const caseTitle = caseStudiesMap[sub.case_key]?.title || 'Hitung Luas Segitiga';
+      const timeFormatted = sub.created_at
+        ? new Date(sub.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        : '08:15';
+      return [idx + 1, String(nisn), studentName, sub.class_name || 'X TO 3', caseTitle, Number(score), statusText, feedbackClean, timeFormatted];
+    });
+
+    const csvLines = [
+      'sep=;',
+      'NO;NISN;NAMA SISWA;KELAS;STUDI KASUS;SKOR;STATUS;CATATAN EVALUASI;WAKTU',
+      ...rowsData.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')),
+    ];
+    const blob = new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Rekap_Nilai_Flowchart_${activeClass.replace(/[^A-Za-z0-9_-]/g, '_')}_${now.toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 250);
   };
 
   // Simpan studi kasus baru buatan guru
@@ -2536,10 +2595,38 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       newCase.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')
     ).replace(/^_+|_+$/g, '');
 
+    const allInputs = [
+      newCase.expected_inputs,
+      ...extraInputs,
+    ].filter(Boolean).map((s) => s.trim()).filter(Boolean);
+    const combinedInputs = allInputs.join(', ');
+
+    const allProcesses = [
+      newCase.expected_process,
+      ...extraProcesses,
+    ].filter(Boolean).map((s) => s.trim()).filter(Boolean);
+    const combinedProcesses = allProcesses.join(', ');
+
+    const allDecisions = [
+      newCase.expected_decision,
+      ...extraDecisions,
+    ].filter(Boolean).map((s) => s.trim()).filter(Boolean);
+    const combinedDecisions = allDecisions.join(', ');
+
+    const allOutputs = [
+      newCase.expected_outputs,
+      ...extraOutputs,
+    ].filter(Boolean).map((s) => s.trim()).filter(Boolean);
+    const combinedOutputs = allOutputs.join(', ');
+
     const item = {
       ...newCase,
       case_key: key,
       id: key,
+      expected_inputs: combinedInputs,
+      expected_process: combinedProcesses,
+      expected_decision: combinedDecisions,
+      expected_outputs: combinedOutputs,
       badge: newCase.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial',
       icon: newCase.icon || (newCase.flow_type === 'branching' ? '🔀' : '📐'),
       created_at: new Date().toISOString(),
@@ -2552,6 +2639,10 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     } catch (e) {}
 
     setShowCreateModal(false);
+    setExtraInputs([]);
+    setExtraProcesses([]);
+    setExtraDecisions([]);
+    setExtraOutputs([]);
     setNewCase({
       case_key: '',
       title: '',
@@ -2749,10 +2840,20 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                     type="button"
                     onClick={handleExportExcel}
                     className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-                    title="Cetak & Ekspor Hasil Penilaian ke Format Excel (.xls)"
+                    title="Cetak & Unduh Hasil Penilaian ke Format Excel (.xlsx)"
                   >
                     <span>📊</span>
-                    <span>Cetak Excel</span>
+                    <span>Cetak Excel (.xlsx)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                    title="Unduh Format CSV (Kompatibel Semua Versi Excel)"
+                  >
+                    <span>📑</span>
+                    <span className="hidden sm:inline">CSV</span>
                   </button>
 
                   <button
@@ -3109,8 +3210,11 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Kata Kunci Input (Pisahkan dengan koma)</label>
+              <div className="p-3 bg-white rounded-xl border border-sky-200">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-sky-950 uppercase">Kata Kunci Input (Pisahkan dengan koma)</label>
+                  <span className="text-[10px] text-sky-600 font-semibold">Simbol I/O</span>
+                </div>
                 <input
                   type="text"
                   placeholder="Contoh: sisi, s, panjang"
@@ -3118,12 +3222,46 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   onChange={(e) => setNewCase({ ...newCase, expected_inputs: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
                 />
+                {extraInputs.map((val, idx) => (
+                  <div key={idx} className="flex items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      placeholder={`Input Tambahan ${idx + 2} (misal: tinggi, lebar)`}
+                      value={val}
+                      onChange={(e) => {
+                        const next = [...extraInputs];
+                        next[idx] = e.target.value;
+                        setExtraInputs(next);
+                      }}
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setExtraInputs(extraInputs.filter((_, i) => i !== idx))}
+                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer"
+                      title="Hapus"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setExtraInputs([...extraInputs, ''])}
+                  className="mt-2 text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span>➕</span>
+                  <span>Tambah Input Tambahan</span>
+                </button>
               </div>
 
               {newCase.flow_type === 'sequential' ? (
                 <>
-                  <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Kata Kunci Rumus / Proses</label>
+                  <div className="p-3 bg-white rounded-xl border border-emerald-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-emerald-950 uppercase">Kata Kunci Rumus / Proses</label>
+                      <span className="text-[10px] text-emerald-600 font-semibold">Simbol Persegi Panjang</span>
+                    </div>
                     <input
                       type="text"
                       placeholder="Contoh: 4 * sisi, keliling"
@@ -3131,9 +3269,44 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                       onChange={(e) => setNewCase({ ...newCase, expected_process: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
                     />
+                    {extraProcesses.map((val, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <input
+                          type="text"
+                          placeholder={`Proses / Rumus Tambahan ${idx + 2} (misal: luas = panjang * lebar)`}
+                          value={val}
+                          onChange={(e) => {
+                            const next = [...extraProcesses];
+                            next[idx] = e.target.value;
+                            setExtraProcesses(next);
+                          }}
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setExtraProcesses(extraProcesses.filter((_, i) => i !== idx))}
+                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer"
+                          title="Hapus"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setExtraProcesses([...extraProcesses, ''])}
+                      className="mt-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>➕</span>
+                      <span>Tambah Proses / Rumus Tambahan</span>
+                    </button>
                   </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Kata Kunci Output</label>
+
+                  <div className="p-3 bg-white rounded-xl border border-blue-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-blue-950 uppercase">Kata Kunci Output</label>
+                      <span className="text-[10px] text-blue-600 font-semibold">Simbol I/O</span>
+                    </div>
                     <input
                       type="text"
                       placeholder="Contoh: cetak, hasil, keliling"
@@ -3141,12 +3314,46 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                       onChange={(e) => setNewCase({ ...newCase, expected_outputs: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
                     />
+                    {extraOutputs.map((val, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <input
+                          type="text"
+                          placeholder={`Output Tambahan ${idx + 2} (misal: cetak keliling)`}
+                          value={val}
+                          onChange={(e) => {
+                            const next = [...extraOutputs];
+                            next[idx] = e.target.value;
+                            setExtraOutputs(next);
+                          }}
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setExtraOutputs(extraOutputs.filter((_, i) => i !== idx))}
+                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer"
+                          title="Hapus"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setExtraOutputs([...extraOutputs, ''])}
+                      className="mt-2 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>➕</span>
+                      <span>Tambah Output Tambahan</span>
+                    </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <div>
-                    <label className="block font-bold text-slate-700 uppercase mb-1">Syarat Kondisi Keputusan</label>
+                  <div className="p-3 bg-white rounded-xl border border-orange-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-orange-950 uppercase">Syarat Kondisi Keputusan</label>
+                      <span className="text-[10px] text-orange-600 font-semibold">Simbol Belah Ketupat</span>
+                    </div>
                     <input
                       type="text"
                       placeholder="Contoh: Nilai >= 75?"
@@ -3154,6 +3361,37 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                       onChange={(e) => setNewCase({ ...newCase, expected_decision: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:border-indigo-500 outline-none"
                     />
+                    {extraDecisions.map((val, idx) => (
+                      <div key={idx} className="flex items-center gap-2 mt-2">
+                        <input
+                          type="text"
+                          placeholder={`Keputusan Tambahan ${idx + 2} (misal: kehadiran >= 80%?)`}
+                          value={val}
+                          onChange={(e) => {
+                            const next = [...extraDecisions];
+                            next[idx] = e.target.value;
+                            setExtraDecisions(next);
+                          }}
+                          className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-indigo-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setExtraDecisions(extraDecisions.filter((_, i) => i !== idx))}
+                          className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold cursor-pointer"
+                          title="Hapus"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setExtraDecisions([...extraDecisions, ''])}
+                      className="mt-2 text-xs font-bold text-orange-700 hover:text-orange-800 bg-orange-50 hover:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>➕</span>
+                      <span>Tambah Keputusan / Syarat Tambahan</span>
+                    </button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
