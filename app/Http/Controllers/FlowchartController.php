@@ -41,17 +41,18 @@ class FlowchartController extends Controller
     }
 
     /**
-     * Simpan submission flowchart baru.
+     * Simpan submission flowchart baru atau perbarui remedial di database.
      */
     public function store(Request $request)
     {
         $user = Auth::user();
 
         $validated = $request->validate([
-            'student_name' => 'nullable|string|max:100',
-            'class_name'   => 'nullable|string|max:50',
-            'case_key'     => 'nullable|string|max:50',
-            'diagram_data' => 'required',
+            'submission_id' => 'nullable|integer',
+            'student_name'  => 'nullable|string|max:100',
+            'class_name'    => 'nullable|string|max:50',
+            'case_key'      => 'nullable|string|max:50',
+            'diagram_data'  => 'required',
         ]);
 
         $diagram = is_string($validated['diagram_data'])
@@ -64,22 +65,60 @@ class FlowchartController extends Controller
 
         $caseKey = $validated['case_key'] ?? ($diagram['case_key'] ?? 'luas_segitiga');
         $assessment = $this->evaluateDiagram($diagram, $caseKey);
+        $targetName = trim($validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan'));
+        $targetClass = $validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3');
 
-        $submission = FlowchartSubmission::create([
-            'user_id'      => $user ? $user->id : null,
-            'student_name' => $validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan'),
-            'class_name'   => $validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : '10 RPL 1'),
-            'case_key'     => $caseKey,
-            'diagram_data' => $diagram,
-            'score'        => $assessment['score'],
-            'feedback'     => $assessment['feedback'],
-            'checked_at'   => now(),
-        ]);
+        // Cek submission sebelumnya untuk penanganan remedial di tabel flowchart_submissions
+        $existing = null;
+        if (!empty($validated['submission_id'])) {
+            $existing = FlowchartSubmission::find($validated['submission_id']);
+        }
+        if (!$existing) {
+            $existing = FlowchartSubmission::where('case_key', $caseKey)
+                ->where(function ($q) use ($user, $targetName) {
+                    if (!empty($targetName)) {
+                        $q->where('student_name', $targetName)
+                          ->orWhereRaw('LOWER(TRIM(student_name)) = ?', [strtolower($targetName)]);
+                    }
+                    if ($user) {
+                        $q->orWhere('user_id', $user->id)
+                          ->orWhere('student_name', $user->name)
+                          ->orWhereRaw('LOWER(TRIM(student_name)) = ?', [strtolower(trim($user->name))]);
+                    }
+                })
+                ->latest()
+                ->first();
+        }
+
+        // Jika siswa sedang remedial atau memiliki catatan belum tuntas, perbarui langsung di database
+        if ($existing && ($existing->is_remedial_open || $existing->score < 75)) {
+            $isTuntas = $assessment['score'] >= 75;
+            $existing->update([
+                'score'            => max($existing->score, $assessment['score']),
+                'feedback'         => $assessment['feedback'],
+                'diagram_data'     => $diagram,
+                'is_remedial_open' => $isTuntas ? false : $existing->is_remedial_open,
+                'checked_at'       => now(),
+            ]);
+            $submission = $existing;
+        } else {
+            $submission = FlowchartSubmission::create([
+                'user_id'          => $user ? $user->id : null,
+                'student_name'     => $targetName,
+                'class_name'       => $targetClass,
+                'case_key'         => $caseKey,
+                'diagram_data'     => $diagram,
+                'score'            => $assessment['score'],
+                'feedback'         => $assessment['feedback'],
+                'is_remedial_open' => false,
+                'checked_at'       => now(),
+            ]);
+        }
 
         if ($request->expectsJson() || $request->isJson()) {
             return response()->json([
                 'success'    => true,
-                'message'    => 'Flowchart berhasil disimpan!',
+                'message'    => 'Flowchart berhasil diperbarui di database flowchart_submissions!',
                 'submission' => $submission,
             ]);
         }
@@ -95,10 +134,11 @@ class FlowchartController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'student_name' => 'nullable|string|max:100',
-            'class_name'   => 'nullable|string|max:50',
-            'case_key'     => 'nullable|string|max:50',
-            'diagram_data' => 'required',
+            'submission_id' => 'nullable',
+            'student_name'  => 'nullable|string|max:100',
+            'class_name'    => 'nullable|string|max:50',
+            'case_key'      => 'nullable|string|max:50',
+            'diagram_data'  => 'required',
         ]);
 
         $diagram = is_string($validated['diagram_data'])
@@ -112,25 +152,53 @@ class FlowchartController extends Controller
         $caseKey = $validated['case_key'] ?? ($diagram['case_key'] ?? 'luas_segitiga');
         $assessment = $this->evaluateDiagram($diagram, $caseKey);
 
-        $studentName = $validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan');
-        $className = $validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3');
+        $studentName = trim($validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan'));
+        $className = trim($validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3'));
 
-        // Cari riwayat pengerjaan sebelumnya untuk siswa ini pada studi kasus yang sama
-        $existing = FlowchartSubmission::where('case_key', $caseKey)
-            ->where(function ($q) use ($user, $studentName) {
-                if ($user) {
-                    $q->where('user_id', $user->id)
-                      ->orWhere('student_name', $user->name);
-                } else {
-                    $q->where('student_name', $studentName);
-                }
-            })
-            ->latest()
-            ->first();
+        // Cari riwayat pengerjaan sebelumnya untuk siswa ini pada tabel flowchart_submissions
+        $existing = null;
+        if (!empty($validated['submission_id']) && is_numeric($validated['submission_id'])) {
+            $existing = FlowchartSubmission::find($validated['submission_id']);
+        }
+
+        if (!$existing) {
+            $existing = FlowchartSubmission::where('case_key', $caseKey)
+                ->where(function ($q) use ($user, $studentName) {
+                    if (!empty($studentName)) {
+                        $q->where('student_name', $studentName)
+                          ->orWhereRaw('LOWER(TRIM(student_name)) = ?', [strtolower($studentName)]);
+                    }
+                    if ($user) {
+                        $q->orWhere('user_id', $user->id)
+                          ->orWhere('student_name', $user->name)
+                          ->orWhereRaw('LOWER(TRIM(student_name)) = ?', [strtolower(trim($user->name))]);
+                    }
+                })
+                ->latest()
+                ->first();
+        }
+
+        // Jika tidak ditemukan dengan caseKey persis, cari apakah ada submission siswa yang remedialnya sedang dibuka
+        if (!$existing) {
+            $existing = FlowchartSubmission::where('is_remedial_open', true)
+                ->where(function ($q) use ($user, $studentName) {
+                    if (!empty($studentName)) {
+                        $q->where('student_name', $studentName)
+                          ->orWhereRaw('LOWER(TRIM(student_name)) = ?', [strtolower($studentName)]);
+                    }
+                    if ($user) {
+                        $q->orWhere('user_id', $user->id)
+                          ->orWhere('student_name', $user->name)
+                          ->orWhereRaw('LOWER(TRIM(student_name)) = ?', [strtolower(trim($user->name))]);
+                    }
+                })
+                ->latest()
+                ->first();
+        }
 
         if ($existing) {
             // Aturan 1: Jika sudah tuntas (>= 75), studi kasus hanya bisa dikerjakan 1 kali
-            if ($existing->score >= 75) {
+            if ($existing->score >= 75 && !$existing->is_remedial_open) {
                 return response()->json([
                     'success'       => false,
                     'is_locked'     => true,
@@ -142,7 +210,7 @@ class FlowchartController extends Controller
             }
 
             // Aturan 2: Jika belum tuntas (< 75), harus dicek apakah guru sudah membuka akses remedial
-            if (!$existing->is_remedial_open) {
+            if (!$existing->is_remedial_open && $existing->score < 75) {
                 return response()->json([
                     'success'       => false,
                     'is_locked'     => true,
@@ -155,7 +223,7 @@ class FlowchartController extends Controller
             }
 
             // Aturan 3: Guru telah membuka remedial
-            // Jika nilai baru tuntas (>= 75), nilai belum tuntas akan otomatis TERGANTI!
+            // Jika nilai baru tuntas (>= 75), nilai belum tuntas akan otomatis TERGANTI di database flowchart_submissions!
             if ($assessment['score'] >= 75) {
                 $existing->update([
                     'score'            => $assessment['score'],
@@ -168,13 +236,13 @@ class FlowchartController extends Controller
                 return response()->json([
                     'success'             => true,
                     'is_remedial_updated' => true,
-                    'message'             => '🎉 Luar biasa! Remedial Anda berhasil dan nilai lama telah diganti menjadi TUNTAS (' . $assessment['score'] . '/100)!',
+                    'message'             => '🎉 Luar biasa! Remedial Anda berhasil dan nilai lama telah diganti menjadi TUNTAS (' . $assessment['score'] . '/100)! Database telah diperbarui.',
                     'submission_id'       => $existing->id,
                     'score'               => $assessment['score'],
                     'feedback'            => $assessment['feedback'],
                 ]);
             } else {
-                // Jika masih belum tuntas (< 75), perbarui catatan umpan balik
+                // Jika masih belum tuntas (< 75), perbarui nilai tertinggi & catatan umpan balik di database
                 $existing->update([
                     'score'        => max($existing->score, $assessment['score']),
                     'feedback'     => $assessment['feedback'],
@@ -193,7 +261,7 @@ class FlowchartController extends Controller
             }
         }
 
-        // Pengerjaan pertama kali
+        // Pengerjaan pertama kali (Simpan ke flowchart_submissions)
         $submission = FlowchartSubmission::create([
             'user_id'          => $user ? $user->id : null,
             'student_name'     => $studentName,

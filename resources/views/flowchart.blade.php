@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="app-url" content="{{ url('/') }}">
+    <meta name="check-url" content="{{ route('flowchart.check') }}">
+    <meta name="toggle-remedial-base-url" content="{{ url('/guru/submission') }}">
+    <meta name="export-excel-url" content="{{ route('guru.export_excel') }}">
     <title>Laboratorium Alur Logika: Flowchart App</title>
 
     <!-- Google Fonts -->
@@ -156,9 +160,11 @@
             </div>
         @endif
 
-        <!-- Inject data studi kasus aktif dari database -->
+        <!-- Inject data studi kasus aktif & data submission praktikan dari database flowchart_submissions -->
         <script>
             window.__FLOWCHART_CASE_STUDIES__ = @json($caseStudies ?? []);
+            window.__FLOWCHART_SUBMISSIONS__ = @json($submissions ?? []);
+            window.__APP_URL__ = @json(url('/'));
         </script>
 
         <!-- Card Flowchart Editor React -->

@@ -291,7 +291,7 @@ class GuruController extends Controller
         $filterStatus = $request->query('status');
         $selectedClass = $request->query('class_name');
 
-        $query = FlowchartSubmission::with(['user', 'caseStudy'])->orderBy('class_name')->orderBy('student_name');
+        $query = FlowchartSubmission::with(['user', 'caseStudy'])->orderBy('class_name')->orderBy('id');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -399,7 +399,7 @@ class GuruController extends Controller
 
         $rows = [];
         foreach ($submissions as $idx => $sub) {
-            $score = $sub->score ?? 0;
+            $score = (int)($sub->score ?? 0);
             $status = $score >= 75 ? 'TUNTAS' : ($sub->is_remedial_open ? 'REMIDI (DIBUKA)' : 'REMEDIAL');
 
             $fb = '-';
@@ -410,14 +410,17 @@ class GuruController extends Controller
             }
             $fb = preg_replace('/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u', '', $fb);
 
-            $waktu = $sub->created_at ? $sub->created_at->format('H:i') : '08:15';
+            $timeObj = $sub->checked_at ?: $sub->created_at;
+            $waktu = $timeObj ? $timeObj->format('d/m/Y H:i') : '08:15';
+
+            $caseTitle = $sub->caseStudy ? $sub->caseStudy->title : ($sub->case_key ? ucwords(str_replace('_', ' ', $sub->case_key)) : 'Hitung Luas Segitiga');
 
             $rows[] = [
                 $idx + 1,
                 (string)$sub->calculated_nisn,
                 strtoupper(trim($sub->student_name ?? '')),
                 $sub->class_name ?: 'X TO 3',
-                $caseStudyTitle,
+                $caseTitle,
                 $score,
                 $status,
                 trim($fb),

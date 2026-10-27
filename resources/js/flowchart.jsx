@@ -51,6 +51,37 @@ const defaultCaseStudies = {
   },
 };
 
+export const getApiUrl = (endpoint) => {
+  if (typeof window === 'undefined') return `/${endpoint.replace(/^\/+/, '')}`;
+  const cleanEndpoint = endpoint.replace(/^\/+/, '');
+
+  if (cleanEndpoint.startsWith('flowchart/check')) {
+    const metaCheck = document.querySelector('meta[name="check-url"]')?.getAttribute('content');
+    if (metaCheck) return metaCheck;
+  }
+  if (cleanEndpoint.startsWith('guru/export-excel')) {
+    const metaExport = document.querySelector('meta[name="export-excel-url"]')?.getAttribute('content');
+    if (metaExport) return metaExport;
+  }
+
+  const metaAppUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || window.__APP_URL__;
+  if (metaAppUrl) {
+    return `${metaAppUrl.replace(/\/+$/, '')}/${cleanEndpoint}`;
+  }
+
+  const path = window.location.pathname;
+  const matchPublic = path.match(/^(.*?\/public)/);
+  if (matchPublic) {
+    return `${matchPublic[1]}/${cleanEndpoint}`;
+  }
+  const matchApp = path.match(/^(.*?\/flowchart-app)/);
+  if (matchApp) {
+    return `${matchApp[1]}/${cleanEndpoint}`;
+  }
+
+  return `/${cleanEndpoint}`;
+};
+
 const getCaseStudiesMap = () => {
   const map = {};
   const dynamicList = typeof window !== 'undefined' ? window.__FLOWCHART_CASE_STUDIES__ : null;
@@ -685,6 +716,19 @@ export default function FlowchartEditor({ currentUser }) {
   const existingSubmission = React.useMemo(() => {
     const cleanName = (studentName || '').trim().toLowerCase();
     if (!cleanName || isBlockedStudent(cleanName)) return null;
+
+    // 1. Cek dari database injection jika diakses via Laravel (window.__FLOWCHART_SUBMISSIONS__)
+    if (typeof window !== 'undefined' && Array.isArray(window.__FLOWCHART_SUBMISSIONS__) && window.__FLOWCHART_SUBMISSIONS__.length > 0) {
+      const dbMatch = window.__FLOWCHART_SUBMISSIONS__.find(
+        (s) =>
+          (s.case_key === selectedCaseKey || !s.case_key || s.case_key === 'luas_segitiga') &&
+          (s.student_name || '').trim().toLowerCase() === cleanName &&
+          !isBlockedStudent(s.student_name)
+      );
+      if (dbMatch) return dbMatch;
+    }
+
+    // 2. Cek riwayat lokal localStorage
     try {
       const history = JSON.parse(localStorage.getItem('flowchart_submissions_history') || '[]');
       return history.find(
@@ -1017,6 +1061,7 @@ export default function FlowchartEditor({ currentUser }) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     const payload = {
+      submission_id: existingSubmission?.id || null,
       student_name: studentName.trim() || 'RAFIANSYAH CIPTA PRANATA',
       class_name: studentClass.trim() || 'X TO 3',
       case_key: selectedCaseKey,
@@ -1033,7 +1078,8 @@ export default function FlowchartEditor({ currentUser }) {
     };
 
     try {
-      const res = await fetch('/flowchart/check', {
+      const checkUrl = getApiUrl('flowchart/check');
+      const res = await fetch(checkUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1050,6 +1096,18 @@ export default function FlowchartEditor({ currentUser }) {
           feedback: data.feedback,
           id: data.submission_id,
         });
+
+        // Perbarui cache in-memory window.__FLOWCHART_SUBMISSIONS__ jika ada
+        if (typeof window !== 'undefined' && Array.isArray(window.__FLOWCHART_SUBMISSIONS__)) {
+          const matchIdx = window.__FLOWCHART_SUBMISSIONS__.findIndex(
+            (s) => s.id === data.submission_id || (s.student_name || '').trim().toLowerCase() === studentName.trim().toLowerCase()
+          );
+          if (matchIdx !== -1) {
+            window.__FLOWCHART_SUBMISSIONS__[matchIdx].score = data.score;
+            window.__FLOWCHART_SUBMISSIONS__[matchIdx].feedback = data.feedback;
+            window.__FLOWCHART_SUBMISSIONS__[matchIdx].is_remedial_open = false;
+          }
+        }
 
         syncLocalSubmission(data.score, data.feedback, data.submission_id);
         showToast(data.message || `🎉 Evaluasi selesai! Skor Anda: ${data.score}/100`, 'success');
@@ -2356,7 +2414,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     if (csrfToken && target.id && !String(target.id).startsWith('sub_')) {
       try {
-        await fetch(`/guru/submission/${target.id}/toggle-remedial`, {
+        const toggleUrl = getApiUrl(`guru/submission/${target.id}/toggle-remedial`);
+        await fetch(toggleUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -2381,6 +2440,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
   // Cetak & Ekspor Hasil Penilaian ke Format Asli Microsoft Excel (.xlsx)
   const handleExportExcel = () => {
+    const isLaravel = Boolean(document.querySelector('meta[name="csrf-token"]'));
+    if (isLaravel) {
+      window.location.href = getApiUrl(`guru/export-excel?class_name=${encodeURIComponent(filterClass || '')}`);
+      return;
+    }
+
     const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
     if (listToExport.length === 0) {
       alert('Tidak ada data penilaian untuk dicetak ke Excel.');
@@ -2531,6 +2596,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
   // Unduh langsung format CSV murni ber-BOM UTF-8 (100% kompatibel seluruh Excel)
   const handleExportCSV = () => {
+    const isLaravel = Boolean(document.querySelector('meta[name="csrf-token"]'));
+    if (isLaravel) {
+      window.location.href = getApiUrl(`guru/export-excel?format=csv&class_name=${encodeURIComponent(filterClass || '')}`);
+      return;
+    }
+
     const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
     if (listToExport.length === 0) {
       alert('Tidak ada data penilaian untuk dicetak ke CSV.');
