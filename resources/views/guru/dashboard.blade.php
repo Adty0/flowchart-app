@@ -449,6 +449,20 @@
                             @endforeach
                         </select>
 
+                        <!-- Filter Studi Kasus -->
+                        <select 
+                            name="case_key" 
+                            onchange="this.form.submit()" 
+                            class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none"
+                        >
+                            <option value="">Semua Studi Kasus</option>
+                            @foreach($caseStudies as $cs)
+                                <option value="{{ $cs->case_key }}" {{ request('case_key') === $cs->case_key ? 'selected' : '' }}>
+                                    {{ $cs->title }}
+                                </option>
+                            @endforeach
+                        </select>
+
                         <!-- Filter Status Nilai -->
                         <select 
                             name="status" 
@@ -479,7 +493,7 @@
                             Terapkan
                         </button>
 
-                        @if(request('search') || request('status') || request('class_name'))
+                        @if(request('search') || request('status') || request('class_name') || request('case_key'))
                             <a 
                                 href="{{ route('guru.dashboard', ['tab' => 'rekap']) }}" 
                                 class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-all"

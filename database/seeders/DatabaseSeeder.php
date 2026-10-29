@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Models\FlowchartSubmission;
+use App\Models\CaseStudy;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,44 @@ class DatabaseSeeder extends Seeder
         FlowchartSubmission::truncate();
         User::truncate();
         Schema::enableForeignKeyConstraints();
+
+        // Studi Kasus Standar (Hanya Luas Segitiga dan Kelulusan Nilai)
+        CaseStudy::whereNotIn('case_key', ['luas_segitiga', 'kelulusan'])->delete();
+        CaseStudy::firstOrCreate(
+            ['case_key' => 'luas_segitiga'],
+            [
+                'title' => 'Studi Kasus 1: Menghitung Luas Segitiga',
+                'icon' => '📐',
+                'badge' => 'Alur Sekuensial',
+                'formula' => 'Rumus: Luas = 0.5 × Alas × Tinggi',
+                'description' => 'Buatlah flowchart yang membaca masukan nilai alas dan tinggi dari pengguna, menghitung luas segitiga dengan rumus matematika, lalu mencetak nilai hasil luas ke layar.',
+                'flow_type' => 'sequential',
+                'expected_inputs' => 'alas, tinggi, a, t',
+                'expected_process' => '0.5 * alas * tinggi',
+                'expected_outputs' => 'luas, cetak luas',
+                'is_default' => true,
+                'is_active' => true,
+            ]
+        );
+
+        CaseStudy::firstOrCreate(
+            ['case_key' => 'kelulusan'],
+            [
+                'title' => 'Studi Kasus 2: Cek Kelulusan Nilai Ujian',
+                'icon' => '🎓',
+                'badge' => 'Alur Percabangan',
+                'formula' => 'Syarat: Nilai ≥ 75 → LULUS | Nilai < 75 → REMEDIAL',
+                'description' => 'Rancang flowchart dengan: 1) Mulai, 2) Input Nilai Ujian, 3) Keputusan Nilai >= 75? (cabang Ya & Tidak), 4) Output Cetak LULUS & REMEDIAL, 5) Selesai.',
+                'flow_type' => 'branching',
+                'expected_inputs' => 'nilai, ujian',
+                'expected_decision' => 'Nilai >= 75?',
+                'expected_yes_output' => 'lulus',
+                'expected_no_output' => 'remedial',
+                'expected_outputs' => 'lulus, remedial',
+                'is_default' => true,
+                'is_active' => true,
+            ]
+        );
 
         // 1. Akun Guru Utama
         $guru = User::create([
@@ -646,6 +685,29 @@ class DatabaseSeeder extends Seeder
                     'updated_at' => $time,
                 ]);
             }
+        }
+
+        // Submission akun Simulasi Siswa (Rombel X TO 3)
+        $simulasiUser = User::where('email', '000000@sekolah.id')->first();
+        if ($simulasiUser) {
+            FlowchartSubmission::create([
+                'user_id' => $simulasiUser->id,
+                'student_name' => 'Simulasi Siswa',
+                'class_name' => 'X TO 3',
+                'case_key' => 'luas_segitiga',
+                'diagram_data' => $diagramSequential,
+                'score' => 100,
+                'feedback' => [
+                    '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+                    '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+                    '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+                    '✅ Simbol cetak hasil output sesuai.',
+                    '✅ Seluruh garis panah konektor terhubung runtut.',
+                ],
+                'checked_at' => $today->copy()->setTime(8, 25, 0),
+                'created_at' => $today->copy()->setTime(8, 25, 0),
+                'updated_at' => $today->copy()->setTime(8, 25, 0),
+            ]);
         }
     }
 }

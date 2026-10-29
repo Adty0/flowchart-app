@@ -40,15 +40,6 @@ const defaultCaseStudies = {
     flow_type: 'branching',
     expected_decision: 'Nilai >= 75?',
   },
-  bebas: {
-    id: 'bebas',
-    title: 'Studi Kasus Mandiri: Eksplorasi Bebas',
-    icon: '✏️',
-    badge: 'Proyek Bebas',
-    formula: 'Alur Logika Bebas Sesuai Instruksi Guru',
-    description: 'Rancang flowchart secara mandiri sesuai dengan tugas atau studi kasus pemrograman yang diberikan oleh guru pada pertemuan hari ini.',
-    flow_type: 'sequential',
-  },
 };
 
 export const getApiUrl = (endpoint) => {
@@ -137,6 +128,9 @@ const getCaseStudiesMap = () => {
       });
     }
   } catch (e) {}
+
+  // Pastikan studi kasus bebas atau selain kasus aktif tidak muncul
+  delete map.bebas;
 
   return map;
 };
@@ -1614,6 +1608,7 @@ export const STUDENTS_X_TO3 = [
   { nisn: '0107988726', name: 'IRFANO DIKA PRATAMA' },
   { nisn: '0101764559', name: 'LANJAR REZKY BAKTI AJI SAPUTRA' },
   { nisn: '0108854779', name: 'NAUFAL LATIF CHAIRUL HAKAN' },
+  { nisn: '000000', name: 'Simulasi Siswa' },
 ];
 
 // Filter nama respon yang dilarang / dihapus (Contoh1, adit)
@@ -2176,6 +2171,21 @@ export const DEFAULT_STUDENT_SUBMISSIONS = [
     ],
     created_at: makeSubmissionTime(30, 0),
   },
+  {
+    id: 'sub_simulasi',
+    student_name: 'Simulasi Siswa',
+    class_name: 'X TO 3',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+      '✅ Rumus perhitungan matematika tepat.',
+      '✅ Simbol cetak hasil output sesuai.',
+      '✅ Seluruh garis panah konektor terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(30, 15),
+  },
 ];
 
 // ============================================================================
@@ -2372,24 +2382,25 @@ function LoginForm({ onLogin }) {
 function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChanged }) {
   const [activeTab, setActiveTab] = useState('rekap'); // 'rekap' | 'studi_kasus'
   const [filterClass, setFilterClass] = useState('X TO 3');
+  const [filterCase, setFilterCase] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubDetail, setSelectedSubDetail] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Ambil riwayat submission dari localStorage (default seluruh 36 siswa kelas X TO 3, kasus luas segitiga jam 08.00 - 08.30)
+  // Ambil riwayat submission dari localStorage (default seluruh siswa kelas X TO 3 termasuk Simulasi Siswa, kasus luas segitiga)
   const [submissions, setSubmissions] = useState(() => {
     try {
       const v = localStorage.getItem('flowchart_submissions_v');
       const saved = localStorage.getItem('flowchart_submissions_history');
-      if (v === 'v4_remedial_rules' && saved) {
+      if (v === 'v5_simulasi_cases' && saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 30) {
           return parsed.filter((s) => !isBlockedStudent(s.student_name));
         }
       }
       const initialClean = DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
-      localStorage.setItem('flowchart_submissions_v', 'v4_remedial_rules');
+      localStorage.setItem('flowchart_submissions_v', 'v5_simulasi_cases');
       localStorage.setItem('flowchart_submissions_history', JSON.stringify(initialClean));
       return initialClean;
     } catch (e) {
@@ -2397,10 +2408,11 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
   });
 
-  // Ambil studi kasus kustom buatan guru
+  // Ambil studi kasus kustom buatan guru (kecuali studi kasus bebas)
   const [customCases, setCustomCases] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('flowchart_custom_cases') || '[]');
+      const parsed = JSON.parse(localStorage.getItem('flowchart_custom_cases') || '[]');
+      return Array.isArray(parsed) ? parsed.filter((c) => c.case_key !== 'bebas' && c.id !== 'bebas') : [];
     } catch (e) {
       return [];
     }
@@ -2487,7 +2499,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const handleExportExcel = () => {
     const isLaravel = Boolean(document.querySelector('meta[name="csrf-token"]'));
     if (isLaravel) {
-      window.location.href = getApiUrl(`guru/export-excel?class_name=${encodeURIComponent(filterClass || '')}`);
+      window.location.href = getApiUrl(`guru/export-excel?class_name=${encodeURIComponent(filterClass || '')}&case_key=${encodeURIComponent(filterCase || '')}`);
       return;
     }
 
@@ -2807,6 +2819,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
   const filteredSubs = cleanSubmissions.filter((s) => {
     if (filterClass && s.class_name !== filterClass) return false;
+    if (filterCase && s.case_key !== filterCase) return false;
     if (filterStatus === 'lulus' && s.score < 75) return false;
     if (filterStatus === 'remedial' && s.score >= 75) return false;
     if (searchQuery.trim()) {
@@ -2818,10 +2831,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     return true;
   });
 
-  // Hitung statistik khusus berdasarkan rombel yang aktif dipilih (default: X TO 3)
-  const activeSubsForStats = filterClass
-    ? cleanSubmissions.filter((s) => s.class_name === filterClass)
-    : cleanSubmissions;
+  // Hitung statistik khusus berdasarkan rombel & studi kasus yang aktif dipilih (default: X TO 3)
+  const activeSubsForStats = cleanSubmissions.filter((s) => {
+    if (filterClass && s.class_name !== filterClass) return false;
+    if (filterCase && s.case_key !== filterCase) return false;
+    return true;
+  });
 
   const totalCount = activeSubsForStats.length;
   const avgScore =
@@ -2834,8 +2849,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const allCasesList = [
     { ...defaultCaseStudies.luas_segitiga, is_default: true },
     { ...defaultCaseStudies.kelulusan, is_default: true },
-    { ...defaultCaseStudies.bebas, is_default: true },
-    ...customCases.map((c) => ({ ...c, is_default: false })),
+    ...customCases.filter((c) => c.case_key !== 'bebas' && c.id !== 'bebas').map((c) => ({ ...c, is_default: false })),
   ];
 
   return (
@@ -3002,6 +3016,20 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   <option value="">Semua Rombel / Kelas</option>
                   {availableClasses.map((cls) => (
                     <option key={cls} value={cls}>Kelas {cls}</option>
+                  ))}
+                </select>
+
+                {/* Filter Studi Kasus */}
+                <select
+                  value={filterCase}
+                  onChange={(e) => setFilterCase(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Semua Studi Kasus</option>
+                  {allCasesList.map((cs) => (
+                    <option key={cs.id || cs.case_key} value={cs.id || cs.case_key}>
+                      {cs.title}
+                    </option>
                   ))}
                 </select>
 

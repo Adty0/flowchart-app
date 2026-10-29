@@ -20,7 +20,8 @@ class GuruController extends Controller
     {
         $search = $request->query('search');
         $filterStatus = $request->query('status'); // 'lulus', 'remedial'
-        $selectedClass = $request->query('class_name'); // '10 RPL 1', dst
+        $selectedClass = $request->query('class_name'); // 'X TO 3', dst
+        $selectedCase = $request->query('case_key'); // 'luas_segitiga', 'kelulusan', dst
 
         $query = FlowchartSubmission::with('user')->orderByDesc('created_at');
 
@@ -45,6 +46,10 @@ class GuruController extends Controller
             $query->where('class_name', $selectedClass);
         }
 
+        if ($selectedCase) {
+            $query->where('case_key', $selectedCase);
+        }
+
         $submissions = $query->get();
 
         // Daftar Semua Kelas Unik (Dari Pengguna & Submission)
@@ -61,11 +66,16 @@ class GuruController extends Controller
             return $item->class_name ?: 'Kelas Umum';
         });
 
-        // Statistik Sesuai Rombel yang Dipilih (atau Keseluruhan jika Semua Rombel)
+        // Statistik Sesuai Rombel & Kasus yang Dipilih (atau Keseluruhan jika Semua)
         $allSubmissions = FlowchartSubmission::all();
-        $statSubmissions = $selectedClass
-            ? $allSubmissions->where('class_name', $selectedClass)
-            : $allSubmissions;
+        $statSubmissions = $allSubmissions;
+
+        if ($selectedClass) {
+            $statSubmissions = $statSubmissions->where('class_name', $selectedClass);
+        }
+        if ($selectedCase) {
+            $statSubmissions = $statSubmissions->where('case_key', $selectedCase);
+        }
 
         $totalSubmissions = $statSubmissions->count();
         $totalSiswa = $selectedClass
@@ -80,6 +90,9 @@ class GuruController extends Controller
         $classStats = [];
         foreach ($classList as $cls) {
             $classSubs = $allSubmissions->where('class_name', $cls);
+            if ($selectedCase) {
+                $classSubs = $classSubs->where('case_key', $selectedCase);
+            }
             $classTotal = $classSubs->count();
             $classAvg = $classTotal > 0 ? round($classSubs->avg('score'), 1) : 0;
             $classLulus = $classSubs->where('score', '>=', 75)->count();
@@ -93,8 +106,11 @@ class GuruController extends Controller
             ];
         }
 
-        // Daftar Studi Kasus untuk Tab Manajemen Studi Kasus
-        $caseStudies = CaseStudy::withCount('submissions')->orderBy('id')->get();
+        // Daftar Studi Kasus untuk Tab Manajemen Studi Kasus dan Filter Dropdown (Hanya yang aktif & non-bebas)
+        $caseStudies = CaseStudy::whereNotIn('case_key', ['bebas'])
+            ->withCount('submissions')
+            ->orderBy('id')
+            ->get();
 
         return view('guru.dashboard', compact(
             'submissions',
@@ -110,7 +126,8 @@ class GuruController extends Controller
             'remedialCount',
             'search',
             'filterStatus',
-            'selectedClass'
+            'selectedClass',
+            'selectedCase'
         ));
     }
 
@@ -290,6 +307,7 @@ class GuruController extends Controller
         $search = $request->query('search');
         $filterStatus = $request->query('status');
         $selectedClass = $request->query('class_name');
+        $selectedCase = $request->query('case_key');
 
         $query = FlowchartSubmission::with(['user', 'caseStudy'])->orderBy('class_name')->orderBy('id');
 
@@ -312,6 +330,10 @@ class GuruController extends Controller
 
         if ($selectedClass) {
             $query->where('class_name', $selectedClass);
+        }
+
+        if ($selectedCase) {
+            $query->where('case_key', $selectedCase);
         }
 
         $submissions = $query->get()->filter(function ($sub) {
@@ -380,7 +402,11 @@ class GuruController extends Controller
 
         $user = auth()->user();
         $teacherName = $user ? $user->name : 'Nur Aditya Romadhon S.Kom';
-        $caseStudyTitle = 'Hitung Luas Segitiga';
+        $caseStudyTitle = 'Semua Studi Kasus';
+        if ($selectedCase) {
+            $csObj = CaseStudy::where('case_key', $selectedCase)->first();
+            $caseStudyTitle = $csObj ? $csObj->title : ucwords(str_replace('_', ' ', $selectedCase));
+        }
 
         $safeClass = $selectedClass ? preg_replace('/[^A-Za-z0-9_-]/', '_', $selectedClass) : 'X_TO_3';
         $format = $request->query('format', 'xlsx');
