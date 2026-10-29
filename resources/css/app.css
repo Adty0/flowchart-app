@@ -26,13 +26,56 @@
     animation: fadeIn 0.25s ease-out forwards;
 }
 
-/* React Flow Visual Enhancement */
+/* React Flow Visual Enhancement - Titik Handle Stabil & Diam */
 .react-flow__handle {
-    transition: transform 0.15s ease-in-out, background-color 0.15s ease-in-out;
+    transition: none !important;
+    cursor: crosshair !important;
 }
 
-.react-flow__handle:hover {
-    transform: scale(1.3) !important;
+.react-flow__handle-top {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__handle-bottom {
+    transform: translate(-50%, 50%) !important;
+}
+
+.react-flow__handle-left {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__handle-right {
+    transform: translate(50%, -50%) !important;
+}
+
+/* Sorotan visual saat disentuh tanpa merubah ukuran (scale) atau posisi koordinat */
+.react-flow__handle:hover,
+.react-flow__handle:active,
+.react-flow__handle.connecting,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectionindicator {
+    filter: brightness(1.2) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.45) !important;
+}
+
+.react-flow__handle-top:hover,
+.react-flow__handle-top:active {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__handle-bottom:hover,
+.react-flow__handle-bottom:active {
+    transform: translate(-50%, 50%) !important;
+}
+
+.react-flow__handle-left:hover,
+.react-flow__handle-left:active {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__handle-right:hover,
+.react-flow__handle-right:active {
+    transform: translate(50%, -50%) !important;
 }
 
 .react-flow__edge-path {

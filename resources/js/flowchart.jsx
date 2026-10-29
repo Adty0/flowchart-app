@@ -148,13 +148,13 @@ const getCaseStudiesMap = () => {
 // 1. TERMINATOR (Mulai / Selesai) - Aksen Kuning/Amber Lembut
 const TerminatorNode = ({ data, id }) => {
   return (
-    <div className="group relative transition-all duration-200">
+    <div className="group relative">
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-amber-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-amber-500 !border-2 !border-white !shadow-sm !cursor-crosshair"
       />
-      <div className="bg-amber-50 border-2 border-amber-400 text-amber-950 rounded-full px-5 py-2.5 min-w-[150px] text-center shadow-sm hover:shadow-md transition-all flex flex-col items-center">
+      <div className="bg-amber-50 border-2 border-amber-400 text-amber-950 rounded-full px-5 py-2.5 min-w-[150px] text-center shadow-sm hover:shadow-md transition-shadow flex flex-col items-center">
         <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-amber-700 tracking-wider uppercase">
           <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
           <span>Terminator</span>
@@ -170,7 +170,7 @@ const TerminatorNode = ({ data, id }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-amber-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-amber-500 !border-2 !border-white !shadow-sm !cursor-crosshair"
       />
       <button
         type="button"
@@ -187,13 +187,13 @@ const TerminatorNode = ({ data, id }) => {
 // 2. INPUT / OUTPUT (Jajar Genjang) - Aksen Biru Langit (Sky) Lembut
 const IONode = ({ data, id }) => {
   return (
-    <div className="group relative transition-all duration-200">
+    <div className="group relative">
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-sky-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-sky-500 !border-2 !border-white !shadow-sm !cursor-crosshair"
       />
-      <div className="bg-sky-50 border-2 border-sky-400 text-sky-950 px-6 py-3 min-w-[170px] text-center shadow-sm hover:shadow-md transition-all transform -skew-x-12 rounded-lg">
+      <div className="bg-sky-50 border-2 border-sky-400 text-sky-950 px-6 py-3 min-w-[170px] text-center shadow-sm hover:shadow-md transition-shadow transform -skew-x-12 rounded-lg">
         <div className="transform skew-x-12 flex flex-col items-center">
           <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-sky-700 tracking-wider uppercase">
             <span className="w-2 h-2 bg-sky-500 inline-block rounded-xs"></span>
@@ -211,7 +211,7 @@ const IONode = ({ data, id }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-sky-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-sky-500 !border-2 !border-white !shadow-sm !cursor-crosshair"
       />
       <button
         type="button"
@@ -228,13 +228,13 @@ const IONode = ({ data, id }) => {
 // 3. PROSES (Persegi Panjang) - Aksen Hijau Emerald Lembut
 const ProcessNode = ({ data, id }) => {
   return (
-    <div className="group relative transition-all duration-200">
+    <div className="group relative">
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm !cursor-crosshair"
       />
-      <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-950 rounded-xl px-5 py-3 min-w-[170px] text-center shadow-sm hover:shadow-md transition-all flex flex-col items-center">
+      <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-950 rounded-xl px-5 py-3 min-w-[170px] text-center shadow-sm hover:shadow-md transition-shadow flex flex-col items-center">
         <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 tracking-wider uppercase">
           <span className="w-2 h-2 bg-emerald-500 inline-block rounded-xs"></span>
           <span>Proses (Langkah)</span>
@@ -250,7 +250,7 @@ const ProcessNode = ({ data, id }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-sm !cursor-crosshair"
       />
       <button
         type="button"
@@ -271,10 +271,10 @@ const DecisionNode = ({ data, id }) => {
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !top-1"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !top-1 !cursor-crosshair"
         title="Titik Masuk Alur"
       />
-      <div className="w-28 h-28 bg-orange-50 border-2 border-orange-400 text-orange-950 transform rotate-45 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center" />
+      <div className="w-28 h-28 bg-orange-50 border-2 border-orange-400 text-orange-950 transform rotate-45 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center" />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pointer-events-auto">
         <span className="text-[9px] font-extrabold text-orange-700 uppercase tracking-tight flex items-center gap-1">
@@ -300,7 +300,7 @@ const DecisionNode = ({ data, id }) => {
         type="source"
         position={Position.Left}
         id="left"
-        className="!w-4 !h-4 sm:!w-3.5 sm:!h-3.5 !bg-emerald-500 !border-2 !border-white !shadow-md !left-0.5 hover:scale-125 transition-transform"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-emerald-500 !border-2 !border-white !shadow-md !left-0.5 !cursor-crosshair"
         title="Cabang YA (Kiri)"
       />
 
@@ -314,7 +314,7 @@ const DecisionNode = ({ data, id }) => {
         type="source"
         position={Position.Right}
         id="right"
-        className="!w-4 !h-4 sm:!w-3.5 sm:!h-3.5 !bg-rose-500 !border-2 !border-white !shadow-md !right-0.5 hover:scale-125 transition-transform"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-rose-500 !border-2 !border-white !shadow-md !right-0.5 !cursor-crosshair"
         title="Cabang TIDAK (Kanan)"
       />
 
@@ -322,7 +322,7 @@ const DecisionNode = ({ data, id }) => {
         type="source"
         position={Position.Bottom}
         id="bottom"
-        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !bottom-1"
+        className="!w-3.5 !h-3.5 sm:!w-3 sm:!h-3 !bg-orange-500 !border-2 !border-white !shadow-sm !bottom-1 !cursor-crosshair"
         title="Cabang Bawah"
       />
 
