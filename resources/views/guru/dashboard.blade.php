@@ -716,8 +716,8 @@
     <!-- ================================================================= -->
     <!-- MODAL 1: TAMBAH STUDI KASUS BARU BESERTA ALUR & KUNCI KOREKSI     -->
     <!-- ================================================================= -->
-    <div id="createCaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-start justify-center p-3 sm:p-5 pt-4 sm:pt-8 overflow-y-auto">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-0 animate-fadeIn max-h-[90vh] overflow-y-auto">
+    <div id="createCaseModal" onclick="if(event.target === this) closeCreateCaseModal()" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-auto animate-scaleUp max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-lg font-bold">
@@ -1029,8 +1029,8 @@
     <!-- ================================================================= -->
     <!-- MODAL 2: DETAIL DIAGRAM SISWA (VIEW JSON & FEEDBACK)              -->
     <!-- ================================================================= -->
-    <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-start justify-center p-3 sm:p-5 pt-6 sm:pt-10 overflow-y-auto">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-fadeIn my-0 max-h-[88vh] overflow-y-auto">
+    <div id="detailModal" onclick="if(event.target === this) closeDetailModal()" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-scaleUp my-auto max-h-[88vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
                     <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1092,13 +1092,11 @@
 
         function openCreateCaseModal() {
             document.getElementById('createCaseModal').classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
             updatePreview();
         }
 
         function closeCreateCaseModal() {
             document.getElementById('createCaseModal').classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
         }
 
         function handleFlowTypeChange(type) {
@@ -1317,12 +1315,10 @@
 
             document.getElementById('modalJsonData').textContent = JSON.stringify(diagram, null, 2);
             document.getElementById('detailModal').classList.remove('hidden');
-            document.body.classList.add('overflow-hidden');
         }
 
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
         }
 
         // Initialize preview on DOM load
@@ -1331,9 +1327,9 @@
         });
     </script>
 
-    <!-- Card Modal Konfirmasi Interaktif (Modern Web Dialog Standards) -->
-    <dialog id="cardConfirmDialog" class="p-0 bg-transparent border-0 rounded-3xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-xs w-full max-w-md fixed top-8 sm:top-14 inset-x-0 mx-auto z-50">
-        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 sm:p-7 text-center relative overflow-hidden animate-scaleUp">
+    <!-- Card Modal Konfirmasi Interaktif (Modern Responsive Overlay) -->
+    <div id="cardConfirmModal" onclick="if(event.target === this) closeCardConfirm()" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 sm:p-7 text-center relative overflow-hidden animate-scaleUp w-full max-w-md my-auto">
             <div id="cardConfirmBar" class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 to-red-600"></div>
             
             <div id="cardConfirmIconBg" class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center text-2xl mx-auto mb-3.5 shadow-xs">
@@ -1364,15 +1360,15 @@
                 </button>
             </div>
         </div>
-    </dialog>
+    </div>
 
     <script>
         let pendingFormToSubmit = null;
 
         function triggerCardConfirm({ title, message, form, confirmText = 'Ya, Hapus', type = 'danger', icon = '🗑️' }) {
             pendingFormToSubmit = form;
-            const dialog = document.getElementById('cardConfirmDialog');
-            if (!dialog) return;
+            const modal = document.getElementById('cardConfirmModal');
+            if (!modal) return;
 
             document.getElementById('cardConfirmTitle').textContent = title;
             document.getElementById('cardConfirmMessage').textContent = message;
@@ -1401,25 +1397,24 @@
                 closeCardConfirm();
             };
 
-            document.body.classList.add('overflow-hidden');
-            if (typeof dialog.showModal === 'function') {
-                dialog.showModal();
-            } else {
-                dialog.setAttribute('open', '');
-            }
+            modal.classList.remove('hidden');
         }
 
         function closeCardConfirm() {
-            const dialog = document.getElementById('cardConfirmDialog');
-            if (!dialog) return;
+            const modal = document.getElementById('cardConfirmModal');
+            if (!modal) return;
             pendingFormToSubmit = null;
-            document.body.classList.remove('overflow-hidden');
-            if (typeof dialog.close === 'function') {
-                dialog.close();
-            } else {
-                dialog.removeAttribute('open');
-            }
+            modal.classList.add('hidden');
         }
+
+        // Global Escape key handler
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCardConfirm();
+                closeDetailModal();
+                closeCreateCaseModal();
+            }
+        });
     </script>
     <script>
         function exportDashboardTableToXLSX(e) {

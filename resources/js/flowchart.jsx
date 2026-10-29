@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
   ReactFlow,
@@ -736,14 +737,11 @@ export function ConfirmModalCard({
 }) {
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -784,13 +782,14 @@ export function ConfirmModalCard({
   const config = typeConfig[type] || typeConfig.info;
   const displayIcon = icon || config.defaultIcon;
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-5 pt-8 sm:pt-14 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl ${config.glow} max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp text-center my-0 max-h-[88vh] overflow-y-auto`}
+        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl ${config.glow} max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp text-center my-auto max-h-[88vh] overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -840,6 +839,8 @@ export function ConfirmModalCard({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
 
 // ============================================================================
@@ -856,27 +857,25 @@ export function EdgeSettingsModal({ isOpen, edge, onClose, onSaveLabel, onDelete
 
   useEffect(() => {
     if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = prev;
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
 
   if (!isOpen || !edge) return null;
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-5 pt-8 sm:pt-14 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp my-0 max-h-[88vh] overflow-y-auto"
+        className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp my-auto max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -994,6 +993,8 @@ export function EdgeSettingsModal({ isOpen, edge, onClose, onSaveLabel, onDelete
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
 
 // ============================================================================
@@ -2949,15 +2950,17 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     expected_outputs: '',
   });
 
-  // Kunci scroll halaman belakang saat modal/card sedang aktif agar posisi tetap di atas
+  // Tangani tombol Escape untuk menutup modal secara responsif
   useEffect(() => {
-    if (selectedSubDetail || showCreateModal || portalConfirmCard) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedSubDetail) setSelectedSubDetail(null);
+        if (showCreateModal) setShowCreateModal(false);
+        if (portalConfirmCard) setPortalConfirmCard(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedSubDetail, showCreateModal, portalConfirmCard]);
 
   const [extraInputs, setExtraInputs] = useState([]);
@@ -3794,9 +3797,16 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       </main>
 
       {/* Modal Detail Submission */}
-      {selectedSubDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 sm:p-5 pt-6 sm:pt-12 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-0 max-h-[88vh] overflow-y-auto transform animate-scaleUp">
+      {selectedSubDetail && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          onClick={() => setSelectedSubDetail(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto max-h-[88vh] overflow-y-auto transform animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">Detail Hasil Praktikum</h3>
@@ -3848,13 +3858,21 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
               Tutup
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Tambah Studi Kasus Baru */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 sm:p-5 pt-4 sm:pt-8 overflow-y-auto animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-0 max-h-[88vh] overflow-y-auto transform animate-scaleUp">
+      {showCreateModal && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto max-h-[88vh] overflow-y-auto transform animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">Tambah Studi Kasus Baru</h3>
@@ -4152,7 +4170,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Konfirmasi Card untuk Portal Guru */}
