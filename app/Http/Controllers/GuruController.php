@@ -107,7 +107,8 @@ class GuruController extends Controller
         }
 
         // Daftar Studi Kasus untuk Tab Manajemen Studi Kasus dan Filter Dropdown (Hanya yang aktif & non-bebas)
-        $caseStudies = CaseStudy::whereNotIn('case_key', ['bebas'])
+        $caseStudies = CaseStudy::whereNotIn('case_key', ['bebas', '21', 'aaaaa'])
+            ->where('title', 'not like', '%aaaaa%')
             ->withCount('submissions')
             ->orderBy('id')
             ->get();

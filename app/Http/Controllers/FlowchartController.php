@@ -27,7 +27,11 @@ class FlowchartController extends Controller
             $submissions = FlowchartSubmission::orderByDesc('created_at')->get();
         }
 
-        $caseStudies = CaseStudy::where('is_active', true)->orderBy('id')->get();
+        $caseStudies = CaseStudy::where('is_active', true)
+            ->whereNotIn('case_key', ['bebas', '21', 'aaaaa'])
+            ->where('title', 'not like', '%aaaaa%')
+            ->orderBy('id')
+            ->get();
 
         return view('flowchart', compact('submissions', 'user', 'caseStudies'));
     }
@@ -37,7 +41,13 @@ class FlowchartController extends Controller
      */
     public function getCaseStudies()
     {
-        return response()->json(CaseStudy::where('is_active', true)->orderBy('id')->get());
+        return response()->json(
+            CaseStudy::where('is_active', true)
+                ->whereNotIn('case_key', ['bebas', '21', 'aaaaa'])
+                ->where('title', 'not like', '%aaaaa%')
+                ->orderBy('id')
+                ->get()
+        );
     }
 
     /**

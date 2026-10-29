@@ -73,28 +73,61 @@ export const getApiUrl = (endpoint) => {
   return `/${cleanEndpoint}`;
 };
 
+export const isDummyCase = (c) => {
+  if (!c) return true;
+  const title = (c.title || '').toLowerCase().trim();
+  const key = (c.case_key || c.id || '').toLowerCase().trim();
+  const icon = String(c.icon || '').toLowerCase().trim();
+  return (
+    key === 'bebas' ||
+    key === '21' ||
+    icon === '21' ||
+    title === 'aaaaa' ||
+    title.includes('aaaaa') ||
+    title.includes('bebas') ||
+    key.includes('aaaaa') ||
+    key.includes('21')
+  );
+};
+
+// Pembersihan otomatis studi kasus dummy/lama saat script dijalankan di browser
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    const rawCustom = localStorage.getItem('flowchart_custom_cases');
+    if (rawCustom) {
+      const parsed = JSON.parse(rawCustom);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((c) => !isDummyCase(c));
+        localStorage.setItem('flowchart_custom_cases', JSON.stringify(cleaned));
+      }
+    }
+  } catch (e) {}
+}
+
 const getCaseStudiesMap = () => {
   const map = {};
   const dynamicList = typeof window !== 'undefined' ? window.__FLOWCHART_CASE_STUDIES__ : null;
 
   if (Array.isArray(dynamicList) && dynamicList.length > 0) {
     dynamicList.forEach((c) => {
-      map[c.case_key] = {
-        id: c.case_key,
-        title: c.title,
-        icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
-        badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
-        formula: c.formula || '',
-        description: c.description || '',
-        flow_type: c.flow_type || 'sequential',
-        expected_inputs: c.expected_inputs || '',
-        expected_process: c.expected_process || '',
-        expected_decision: c.expected_decision || '',
-        expected_yes_output: c.expected_yes_output || '',
-        expected_no_output: c.expected_no_output || '',
-        expected_outputs: c.expected_outputs || '',
-        reference_flow: c.reference_flow || null,
-      };
+      if (!isDummyCase(c)) {
+        map[c.case_key] = {
+          id: c.case_key,
+          title: c.title,
+          icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
+          badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
+          formula: c.formula || '',
+          description: c.description || '',
+          flow_type: c.flow_type || 'sequential',
+          expected_inputs: c.expected_inputs || '',
+          expected_process: c.expected_process || '',
+          expected_decision: c.expected_decision || '',
+          expected_yes_output: c.expected_yes_output || '',
+          expected_no_output: c.expected_no_output || '',
+          expected_outputs: c.expected_outputs || '',
+          reference_flow: c.reference_flow || null,
+        };
+      }
     });
   } else {
     Object.assign(map, defaultCaseStudies);
@@ -102,35 +135,49 @@ const getCaseStudiesMap = () => {
 
   // Gabungkan studi kasus kustom yang dibuat guru di penyimpanan browser (localStorage)
   try {
-    const customList = JSON.parse(localStorage.getItem('flowchart_custom_cases') || '[]');
-    if (Array.isArray(customList)) {
-      customList.forEach((c) => {
-        const k = c.case_key || c.id;
-        if (k) {
-          map[k] = {
-            id: k,
-            title: c.title,
-            icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
-            badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
-            formula: c.formula || '',
-            description: c.description || '',
-            flow_type: c.flow_type || 'sequential',
-            expected_inputs: c.expected_inputs || '',
-            expected_process: c.expected_process || '',
-            expected_decision: c.expected_decision || '',
-            expected_yes_output: c.expected_yes_output || '',
-            expected_no_output: c.expected_no_output || '',
-            expected_outputs: c.expected_outputs || '',
-            reference_flow: c.reference_flow || null,
-            is_custom: true,
-          };
+    const rawCustom = localStorage.getItem('flowchart_custom_cases');
+    if (rawCustom) {
+      const customList = JSON.parse(rawCustom);
+      if (Array.isArray(customList)) {
+        const cleaned = customList.filter((c) => !isDummyCase(c));
+        if (cleaned.length !== customList.length) {
+          localStorage.setItem('flowchart_custom_cases', JSON.stringify(cleaned));
         }
-      });
+        cleaned.forEach((c) => {
+          const k = c.case_key || c.id;
+          if (k && !isDummyCase(c)) {
+            map[k] = {
+              id: k,
+              title: c.title,
+              icon: c.icon || (c.flow_type === 'branching' ? '🔀' : '📐'),
+              badge: c.badge || (c.flow_type === 'branching' ? 'Alur Percabangan' : 'Alur Sekuensial'),
+              formula: c.formula || '',
+              description: c.description || '',
+              flow_type: c.flow_type || 'sequential',
+              expected_inputs: c.expected_inputs || '',
+              expected_process: c.expected_process || '',
+              expected_decision: c.expected_decision || '',
+              expected_yes_output: c.expected_yes_output || '',
+              expected_no_output: c.expected_no_output || '',
+              expected_outputs: c.expected_outputs || '',
+              reference_flow: c.reference_flow || null,
+              is_custom: true,
+            };
+          }
+        });
+      }
     }
   } catch (e) {}
 
-  // Pastikan studi kasus bebas atau selain kasus aktif tidak muncul
+  // Pastikan studi kasus bebas, 21, aaaaa, atau selain kasus aktif tidak muncul
   delete map.bebas;
+  delete map['21'];
+  delete map['aaaaa'];
+  Object.keys(map).forEach((k) => {
+    if (isDummyCase(map[k])) {
+      delete map[k];
+    }
+  });
 
   return map;
 };
@@ -2393,14 +2440,20 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     try {
       const v = localStorage.getItem('flowchart_submissions_v');
       const saved = localStorage.getItem('flowchart_submissions_history');
-      if (v === 'v5_simulasi_cases' && saved) {
+      if (v === 'v6_purge_dummy' && saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 30) {
-          return parsed.filter((s) => !isBlockedStudent(s.student_name));
+          return parsed.filter(
+            (s) =>
+              !isBlockedStudent(s.student_name) &&
+              s.case_key !== '21' &&
+              s.case_key !== 'aaaaa' &&
+              s.case_key !== 'bebas'
+          );
         }
       }
       const initialClean = DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
-      localStorage.setItem('flowchart_submissions_v', 'v5_simulasi_cases');
+      localStorage.setItem('flowchart_submissions_v', 'v6_purge_dummy');
       localStorage.setItem('flowchart_submissions_history', JSON.stringify(initialClean));
       return initialClean;
     } catch (e) {
@@ -2408,11 +2461,15 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
   });
 
-  // Ambil studi kasus kustom buatan guru (kecuali studi kasus bebas)
+  // Ambil studi kasus kustom buatan guru (kecuali studi kasus dummy / bebas)
   const [customCases, setCustomCases] = useState(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem('flowchart_custom_cases') || '[]');
-      return Array.isArray(parsed) ? parsed.filter((c) => c.case_key !== 'bebas' && c.id !== 'bebas') : [];
+      const filtered = Array.isArray(parsed) ? parsed.filter((c) => !isDummyCase(c)) : [];
+      if (Array.isArray(parsed) && filtered.length !== parsed.length) {
+        localStorage.setItem('flowchart_custom_cases', JSON.stringify(filtered));
+      }
+      return filtered;
     } catch (e) {
       return [];
     }
@@ -2849,7 +2906,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const allCasesList = [
     { ...defaultCaseStudies.luas_segitiga, is_default: true },
     { ...defaultCaseStudies.kelulusan, is_default: true },
-    ...customCases.filter((c) => c.case_key !== 'bebas' && c.id !== 'bebas').map((c) => ({ ...c, is_default: false })),
+    ...customCases.filter((c) => !isDummyCase(c)).map((c) => ({ ...c, is_default: false })),
   ];
 
   return (
