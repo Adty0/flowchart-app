@@ -742,13 +742,22 @@ export default function FlowchartEditor({ currentUser }) {
     }
   }, [studentName, selectedCaseKey, assessment, submissionsHistoryVersion]);
 
+  // Deteksi Akun Demo (Siswa Demo / Kelas Demo / demo@sekolah.id)
+  const isDemo = Boolean(
+    (studentClass || '').toLowerCase().includes('demo') ||
+    (studentName || '').toLowerCase().includes('demo') ||
+    (currentUser?.role === 'siswa' && (currentUser?.className === 'Kelas Demo' || currentUser?.email === 'demo@sekolah.id')) ||
+    (typeof window !== 'undefined' && document.querySelector('meta[name="user-class"]')?.getAttribute('content') === 'Kelas Demo')
+  );
+
   // Aturan pengerjaan:
-  // 1. Jika sudah tuntas (>= 75): Terkunci permanen (hanya 1 kali pengerjaan)
-  // 2. Jika belum tuntas (< 75): Terkunci sampai guru membuka tombol "Buka Remidi"
+  // 1. Jika sudah tuntas (>= 75): Terkunci permanen (hanya 1 kali pengerjaan) - KECUALI AKUN DEMO!
+  // 2. Jika belum tuntas (< 75): Terkunci sampai guru membuka tombol "Buka Remidi" - KECUALI AKUN DEMO!
   // 3. Jika guru sudah membuka remedial: Siswa dapat mengerjakan ulang
-  const isCompletedAndLocked = Boolean(existingSubmission && (existingSubmission.score || 0) >= 75);
-  const isAwaitingRemedial = Boolean(existingSubmission && (existingSubmission.score || 0) < 75 && !existingSubmission.is_remedial_open);
-  const isRemedialOpen = Boolean(existingSubmission && (existingSubmission.score || 0) < 75 && existingSubmission.is_remedial_open);
+  // 4. Akun Demo BEBAS mengerjakan sebanyak apapun tanpa batas (tetap masuk ke Kelas Demo)!
+  const isCompletedAndLocked = !isDemo && Boolean(existingSubmission && (existingSubmission.score || 0) >= 75);
+  const isAwaitingRemedial = !isDemo && Boolean(existingSubmission && (existingSubmission.score || 0) < 75 && !existingSubmission.is_remedial_open);
+  const isRemedialOpen = !isDemo && Boolean(existingSubmission && (existingSubmission.score || 0) < 75 && existingSubmission.is_remedial_open);
 
   // Otomatis scroll halus ke bagian umpan balik & skor saat evaluasi selesai
   useEffect(() => {
@@ -1024,8 +1033,8 @@ export default function FlowchartEditor({ currentUser }) {
         // Pengerjaan pertama kali
         history.unshift({
           id: subId,
-          student_name: cleanName || 'RAFIANSYAH CIPTA PRANATA',
-          class_name: studentClass.trim() || 'X TO 3',
+          student_name: isDemo ? (cleanName || 'Siswa Demo') : (cleanName || 'RAFIANSYAH CIPTA PRANATA'),
+          class_name: isDemo ? 'Kelas Demo' : (studentClass.trim() || 'X TO 3'),
           case_key: selectedCaseKey,
           score: newScore,
           is_remedial_open: false,
@@ -1045,13 +1054,13 @@ export default function FlowchartEditor({ currentUser }) {
       return;
     }
 
-    // Aturan 1: Jika sudah tuntas, setiap studi kasus hanya bisa dikerjakan 1 kali
+    // Aturan 1: Jika sudah tuntas, setiap studi kasus hanya bisa dikerjakan 1 kali (Khusus non-demo)
     if (isCompletedAndLocked) {
       alert(`Studi kasus ini sudah Anda kerjakan dan dinyatakan TUNTAS dengan skor ${existingSubmission.score}/100.\nSetiap studi kasus hanya dapat dikerjakan 1 kali saja.`);
       return;
     }
 
-    // Aturan 2: Jika belum tuntas tapi guru belum membuka remedial
+    // Aturan 2: Jika belum tuntas tapi guru belum membuka remedial (Khusus non-demo)
     if (isAwaitingRemedial) {
       alert(`Nilai Anda sebelumnya adalah ${existingSubmission.score}/100 (Belum Tuntas).\nSetiap studi kasus hanya dapat dikerjakan 1 kali.\nSilakan hubungi Guru Anda untuk membuka tombol "Buka Remidi" di Rekap Nilai agar Anda dapat mengerjakan ulang.`);
       return;
@@ -1062,8 +1071,8 @@ export default function FlowchartEditor({ currentUser }) {
 
     const payload = {
       submission_id: existingSubmission?.id || null,
-      student_name: studentName.trim() || 'RAFIANSYAH CIPTA PRANATA',
-      class_name: studentClass.trim() || 'X TO 3',
+      student_name: isDemo ? (studentName.trim() || 'Siswa Demo') : (studentName.trim() || 'RAFIANSYAH CIPTA PRANATA'),
+      class_name: isDemo ? 'Kelas Demo' : (studentClass.trim() || 'X TO 3'),
       case_key: selectedCaseKey,
       diagram_data: {
         case_key: selectedCaseKey,
@@ -1260,6 +1269,23 @@ export default function FlowchartEditor({ currentUser }) {
       </div>
 
       {/* STATUS PENGERJAAN & AKSES REMEDIAL */}
+      {isDemo && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50/70 border border-blue-200 text-blue-900 text-xs font-semibold flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl flex-shrink-0">🚀</span>
+            <div>
+              <p className="font-extrabold text-blue-950">Mode Akun Demo Aktif (Bebas Mengerjakan Tanpa Batas)</p>
+              <p className="text-[11px] text-blue-700 mt-0.5">
+                Anda dapat merancang flowchart, menguji logika algoritma, dan submit berkali-kali tanpa batasan penguncian. Data pengerjaan tetap tercatat di <b>Kelas Demo</b>.
+              </p>
+            </div>
+          </div>
+          <span className="hidden sm:inline-block px-2.5 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex-shrink-0 shadow-2xs">
+            Akses Bebas
+          </span>
+        </div>
+      )}
+
       {isCompletedAndLocked && (
         <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-start gap-2.5 shadow-2xs">
           <span className="text-base flex-shrink-0">🔒</span>

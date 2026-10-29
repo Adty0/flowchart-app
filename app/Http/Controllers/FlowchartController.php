@@ -66,7 +66,16 @@ class FlowchartController extends Controller
         $caseKey = $validated['case_key'] ?? ($diagram['case_key'] ?? 'luas_segitiga');
         $assessment = $this->evaluateDiagram($diagram, $caseKey);
         $targetName = trim($validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan'));
-        $targetClass = $validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3');
+        $targetClass = trim($validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3'));
+
+        $isDemo = ($user && ($user->class_name === 'Kelas Demo' || $user->email === 'demo@sekolah.id' || str_contains(strtolower($user->name), 'demo')))
+            || strtolower($targetName) === 'siswa demo'
+            || str_contains(strtolower($targetName), 'demo')
+            || $targetClass === 'Kelas Demo';
+
+        if ($isDemo) {
+            $targetClass = 'Kelas Demo';
+        }
 
         // Cek submission sebelumnya untuk penanganan remedial di tabel flowchart_submissions
         $existing = null;
@@ -90,8 +99,32 @@ class FlowchartController extends Controller
                 ->first();
         }
 
-        // Jika siswa sedang remedial atau memiliki catatan belum tuntas, perbarui langsung di database
-        if ($existing && ($existing->is_remedial_open || $existing->score < 75)) {
+        // Akun Demo bebas mengerjakan sebanyak apapun tanpa batas (tetap masuk ke Kelas Demo)
+        if ($isDemo) {
+            if ($existing) {
+                $existing->update([
+                    'score'        => $assessment['score'],
+                    'feedback'     => $assessment['feedback'],
+                    'diagram_data' => $diagram,
+                    'class_name'   => 'Kelas Demo',
+                    'checked_at'   => now(),
+                ]);
+                $submission = $existing;
+            } else {
+                $submission = FlowchartSubmission::create([
+                    'user_id'          => $user ? $user->id : null,
+                    'student_name'     => $targetName,
+                    'class_name'       => 'Kelas Demo',
+                    'case_key'         => $caseKey,
+                    'diagram_data'     => $diagram,
+                    'score'            => $assessment['score'],
+                    'feedback'         => $assessment['feedback'],
+                    'is_remedial_open' => false,
+                    'checked_at'       => now(),
+                ]);
+            }
+        } elseif ($existing && ($existing->is_remedial_open || $existing->score < 75)) {
+            // Jika siswa sedang remedial atau memiliki catatan belum tuntas, perbarui langsung di database
             $isTuntas = $assessment['score'] >= 75;
             $existing->update([
                 'score'            => max($existing->score, $assessment['score']),
@@ -155,6 +188,15 @@ class FlowchartController extends Controller
         $studentName = trim($validated['student_name'] ?? ($user ? $user->name : 'Siswa Praktikan'));
         $className = trim($validated['class_name'] ?? ($user && $user->class_name ? $user->class_name : 'X TO 3'));
 
+        $isDemo = ($user && ($user->class_name === 'Kelas Demo' || $user->email === 'demo@sekolah.id' || str_contains(strtolower($user->name), 'demo')))
+            || strtolower($studentName) === 'siswa demo'
+            || str_contains(strtolower($studentName), 'demo')
+            || $className === 'Kelas Demo';
+
+        if ($isDemo) {
+            $className = 'Kelas Demo';
+        }
+
         // Cari riwayat pengerjaan sebelumnya untuk siswa ini pada tabel flowchart_submissions
         $existing = null;
         if (!empty($validated['submission_id']) && is_numeric($validated['submission_id'])) {
@@ -194,6 +236,43 @@ class FlowchartController extends Controller
                 })
                 ->latest()
                 ->first();
+        }
+
+        // AKUN DEMO: Bebas mengerjakan sebanyak apapun tanpa batas (tidak terkena lock 1x pengerjaan / lock remidi)
+        // Data hasil evaluasi selalu tersimpan ke "Kelas Demo" di tabel flowchart_submissions
+        if ($isDemo) {
+            if ($existing) {
+                $existing->update([
+                    'score'        => $assessment['score'],
+                    'feedback'     => $assessment['feedback'],
+                    'diagram_data' => $diagram,
+                    'class_name'   => 'Kelas Demo',
+                    'checked_at'   => now(),
+                ]);
+                $submission = $existing;
+            } else {
+                $submission = FlowchartSubmission::create([
+                    'user_id'          => $user ? $user->id : null,
+                    'student_name'     => $studentName,
+                    'class_name'       => 'Kelas Demo',
+                    'case_key'         => $caseKey,
+                    'diagram_data'     => $diagram,
+                    'score'            => $assessment['score'],
+                    'is_remedial_open' => false,
+                    'feedback'         => $assessment['feedback'],
+                    'checked_at'       => now(),
+                ]);
+            }
+
+            return response()->json([
+                'success'             => true,
+                'is_demo'             => true,
+                'is_remedial_updated' => false,
+                'message'             => '🎉 Evaluasi selesai! Skor Anda: ' . $assessment['score'] . '/100. (Akun Demo: Bebas mencoba & mengerjakan ulang tanpa batas pengerjaan).',
+                'submission_id'       => $submission->id,
+                'score'               => $assessment['score'],
+                'feedback'            => $assessment['feedback'],
+            ]);
         }
 
         if ($existing) {

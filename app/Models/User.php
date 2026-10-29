@@ -58,6 +58,13 @@ class User extends Authenticatable
         return $this->role === 'siswa';
     }
 
+    public function isDemo(): bool
+    {
+        return $this->class_name === 'Kelas Demo' 
+            || $this->email === 'demo@sekolah.id'
+            || str_contains(strtolower($this->name), 'demo');
+    }
+
     public function submissions()
     {
         return $this->hasMany(FlowchartSubmission::class);
