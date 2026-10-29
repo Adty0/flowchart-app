@@ -107,7 +107,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Simulasi Siswa',
             'email' => '000000@sekolah.id',
             'role' => 'siswa',
-            'class_name' => 'Kelas Simulasi',
+            'class_name' => 'X TO 3',
             'password' => Hash::make('password123'),
         ]);
 

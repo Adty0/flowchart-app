@@ -47,7 +47,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Akses Cepat 1-Klik Masuk sebagai Simulasi Siswa (NISN: 000000, Kelas Simulasi).
+     * Akses Cepat 1-Klik Masuk sebagai Simulasi Siswa (NISN: 000000, Kelas X TO 3).
      */
     public function loginSimulasi(Request $request)
     {
@@ -57,15 +57,19 @@ class AuthController extends Controller
                 'name'       => 'Simulasi Siswa',
                 'password'   => Hash::make('password123'),
                 'role'       => 'siswa',
-                'class_name' => 'Kelas Simulasi',
+                'class_name' => 'X TO 3',
             ]
         );
+
+        if ($simulasiUser->class_name !== 'X TO 3') {
+            $simulasiUser->update(['class_name' => 'X TO 3']);
+        }
 
         Auth::login($simulasiUser);
         $request->session()->regenerate();
 
         return redirect()->route('flowchart.index')
-            ->with('success', 'Berhasil masuk sebagai Simulasi Siswa (NISN: 000000). Silakan mencoba kanvas flowchart.');
+            ->with('success', 'Berhasil masuk sebagai Simulasi Siswa (NISN: 000000, Kelas X TO 3). Silakan mencoba kanvas flowchart.');
     }
 
     /**

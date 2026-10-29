@@ -2276,7 +2276,7 @@ function LoginForm({ onLogin }) {
       name: 'Simulasi Siswa',
       email: '000000@sekolah.id',
       role: 'siswa',
-      className: 'Kelas Simulasi',
+      className: 'X TO 3',
       nisn: '000000',
     });
   };
@@ -2510,7 +2510,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     const pctTuntas = total > 0 ? ((tuntas / total) * 100).toFixed(1) : 0;
 
     // Mapping NISN
-    const nisnMap = {};
+    const nisnMap = {
+      'SIMULASI SISWA': '000000',
+    };
     STUDENTS_X_TO3.forEach((st) => {
       nisnMap[st.name.toUpperCase().trim()] = st.nisn;
     });
@@ -2653,7 +2655,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       return;
     }
 
-    const nisnMap = {};
+    const nisnMap = {
+      'SIMULASI SISWA': '000000',
+    };
     STUDENTS_X_TO3.forEach((st) => {
       nisnMap[st.name.toUpperCase().trim()] = st.nisn;
     });
