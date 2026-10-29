@@ -319,8 +319,9 @@ class GuruController extends Controller
             return $name !== 'contoh1' && $name !== 'adit' && !str_contains($name, 'contoh1');
         })->values();
 
-        // Mapping NISN Resmi Siswa X TO 3
+        // Mapping NISN Resmi Siswa X TO 3 & Akun Simulasi
         $studentNisnMap = [
+            'SIMULASI SISWA' => '000000',
             'RAFIANSYAH CIPTA PRANATA' => '0106572131',
             'RAFIQI DWI SAPUTRA' => '0109053073',
             'RAIHAN NUR RAHMAN' => '0102160972',

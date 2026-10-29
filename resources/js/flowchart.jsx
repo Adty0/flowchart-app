@@ -2198,6 +2198,12 @@ function LoginForm({ onLogin }) {
       return;
     }
 
+    // Cek akun Simulasi Siswa (NISN: 000000)
+    if (cleanNisn === '000000' || inputVal === '000000' || inputVal === 'simulasi' || inputVal.includes('simulasi') || inputVal === '000000@sekolah.id') {
+      loginAsSimulasiSiswa();
+      return;
+    }
+
     // Cek daftar resmi 36 siswa kelas X TO 3
     const matched = STUDENTS_X_TO3.find(
       (s) =>
@@ -2239,6 +2245,16 @@ function LoginForm({ onLogin }) {
     });
   };
 
+  const loginAsSimulasiSiswa = () => {
+    onLogin({
+      name: 'Simulasi Siswa',
+      email: '000000@sekolah.id',
+      role: 'siswa',
+      className: 'Kelas Simulasi',
+      nisn: '000000',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50 flex flex-col justify-center py-8 sm:py-14 px-3 sm:px-6 lg:px-8 text-slate-800 animate-fadeIn">
       <div className="w-full sm:max-w-md mx-auto">
@@ -2270,7 +2286,7 @@ function LoginForm({ onLogin }) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Contoh: 0106572131 atau guru@sekolah.id"
+                placeholder="Contoh: 000000 atau 0106572131 atau guru@sekolah.id"
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
               />
             </div>
@@ -2298,22 +2314,42 @@ function LoginForm({ onLogin }) {
             </button>
           </form>
 
-          {/* Akses Cepat Akun Demo Siswa */}
-          <div className="mt-4 pt-3 border-t border-slate-100">
+          {/* Akses Cepat Akun Demo & Simulasi Siswa */}
+          <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
             <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
-              Akses Cepat Demo Siswa:
+              Akses Cepat Pengujian:
             </span>
-            <button
-              type="button"
-              onClick={loginAsDemoSiswa}
-              className="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 shadow-2xs"
-            >
-              <span className="text-xl">👤</span>
-              <div className="text-left">
-                <span className="block font-black text-xs text-blue-950">Masuk Akun Demo Siswa</span>
-                <span className="block text-[10px] text-blue-700 font-medium">Record pengerjaan otomatis masuk ke Kelas Demo</span>
-              </div>
-            </button>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={loginAsSimulasiSiswa}
+                className="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎓</span>
+                  <div className="text-left">
+                    <span className="block font-black text-xs text-indigo-950">Masuk Simulasi Siswa</span>
+                    <span className="block text-[10px] text-indigo-700 font-medium">NISN: 000000 (Kelas Simulasi)</span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-indigo-600 bg-indigo-100/80 px-2 py-0.5 rounded-full font-mono font-bold">1-Klik ➜</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={loginAsDemoSiswa}
+                className="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">👤</span>
+                  <div className="text-left">
+                    <span className="block font-black text-xs text-slate-900">Masuk Akun Demo Siswa</span>
+                    <span className="block text-[10px] text-slate-500 font-medium">Record pengerjaan masuk ke Kelas Demo</span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded-full font-mono font-bold">1-Klik ➜</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -47,6 +47,28 @@ class AuthController extends Controller
     }
 
     /**
+     * Akses Cepat 1-Klik Masuk sebagai Simulasi Siswa (NISN: 000000, Kelas Simulasi).
+     */
+    public function loginSimulasi(Request $request)
+    {
+        $simulasiUser = User::firstOrCreate(
+            ['email' => '000000@sekolah.id'],
+            [
+                'name'       => 'Simulasi Siswa',
+                'password'   => Hash::make('password123'),
+                'role'       => 'siswa',
+                'class_name' => 'Kelas Simulasi',
+            ]
+        );
+
+        Auth::login($simulasiUser);
+        $request->session()->regenerate();
+
+        return redirect()->route('flowchart.index')
+            ->with('success', 'Berhasil masuk sebagai Simulasi Siswa (NISN: 000000). Silakan mencoba kanvas flowchart.');
+    }
+
+    /**
      * Proses autentikasi login pengguna.
      */
     public function login(Request $request)

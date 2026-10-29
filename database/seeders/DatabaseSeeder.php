@@ -102,6 +102,15 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password123'),
         ]);
 
+        // Akun Simulasi Siswa
+        User::create([
+            'name' => 'Simulasi Siswa',
+            'email' => '000000@sekolah.id',
+            'role' => 'siswa',
+            'class_name' => 'Kelas Simulasi',
+            'password' => Hash::make('password123'),
+        ]);
+
         // 3. Template Diagram Flowchart Luas Segitiga
         $diagramSequential = [
             'nodes' => [
