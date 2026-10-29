@@ -26,6 +26,33 @@
     animation: fadeIn 0.25s ease-out forwards;
 }
 
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.animate-scaleUp {
+    animation: scaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modern Native Dialog Styling (Modern Web Standards) */
+dialog:modal {
+    overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+    overflow: hidden;
+    overscroll-behavior: contain;
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+}
+
 /* React Flow Visual Enhancement - Titik Handle Stabil & Diam */
 .react-flow__handle {
     transition: none !important;

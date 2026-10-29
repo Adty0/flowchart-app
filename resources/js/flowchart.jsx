@@ -719,11 +719,325 @@ export function evaluateDiagramLocally(nodes, edges, caseKey, currentCase = {}) 
 }
 
 // ============================================================================
+// KOMPONEN MODAL KONFIRMASI MODERN BERBENTUK CARD ELEGAN (MENGGANTIKAN CONFIRM & ALERT)
+// ============================================================================
+export function ConfirmModalCard({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = 'Lanjutkan',
+  cancelText = 'Batal',
+  type = 'warning', // 'warning' | 'danger' | 'info' | 'success'
+  icon,
+  isAlert = false,
+  children,
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const typeConfig = {
+    danger: {
+      badgeBg: 'bg-rose-50 text-rose-600 border-rose-200',
+      btnBg: 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/25',
+      defaultIcon: '🗑️',
+      glow: 'shadow-rose-500/10',
+      barBg: 'bg-gradient-to-r from-rose-500 to-red-600',
+    },
+    warning: {
+      badgeBg: 'bg-amber-50 text-amber-600 border-amber-200',
+      btnBg: 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/25',
+      defaultIcon: '⚠️',
+      glow: 'shadow-amber-500/10',
+      barBg: 'bg-gradient-to-r from-amber-400 to-orange-500',
+    },
+    info: {
+      badgeBg: 'bg-blue-50 text-blue-600 border-blue-200',
+      btnBg: 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25',
+      defaultIcon: '💡',
+      glow: 'shadow-blue-500/10',
+      barBg: 'bg-gradient-to-r from-blue-500 to-indigo-600',
+    },
+    success: {
+      badgeBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+      btnBg: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25',
+      defaultIcon: '✅',
+      glow: 'shadow-emerald-500/10',
+      barBg: 'bg-gradient-to-r from-emerald-400 to-teal-500',
+    },
+  };
+
+  const config = typeConfig[type] || typeConfig.info;
+  const displayIcon = icon || config.defaultIcon;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl ${config.glow} max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp text-center`}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className={`absolute top-0 left-0 right-0 h-1.5 ${config.barBg}`} />
+
+        <div className="flex flex-col items-center">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border mb-3.5 shadow-xs ${config.badgeBg}`}>
+            {displayIcon}
+          </div>
+
+          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">
+            {title}
+          </h3>
+
+          {message && (
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-sm mb-5">
+              {message}
+            </p>
+          )}
+
+          {children}
+
+          <div className="flex items-center justify-center gap-2.5 w-full mt-2">
+            {!isAlert && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all cursor-pointer active:scale-95"
+              >
+                {cancelText}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (onConfirm) onConfirm();
+                else onClose();
+              }}
+              className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer active:scale-95 ${config.btnBg}`}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAL PENGATURAN GARIS PANAH (MENGGANTIKAN WINDOW.PROMPT DENGAN CARD MODERN)
+// ============================================================================
+export function EdgeSettingsModal({ isOpen, edge, onClose, onSaveLabel, onDeleteEdge }) {
+  const [customLabel, setCustomLabel] = useState('');
+
+  useEffect(() => {
+    if (edge) {
+      setCustomLabel(edge.label || '');
+    }
+  }, [edge]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !edge) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600" />
+
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center text-lg">
+              ⚡
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900">Pengaturan Garis Alir Panah</h3>
+              <p className="text-[11px] text-slate-500">Sesuaikan label percabangan atau hapus konektor</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs cursor-pointer transition-all"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Pilihan Cepat Label Cabang */}
+        <div className="space-y-2 mb-4">
+          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            Pilihan Label Cepat:
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => onSaveLabel('Ya')}
+              className={`py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                edge.label === 'Ya'
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-800 ring-2 ring-emerald-200'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-emerald-50/50'
+              }`}
+            >
+              <span className="text-emerald-600 text-base">🟢</span>
+              <span>Cabang [Ya]</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSaveLabel('Tidak')}
+              className={`py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                edge.label === 'Tidak'
+                  ? 'bg-rose-50 border-rose-500 text-rose-800 ring-2 ring-rose-200'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-rose-50/50'
+              }`}
+            >
+              <span className="text-rose-600 text-base">🔴</span>
+              <span>Cabang [Tidak]</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSaveLabel('')}
+              className={`py-2 px-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                !edge.label
+                  ? 'bg-blue-50 border-blue-500 text-blue-800 ring-2 ring-blue-200'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <span className="text-slate-400 text-base">⚪</span>
+              <span>Tanpa Label</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Input Label Kustom */}
+        <div className="space-y-2 mb-5">
+          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            Atau Ketik Label Kustom:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customLabel}
+              onChange={(e) => setCustomLabel(e.target.value)}
+              placeholder="Contoh: Benar / Salah / Nilai > 10"
+              className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:border-indigo-500 outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => onSaveLabel(customLabel.trim())}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+            >
+              Terapkan
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Tombol Hapus & Batal */}
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onDeleteEdge}
+            className="px-3.5 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+          >
+            <span>🗑️</span>
+            <span>Hapus Garis Ini</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 text-xs font-bold transition-all cursor-pointer"
+          >
+            Batal
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // KOMPONEN UTAMA EDITOR FLOWCHART SISWA
 // ============================================================================
 export default function FlowchartEditor({ currentUser }) {
   const caseStudiesMap = React.useMemo(() => getCaseStudiesMap(), []);
   const caseKeys = Object.keys(caseStudiesMap);
+
+  const [confirmCard, setConfirmCard] = useState(null);
+  const [edgeSettingsModal, setEdgeSettingsModal] = useState({ isOpen: false, edge: null });
+
+  const showConfirmCard = ({
+    title,
+    message,
+    confirmText = 'Lanjutkan',
+    cancelText = 'Batal',
+    type = 'warning',
+    icon,
+    onConfirm,
+  }) => {
+    setConfirmCard({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      type,
+      icon,
+      onConfirm: () => {
+        setConfirmCard(null);
+        if (onConfirm) onConfirm();
+      },
+    });
+  };
+
+  const showAlertCard = ({
+    title,
+    message,
+    buttonText = 'Mengerti',
+    type = 'info',
+    icon,
+  }) => {
+    setConfirmCard({
+      isOpen: true,
+      isAlert: true,
+      title,
+      message,
+      confirmText: buttonText,
+      type,
+      icon,
+      onConfirm: () => setConfirmCard(null),
+    });
+  };
 
   const [studentName, setStudentName] = useState(() => {
     if (currentUser?.name) return currentUser.name;
@@ -903,78 +1217,103 @@ export default function FlowchartEditor({ currentUser }) {
     [setEdges]
   );
 
-  // Klik garis panah untuk menghapus atau mengganti label (sangat mempermudah pengguna HP)
-  const onEdgeClick = useCallback(
-    (event, edge) => {
-      const currentLbl = edge.label ? `"${edge.label}"` : '(tanpa label)';
-      const choice = window.prompt(
-        `Pengaturan Garis Panah [${currentLbl}]:\n\n` +
-          `• Ketik "hapus" untuk MENGHAPUS garis ini\n` +
-          `• Ketik "ya" untuk memberi label [Ya] (Hijau)\n` +
-          `• Ketik "tidak" untuk memberi label [Tidak] (Merah)\n` +
-          `• Atau ketik teks label lain yang diinginkan:`,
-        edge.label || ''
+  // Klik garis panah untuk menghapus atau mengganti label (membuka card modal modern)
+  const onEdgeClick = useCallback((event, edge) => {
+    setEdgeSettingsModal({
+      isOpen: true,
+      edge,
+    });
+  }, []);
+
+  const handleSaveEdgeLabel = (newLabel) => {
+    if (!edgeSettingsModal.edge) return;
+    const edgeId = edgeSettingsModal.edge.id;
+    const val = (newLabel || '').trim();
+
+    if (val.toLowerCase() === 'ya') {
+      setEdges((prev) =>
+        prev.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                label: 'Ya',
+                labelStyle: { fill: '#047857', fontWeight: 800, fontSize: 11 },
+                labelBgPadding: [6, 4],
+                labelBgBorderRadius: 4,
+                labelBgStyle: { fill: '#ecfdf5', stroke: '#10b981', strokeWidth: 1.5 },
+                style: { stroke: '#059669', strokeWidth: 2.5 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
+              }
+            : e
+        )
       );
+      showToast('Label panah diubah menjadi [Ya] ✅', 'success');
+    } else if (val.toLowerCase() === 'tidak') {
+      setEdges((prev) =>
+        prev.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                label: 'Tidak',
+                labelStyle: { fill: '#b91c1c', fontWeight: 800, fontSize: 11 },
+                labelBgPadding: [6, 4],
+                labelBgBorderRadius: 4,
+                labelBgStyle: { fill: '#fef2f2', stroke: '#ef4444', strokeWidth: 1.5 },
+                style: { stroke: '#dc2626', strokeWidth: 2.5 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#dc2626' },
+              }
+            : e
+        )
+      );
+      showToast('Label panah diubah menjadi [Tidak] ❌', 'success');
+    } else if (val) {
+      setEdges((prev) =>
+        prev.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                label: val,
+                labelStyle: { fill: '#1e293b', fontWeight: 700, fontSize: 11 },
+                labelBgPadding: [6, 4],
+                labelBgBorderRadius: 4,
+                labelBgStyle: { fill: '#f8fafc', stroke: '#94a3b8', strokeWidth: 1 },
+                style: { stroke: '#3b82f6', strokeWidth: 2 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+              }
+            : e
+        )
+      );
+      showToast(`Label panah diubah: "${val}"`, 'info');
+    } else {
+      setEdges((prev) =>
+        prev.map((e) =>
+          e.id === edgeId
+            ? {
+                ...e,
+                label: undefined,
+                labelStyle: undefined,
+                labelBgPadding: undefined,
+                labelBgBorderRadius: undefined,
+                labelBgStyle: undefined,
+                style: { stroke: '#3b82f6', strokeWidth: 2 },
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+              }
+            : e
+        )
+      );
+      showToast('Label panah dihapus.', 'info');
+    }
 
-      if (choice === null) return;
-      const val = choice.trim();
+    setEdgeSettingsModal({ isOpen: false, edge: null });
+  };
 
-      if (val.toLowerCase() === 'hapus') {
-        setEdges((prev) => prev.filter((e) => e.id !== edge.id));
-        showToast('Garis panah berhasil dihapus.', 'info');
-      } else if (val.toLowerCase() === 'ya') {
-        setEdges((prev) =>
-          prev.map((e) =>
-            e.id === edge.id
-              ? {
-                  ...e,
-                  label: 'Ya',
-                  labelStyle: { fill: '#047857', fontWeight: 800, fontSize: 11 },
-                  labelBgPadding: [6, 4],
-                  labelBgBorderRadius: 4,
-                  labelBgStyle: { fill: '#ecfdf5', stroke: '#10b981', strokeWidth: 1.5 },
-                  style: { stroke: '#059669', strokeWidth: 2.5 },
-                  markerEnd: { type: MarkerType.ArrowClosed, color: '#059669' },
-                }
-              : e
-          )
-        );
-        showToast('Label panah diubah menjadi [Ya] ✅', 'success');
-      } else if (val.toLowerCase() === 'tidak') {
-        setEdges((prev) =>
-          prev.map((e) =>
-            e.id === edge.id
-              ? {
-                  ...e,
-                  label: 'Tidak',
-                  labelStyle: { fill: '#b91c1c', fontWeight: 800, fontSize: 11 },
-                  labelBgPadding: [6, 4],
-                  labelBgBorderRadius: 4,
-                  labelBgStyle: { fill: '#fef2f2', stroke: '#ef4444', strokeWidth: 1.5 },
-                  style: { stroke: '#dc2626', strokeWidth: 2.5 },
-                  markerEnd: { type: MarkerType.ArrowClosed, color: '#dc2626' },
-                }
-              : e
-          )
-        );
-        showToast('Label panah diubah menjadi [Tidak] ❌', 'success');
-      } else if (val !== '') {
-        setEdges((prev) =>
-          prev.map((e) =>
-            e.id === edge.id
-              ? {
-                  ...e,
-                  label: val,
-                  labelStyle: { fill: '#1e293b', fontWeight: 700, fontSize: 11 },
-                }
-              : e
-          )
-        );
-        showToast(`Label panah diubah menjadi "${val}".`, 'info');
-      }
-    },
-    [setEdges]
-  );
+  const handleDeleteEdge = () => {
+    if (!edgeSettingsModal.edge) return;
+    const edgeId = edgeSettingsModal.edge.id;
+    setEdges((prev) => prev.filter((e) => e.id !== edgeId));
+    setEdgeSettingsModal({ isOpen: false, edge: null });
+    showToast('Garis panah berhasil dihapus.', 'info');
+  };
 
   // Menambah simbol baru ke kanvas kosong
   const addSymbol = (type, defaultLabel) => {
@@ -999,13 +1338,22 @@ export default function FlowchartEditor({ currentUser }) {
     const targetCase = caseStudiesMap[key] || {};
 
     if (nodes.length > 0) {
-      if (confirm(`Pindah ke "${targetCase.title || key}"? Kanvas akan dikosongkan agar Anda dapat mengerjakan soal baru dari awal.`)) {
-        setNodes([]);
-        setEdges([]);
-        setAssessment(null);
-      } else {
-        return;
-      }
+      showConfirmCard({
+        title: 'Ganti Soal Studi Kasus?',
+        message: `Anda akan beralih ke "${targetCase.title || key}". Kanvas saat ini berisi ${nodes.length} simbol dan akan dikosongkan agar Anda dapat mengerjakan soal baru dari awal.`,
+        confirmText: 'Ya, Pindah & Kosongkan',
+        cancelText: 'Batal',
+        type: 'warning',
+        icon: targetCase.icon || '🔄',
+        onConfirm: () => {
+          setNodes([]);
+          setEdges([]);
+          setAssessment(null);
+          setSelectedCaseKey(key);
+          showToast(`Studi kasus dialihkan ke "${targetCase.title || key}". Silakan susun flowchart baru!`, 'info');
+        },
+      });
+      return;
     }
 
     setSelectedCaseKey(key);
@@ -1014,12 +1362,20 @@ export default function FlowchartEditor({ currentUser }) {
 
   // Bersihkan kanvas
   const handleClearCanvas = () => {
-    if (confirm('Yakin ingin mengosongkan kanvas?')) {
-      setNodes([]);
-      setEdges([]);
-      setAssessment(null);
-      showToast('Kanvas telah dikosongkan.', 'info');
-    }
+    showConfirmCard({
+      title: 'Kosongkan Kanvas?',
+      message: `Seluruh simbol (${nodes.length}) dan garis penghubung yang telah disusun akan dihapus secara permanen dari kanvas pengerjaan.`,
+      confirmText: 'Ya, Kosongkan',
+      cancelText: 'Batal',
+      type: 'danger',
+      icon: '🗑️',
+      onConfirm: () => {
+        setNodes([]);
+        setEdges([]);
+        setAssessment(null);
+        showToast('Kanvas telah dikosongkan.', 'info');
+      },
+    });
   };
 
   // Sinkronisasi riwayat pengerjaan lokal (termasuk pergantian nilai jika remedial tuntas)
@@ -1091,19 +1447,37 @@ export default function FlowchartEditor({ currentUser }) {
   // Simpan & Validasi ke DB
   const handleValidateAndSave = async () => {
     if (nodes.length === 0) {
-      alert('Kanvas masih kosong! Tambahkan simbol flowchart terlebih dahulu menggunakan tombol di atas.');
+      showAlertCard({
+        title: 'Kanvas Masih Kosong',
+        message: 'Silakan tambahkan simbol flowchart (Mulai, Input, Proses, Keputusan, atau Selesai) dari tombol di atas dan hubungkan dengan panah alir sebelum menekan Uji & Nilai.',
+        type: 'warning',
+        icon: '📋',
+        buttonText: 'Mengerti',
+      });
       return;
     }
 
     // Aturan 1: Jika sudah tuntas, setiap studi kasus hanya bisa dikerjakan 1 kali (Khusus non-demo)
     if (isCompletedAndLocked) {
-      alert(`Studi kasus ini sudah Anda kerjakan dan dinyatakan TUNTAS dengan skor ${existingSubmission.score}/100.\nSetiap studi kasus hanya dapat dikerjakan 1 kali saja.`);
+      showAlertCard({
+        title: 'Studi Kasus Sudah Tuntas!',
+        message: `Studi kasus ini sudah Anda kerjakan dan dinyatakan TUNTAS dengan skor ${existingSubmission.score}/100. Setiap studi kasus hanya dapat dikerjakan 1 kali saja.`,
+        type: 'info',
+        icon: '🎉',
+        buttonText: 'Tutup',
+      });
       return;
     }
 
     // Aturan 2: Jika belum tuntas tapi guru belum membuka remedial (Khusus non-demo)
     if (isAwaitingRemedial) {
-      alert(`Nilai Anda sebelumnya adalah ${existingSubmission.score}/100 (Belum Tuntas).\nSetiap studi kasus hanya dapat dikerjakan 1 kali.\nSilakan hubungi Guru Anda untuk membuka tombol "Buka Remidi" di Rekap Nilai agar Anda dapat mengerjakan ulang.`);
+      showAlertCard({
+        title: 'Menunggu Akses Remedial',
+        message: `Nilai Anda sebelumnya adalah ${existingSubmission.score}/100 (Belum Tuntas). Setiap studi kasus hanya dapat dikerjakan 1 kali. Silakan hubungi Guru Pengampu untuk membuka tombol "Buka Remidi" di Rekap Nilai agar Anda dapat mengerjakan ulang.`,
+        type: 'warning',
+        icon: '🔒',
+        buttonText: 'Mengerti',
+      });
       return;
     }
 
@@ -1164,7 +1538,13 @@ export default function FlowchartEditor({ currentUser }) {
       } else {
         const errorData = await res.json().catch(() => null);
         if (errorData?.message) {
-          alert(errorData.message);
+          showAlertCard({
+            title: 'Pemberitahuan Sistem',
+            message: errorData.message,
+            type: 'warning',
+            icon: '⚠️',
+            buttonText: 'Tutup',
+          });
           return;
         }
         throw new Error('API server unavailable');
@@ -1611,6 +1991,30 @@ export default function FlowchartEditor({ currentUser }) {
         </div>
       )}
 
+      {/* Modal Konfirmasi Berbentuk Card Elegan */}
+      {confirmCard && (
+        <ConfirmModalCard
+          isOpen={confirmCard.isOpen}
+          onClose={() => setConfirmCard(null)}
+          onConfirm={confirmCard.onConfirm}
+          title={confirmCard.title}
+          message={confirmCard.message}
+          confirmText={confirmCard.confirmText}
+          cancelText={confirmCard.cancelText}
+          type={confirmCard.type}
+          icon={confirmCard.icon}
+          isAlert={confirmCard.isAlert}
+        />
+      )}
+
+      {/* Modal Pengaturan Garis Alir Panah Berbentuk Card */}
+      <EdgeSettingsModal
+        isOpen={edgeSettingsModal.isOpen}
+        edge={edgeSettingsModal.edge}
+        onClose={() => setEdgeSettingsModal({ isOpen: false, edge: null })}
+        onSaveLabel={handleSaveEdgeLabel}
+        onDeleteEdge={handleDeleteEdge}
+      />
     </div>
   );
 }
@@ -2434,6 +2838,50 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubDetail, setSelectedSubDetail] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [portalConfirmCard, setPortalConfirmCard] = useState(null);
+
+  const showPortalConfirm = ({
+    title,
+    message,
+    confirmText = 'Lanjutkan',
+    cancelText = 'Batal',
+    type = 'warning',
+    icon,
+    onConfirm,
+  }) => {
+    setPortalConfirmCard({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      type,
+      icon,
+      onConfirm: () => {
+        setPortalConfirmCard(null);
+        if (onConfirm) onConfirm();
+      },
+    });
+  };
+
+  const showPortalAlert = ({
+    title,
+    message,
+    buttonText = 'Mengerti',
+    type = 'info',
+    icon,
+  }) => {
+    setPortalConfirmCard({
+      isOpen: true,
+      isAlert: true,
+      title,
+      message,
+      confirmText: buttonText,
+      type,
+      icon,
+      onConfirm: () => setPortalConfirmCard(null),
+    });
+  };
 
   // Ambil riwayat submission dari localStorage (default seluruh siswa kelas X TO 3 termasuk Simulasi Siswa, kasus luas segitiga)
   const [submissions, setSubmissions] = useState(() => {
@@ -2519,11 +2967,14 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     });
 
     saveSubmissions(updated);
-    alert(
-      nextState
-        ? `Akses remedial untuk "${target.student_name}" berhasil DIBUKA!\nSiswa sekarang dapat mengerjakan ulang diagram di kanvas.`
-        : `Akses remedial untuk "${target.student_name}" DITUTUP.`
-    );
+    showPortalAlert({
+      title: nextState ? 'Akses Remedial Dibuka' : 'Akses Remedial Ditutup',
+      message: nextState
+        ? `Akses remedial untuk "${target.student_name}" berhasil DIBUKA! Siswa sekarang dapat mengerjakan ulang diagram di kanvas.`
+        : `Akses remedial untuk "${target.student_name}" telah DITUTUP.`,
+      type: nextState ? 'success' : 'info',
+      icon: nextState ? '🔓' : '🔒',
+    });
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     if (csrfToken && target.id && !String(target.id).startsWith('sub_')) {
@@ -2547,9 +2998,17 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   };
 
   const handleClearHistory = () => {
-    if (confirm('Yakin ingin membersihkan semua riwayat submission siswa?')) {
-      saveSubmissions([]);
-    }
+    showPortalConfirm({
+      title: 'Bersihkan Riwayat Nilai?',
+      message: 'Apakah Anda yakin ingin menghapus seluruh riwayat submission siswa dari memori lokal? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Ya, Bersihkan Riwayat',
+      cancelText: 'Batal',
+      type: 'danger',
+      icon: '🗑️',
+      onConfirm: () => {
+        saveSubmissions([]);
+      },
+    });
   };
 
   // Cetak & Ekspor Hasil Penilaian ke Format Asli Microsoft Excel (.xlsx)
@@ -2562,7 +3021,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
     const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
     if (listToExport.length === 0) {
-      alert('Tidak ada data penilaian untuk dicetak ke Excel.');
+      showPortalAlert({
+        title: 'Data Tidak Ditemukan',
+        message: 'Tidak ada data penilaian siswa untuk dicetak ke file Excel.',
+        type: 'warning',
+        icon: '⚠️',
+      });
       return;
     }
 
@@ -2720,7 +3184,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
     const listToExport = filteredSubs.length > 0 ? filteredSubs : cleanSubmissions;
     if (listToExport.length === 0) {
-      alert('Tidak ada data penilaian untuk dicetak ke CSV.');
+      showPortalAlert({
+        title: 'Data Tidak Ditemukan',
+        message: 'Tidak ada data penilaian siswa untuk dicetak ke file CSV.',
+        type: 'warning',
+        icon: '⚠️',
+      });
       return;
     }
 
@@ -2776,7 +3245,12 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const handleCreateCase = (e) => {
     e.preventDefault();
     if (!newCase.title.trim()) {
-      alert('Judul studi kasus wajib diisi!');
+      showPortalAlert({
+        title: 'Judul Wajib Diisi',
+        message: 'Silakan isi judul studi kasus terlebih dahulu sebelum menyimpan!',
+        type: 'warning',
+        icon: '⚠️',
+      });
       return;
     }
     const key = (
@@ -2849,18 +3323,31 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     });
 
     if (onCaseStudiesChanged) onCaseStudiesChanged();
-    alert(`Studi kasus "${item.title}" berhasil disimpan! Soal ini langsung tersedia di kanvas siswa.`);
+    showPortalAlert({
+      title: 'Studi Kasus Tersimpan!',
+      message: `Studi kasus "${item.title}" berhasil ditambahkan dan langsung tersedia di kanvas pengerjaan siswa!`,
+      type: 'success',
+      icon: '🎉',
+    });
   };
 
   const handleDeleteCase = (key) => {
-    if (confirm(`Hapus studi kasus "${key}"?`)) {
-      const updated = customCases.filter((c) => (c.case_key || c.id) !== key);
-      setCustomCases(updated);
-      try {
-        localStorage.setItem('flowchart_custom_cases', JSON.stringify(updated));
-      } catch (e) {}
-      if (onCaseStudiesChanged) onCaseStudiesChanged();
-    }
+    showPortalConfirm({
+      title: 'Hapus Studi Kasus?',
+      message: `Apakah Anda yakin ingin menghapus studi kasus "${key}"? Soal ini tidak akan tersedia lagi bagi siswa.`,
+      confirmText: 'Ya, Hapus Kasus',
+      cancelText: 'Batal',
+      type: 'danger',
+      icon: '🗑️',
+      onConfirm: () => {
+        const updated = customCases.filter((c) => (c.case_key || c.id) !== key);
+        setCustomCases(updated);
+        try {
+          localStorage.setItem('flowchart_custom_cases', JSON.stringify(updated));
+        } catch (e) {}
+        if (onCaseStudiesChanged) onCaseStudiesChanged();
+      },
+    });
   };
 
   // Filter hasil submission (otomatis bersihkan siswa yang diblokir)
@@ -3645,6 +4132,22 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal Konfirmasi Card untuk Portal Guru */}
+      {portalConfirmCard && (
+        <ConfirmModalCard
+          isOpen={portalConfirmCard.isOpen}
+          onClose={() => setPortalConfirmCard(null)}
+          onConfirm={portalConfirmCard.onConfirm}
+          title={portalConfirmCard.title}
+          message={portalConfirmCard.message}
+          confirmText={portalConfirmCard.confirmText}
+          cancelText={portalConfirmCard.cancelText}
+          type={portalConfirmCard.type}
+          icon={portalConfirmCard.icon}
+          isAlert={portalConfirmCard.isAlert}
+        />
       )}
     </div>
   );

@@ -216,11 +216,19 @@
                                 </div>
 
                                 @if(!$case->is_default)
-                                    <form action="{{ route('guru.case_study.destroy', $case->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus studi kasus ini?')">
+                                    <form action="{{ route('guru.case_study.destroy', $case->id) }}" method="POST">
                                         @csrf
                                         @method('DELETE')
                                         <button 
-                                            type="submit" 
+                                            type="button" 
+                                            onclick="triggerCardConfirm({
+                                                title: 'Hapus Studi Kasus?',
+                                                message: 'Apakah Anda yakin ingin menghapus studi kasus &quot;{{ addslashes($case->title) }}&quot;? Data soal tidak akan lagi tersedia untuk siswa.',
+                                                form: this.form,
+                                                confirmText: 'Ya, Hapus Kasus',
+                                                type: 'danger',
+                                                icon: '🗑️'
+                                            })"
                                             class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
                                             title="Hapus Studi Kasus Ini"
                                         >
@@ -662,11 +670,19 @@
                                                             👁️ Detail
                                                         </button>
 
-                                                        <form action="{{ route('guru.submission.destroy', $sub->id) }}" method="POST" onsubmit="return confirm('Hapus hasil pengumpulan ini?')">
+                                                        <form action="{{ route('guru.submission.destroy', $sub->id) }}" method="POST">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button 
-                                                                type="submit" 
+                                                                type="button" 
+                                                                onclick="triggerCardConfirm({
+                                                                    title: 'Hapus Rekap Penilaian?',
+                                                                    message: 'Hapus rekaman pengumpulan dari siswa &quot;{{ addslashes($sub->student_name) }}&quot;? Data nilai dan diagram akan dihapus.',
+                                                                    form: this.form,
+                                                                    confirmText: 'Ya, Hapus Nilai',
+                                                                    type: 'danger',
+                                                                    icon: '🗑️'
+                                                                })"
                                                                 class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
                                                                 title="Hapus Submission"
                                                             >
@@ -1309,6 +1325,95 @@
         document.addEventListener('DOMContentLoaded', () => {
             updatePreview();
         });
+    </script>
+
+    <!-- Card Modal Konfirmasi Interaktif (Modern Web Dialog Standards) -->
+    <dialog id="cardConfirmDialog" class="p-0 bg-transparent border-0 rounded-3xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-xs w-full max-w-md m-auto">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 sm:p-7 text-center relative overflow-hidden animate-scaleUp">
+            <div id="cardConfirmBar" class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 to-red-600"></div>
+            
+            <div id="cardConfirmIconBg" class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center text-2xl mx-auto mb-3.5 shadow-xs">
+                <span id="cardConfirmIcon">🗑️</span>
+            </div>
+
+            <h3 id="cardConfirmTitle" class="text-base sm:text-lg font-black text-slate-900 tracking-tight mb-2">
+                Hapus Data?
+            </h3>
+            <p id="cardConfirmMessage" class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+                Apakah Anda yakin ingin melakukan tindakan ini?
+            </p>
+
+            <div class="flex items-center justify-center gap-2.5 w-full">
+                <button 
+                    type="button" 
+                    onclick="closeCardConfirm()" 
+                    class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all cursor-pointer active:scale-95"
+                >
+                    Batal
+                </button>
+                <button 
+                    type="button" 
+                    id="cardConfirmBtn" 
+                    class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95"
+                >
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <script>
+        let pendingFormToSubmit = null;
+
+        function triggerCardConfirm({ title, message, form, confirmText = 'Ya, Hapus', type = 'danger', icon = '🗑️' }) {
+            pendingFormToSubmit = form;
+            const dialog = document.getElementById('cardConfirmDialog');
+            if (!dialog) return;
+
+            document.getElementById('cardConfirmTitle').textContent = title;
+            document.getElementById('cardConfirmMessage').textContent = message;
+            document.getElementById('cardConfirmIcon').textContent = icon;
+            
+            const confirmBtn = document.getElementById('cardConfirmBtn');
+            confirmBtn.textContent = confirmText;
+
+            const bar = document.getElementById('cardConfirmBar');
+            const iconBg = document.getElementById('cardConfirmIconBg');
+
+            if (type === 'danger') {
+                bar.className = 'absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 to-red-600';
+                iconBg.className = 'w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center text-2xl mx-auto mb-3.5 shadow-xs';
+                confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95';
+            } else {
+                bar.className = 'absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600';
+                iconBg.className = 'w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-2xl mx-auto mb-3.5 shadow-xs';
+                confirmBtn.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/25 transition-all cursor-pointer active:scale-95';
+            }
+
+            confirmBtn.onclick = () => {
+                if (pendingFormToSubmit) {
+                    pendingFormToSubmit.submit();
+                }
+                closeCardConfirm();
+            };
+
+            if (typeof dialog.showModal === 'function') {
+                dialog.showModal();
+            } else {
+                dialog.setAttribute('open', '');
+            }
+        }
+
+        function closeCardConfirm() {
+            const dialog = document.getElementById('cardConfirmDialog');
+            if (!dialog) return;
+            pendingFormToSubmit = null;
+            if (typeof dialog.close === 'function') {
+                dialog.close();
+            } else {
+                dialog.removeAttribute('open');
+            }
+        }
     </script>
     <script>
         function exportDashboardTableToXLSX(e) {
