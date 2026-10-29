@@ -97,40 +97,24 @@
                 </button>
             </form>
 
-            <!-- Akses Cepat Uji Coba & Simulasi Siswa -->
-            <div class="mt-4 pt-3 border-t border-slate-100 space-y-2">
+            <!-- Akses Cepat Demo Siswa -->
+            <div class="mt-4 pt-3 border-t border-slate-100">
                 <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
-                    Akses Cepat Pengujian:
+                    Akses Cepat Demo Siswa:
                 </span>
-                <div class="grid grid-cols-1 gap-2">
-                    <a 
-                        href="{{ route('login.simulasi') }}" 
-                        class="w-full py-2.5 px-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 shadow-2xs"
-                    >
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg">🎓</span>
-                            <div class="text-left">
-                                <span class="block font-black text-xs text-indigo-950">Masuk Simulasi Siswa</span>
-                                <span class="block text-[10px] text-indigo-700 font-medium">NISN: 000000 (Kelas Simulasi)</span>
-                            </div>
+                <a 
+                    href="{{ route('login.demo') }}" 
+                    class="w-full py-2.5 px-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 shadow-2xs"
+                >
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">👤</span>
+                        <div class="text-left">
+                            <span class="block font-black text-xs text-blue-950">Masuk Akun Demo Siswa</span>
+                            <span class="block text-[10px] text-blue-700 font-medium">Record pengerjaan otomatis masuk ke Kelas Demo</span>
                         </div>
-                        <span class="text-[10px] text-indigo-600 bg-indigo-100/80 px-2 py-0.5 rounded-full font-mono font-bold">1-Klik ➜</span>
-                    </a>
-
-                    <a 
-                        href="{{ route('login.demo') }}" 
-                        class="w-full py-2.5 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer active:scale-95 shadow-2xs"
-                    >
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg">👤</span>
-                            <div class="text-left">
-                                <span class="block font-black text-xs text-slate-900">Masuk Akun Demo Siswa</span>
-                                <span class="block text-[10px] text-slate-500 font-medium">Record pengerjaan masuk ke Kelas Demo</span>
-                            </div>
-                        </div>
-                        <span class="text-[10px] text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded-full font-mono font-bold">1-Klik ➜</span>
-                    </a>
-                </div>
+                    </div>
+                    <span class="text-[10px] text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full font-mono font-bold">1-Klik ➜</span>
+                </a>
             </div>
 
             <!-- Link Pendaftaran Siswa -->
