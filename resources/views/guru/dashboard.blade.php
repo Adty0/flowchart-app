@@ -716,8 +716,8 @@
     <!-- ================================================================= -->
     <!-- MODAL 1: TAMBAH STUDI KASUS BARU BESERTA ALUR & KUNCI KOREKSI     -->
     <!-- ================================================================= -->
-    <div id="createCaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-auto animate-fadeIn max-h-[92vh] overflow-y-auto">
+    <div id="createCaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-start justify-center p-3 sm:p-5 pt-4 sm:pt-8 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 my-0 animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-lg font-bold">
@@ -1029,8 +1029,8 @@
     <!-- ================================================================= -->
     <!-- MODAL 2: DETAIL DIAGRAM SISWA (VIEW JSON & FEEDBACK)              -->
     <!-- ================================================================= -->
-    <div id="detailModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-fadeIn max-h-[90vh] overflow-y-auto">
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-start justify-center p-3 sm:p-5 pt-6 sm:pt-10 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-fadeIn my-0 max-h-[88vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
                     <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1092,11 +1092,13 @@
 
         function openCreateCaseModal() {
             document.getElementById('createCaseModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
             updatePreview();
         }
 
         function closeCreateCaseModal() {
             document.getElementById('createCaseModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
         }
 
         function handleFlowTypeChange(type) {
@@ -1315,10 +1317,12 @@
 
             document.getElementById('modalJsonData').textContent = JSON.stringify(diagram, null, 2);
             document.getElementById('detailModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
         }
 
         function closeDetailModal() {
             document.getElementById('detailModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
         }
 
         // Initialize preview on DOM load
@@ -1328,7 +1332,7 @@
     </script>
 
     <!-- Card Modal Konfirmasi Interaktif (Modern Web Dialog Standards) -->
-    <dialog id="cardConfirmDialog" class="p-0 bg-transparent border-0 rounded-3xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-xs w-full max-w-md m-auto">
+    <dialog id="cardConfirmDialog" class="p-0 bg-transparent border-0 rounded-3xl backdrop:bg-slate-900/60 backdrop:backdrop-blur-xs w-full max-w-md fixed top-8 sm:top-14 inset-x-0 mx-auto z-50">
         <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 sm:p-7 text-center relative overflow-hidden animate-scaleUp">
             <div id="cardConfirmBar" class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 to-red-600"></div>
             
@@ -1397,6 +1401,7 @@
                 closeCardConfirm();
             };
 
+            document.body.classList.add('overflow-hidden');
             if (typeof dialog.showModal === 'function') {
                 dialog.showModal();
             } else {
@@ -1408,6 +1413,7 @@
             const dialog = document.getElementById('cardConfirmDialog');
             if (!dialog) return;
             pendingFormToSubmit = null;
+            document.body.classList.remove('overflow-hidden');
             if (typeof dialog.close === 'function') {
                 dialog.close();
             } else {

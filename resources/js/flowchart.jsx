@@ -736,11 +736,16 @@ export function ConfirmModalCard({
 }) {
   useEffect(() => {
     if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -781,11 +786,11 @@ export function ConfirmModalCard({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-5 pt-8 sm:pt-14 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl ${config.glow} max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp text-center`}
+        className={`bg-white rounded-3xl border border-slate-100 shadow-2xl ${config.glow} max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp text-center my-0 max-h-[88vh] overflow-y-auto`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -851,22 +856,27 @@ export function EdgeSettingsModal({ isOpen, edge, onClose, onSaveLabel, onDelete
 
   useEffect(() => {
     if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen || !edge) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-[100] flex items-start justify-center p-3 sm:p-5 pt-8 sm:pt-14 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp"
+        className="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full p-6 sm:p-7 relative overflow-hidden transition-all transform animate-scaleUp my-0 max-h-[88vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -2939,6 +2949,17 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     expected_outputs: '',
   });
 
+  // Kunci scroll halaman belakang saat modal/card sedang aktif agar posisi tetap di atas
+  useEffect(() => {
+    if (selectedSubDetail || showCreateModal || portalConfirmCard) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [selectedSubDetail, showCreateModal, portalConfirmCard]);
+
   const [extraInputs, setExtraInputs] = useState([]);
   const [extraProcesses, setExtraProcesses] = useState([]);
   const [extraDecisions, setExtraDecisions] = useState([]);
@@ -3774,8 +3795,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
       {/* Modal Detail Submission */}
       {selectedSubDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 sm:p-5 pt-6 sm:pt-12 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-0 max-h-[88vh] overflow-y-auto transform animate-scaleUp">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">Detail Hasil Praktikum</h3>
@@ -3832,8 +3853,8 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
       {/* Modal Tambah Studi Kasus Baru */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 sm:p-5 pt-4 sm:pt-8 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-0 max-h-[88vh] overflow-y-auto transform animate-scaleUp">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">Tambah Studi Kasus Baru</h3>

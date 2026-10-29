@@ -44,6 +44,16 @@
 /* Modern Native Dialog Styling (Modern Web Standards) */
 dialog:modal {
     overscroll-behavior: contain;
+    position: fixed !important;
+    top: 2.5rem !important;
+    bottom: auto !important;
+    inset-block-start: 2.5rem !important;
+    inset-block-end: auto !important;
+    margin-top: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-height: calc(100vh - 5rem);
+    overflow: auto;
 }
 
 dialog::backdrop {
