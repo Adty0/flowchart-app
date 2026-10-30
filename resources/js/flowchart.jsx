@@ -694,28 +694,557 @@ export function evaluateDiagramLocally(nodes, edges, caseKey, currentCase = {}) 
     }
   }
 
-  // 3. EVALUASI PANAH (25 Poin)
-  const nodeIds = nodes.map((n) => n.id);
-  let validEdges = 0;
-  edges.forEach((e) => {
-    if (e.source && e.target && nodeIds.includes(e.source) && nodeIds.includes(e.target) && e.source !== e.target) {
-      validEdges++;
-    }
-  });
+  // 3. EVALUASI KETEPATAN GARIS ALIR & LOGIKA PANAH FLOWCHART (25 Poin)
+  const arrowAssessment = evaluateFlowlines(nodes, edges, caseKey, currentCase);
+  score += arrowAssessment.score;
+  arrowAssessment.feedback.forEach((fb) => feedback.push(fb));
 
-  if (edges.length > 0 && validEdges === edges.length) {
-    score += 25;
-    feedback.push('✅ Alur konektor panah terhubung dengan runtut dan valid dari awal hingga akhir.');
-  } else if (edges.length > 0) {
-    score += 12;
-    feedback.push('⚠️ Terdapat beberapa garis penghubung yang belum terpasang ke simbol yang sah.');
-  } else {
-    feedback.push('⚠️ Hubungkan simbol-simbol di atas menggunakan garis panah penghubung.');
+  // Jika terdapat kesalahan fatal pada arah panah / logika percabangan, batasi nilai maksimal (belum tuntas < 75)
+  if (arrowAssessment.hasCriticalFlowError) {
+    score = Math.min(score, 65);
+    feedback.push('⛔ Alur logika algoritma belum benar: Perbaiki arah panah atau percabangan yang keliru agar alur algoritma valid.');
   }
 
   return {
     score: Math.min(100, Math.max(0, score)),
     feedback,
+  };
+}
+
+// ============================================================================
+// EVALUASI KETEPATAN GARIS ALIR & LOGIKA PANAH FLOWCHART (EDGES)
+// ============================================================================
+export function evaluateFlowlines(nodes, edges, caseKey, currentCase = {}) {
+  const feedback = [];
+  let score = 0;
+
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    return { score: 0, feedback: ['⚠️ Belum ada simbol flowchart yang disusun.'] };
+  }
+
+  if (!Array.isArray(edges) || edges.length === 0) {
+    return {
+      score: 0,
+      feedback: ['⚠️ Hubungkan simbol-simbol di atas menggunakan garis panah alir sesuai urutan algoritma.'],
+    };
+  }
+
+  const nodeIds = nodes.map((n) => n.id);
+  const nodeMap = {};
+  nodes.forEach((n) => {
+    nodeMap[n.id] = n;
+  });
+
+  // 1. Validitas & Integritas Garis Panah (Maks 6 Poin)
+  const validEdges = [];
+  let invalidEdgeCount = 0;
+  edges.forEach((edge) => {
+    const src = edge.source;
+    const tgt = edge.target;
+    if (src && tgt && nodeMap[src] && nodeMap[tgt] && src !== tgt) {
+      validEdges.push(edge);
+    } else {
+      invalidEdgeCount++;
+    }
+  });
+
+  if (invalidEdgeCount === 0 && validEdges.length > 0) {
+    score += 6;
+  } else if (validEdges.length > 0) {
+    score += 3;
+    feedback.push('⚠️ Terdapat garis panah yang terlepas atau belum terhubung ke simbol yang sah.');
+  } else {
+    return {
+      score: 0,
+      feedback: ['⚠️ Garis panah penghubung belum terpasang dengan benar pada simbol-simbol flowchart.'],
+    };
+  }
+
+  // Peta ketetanggaan (Adjacency maps)
+  const outgoing = {};
+  const incoming = {};
+  nodeIds.forEach((id) => {
+    outgoing[id] = [];
+    incoming[id] = [];
+  });
+
+  validEdges.forEach((e) => {
+    const src = e.source;
+    const tgt = e.target;
+    const edgeData = {
+      target: tgt,
+      source: src,
+      label: (e.label || '').toLowerCase().trim(),
+      sourceHandle: (e.sourceHandle || '').toLowerCase().trim(),
+    };
+    outgoing[src].push(edgeData);
+    incoming[tgt].push(edgeData);
+  });
+
+  const cleanLabels = {};
+  nodes.forEach((n) => {
+    cleanLabels[n.id] = (n.data?.label || '').toLowerCase().trim();
+  });
+
+  // Klasifikasi peran simbol dalam diagram
+  let startNode = null;
+  let endNode = null;
+  const inputNodes = [];
+  const processNodes = [];
+  const decisionNodes = [];
+  const outputNodes = [];
+
+  nodes.forEach((n) => {
+    const type = n.type || '';
+    const lbl = cleanLabels[n.id] || '';
+
+    if (type === 'terminator') {
+      if (lbl.includes('mulai') || lbl.includes('start') || lbl.includes('begin')) {
+        startNode = n;
+      } else if (lbl.includes('selesai') || lbl.includes('end') || lbl.includes('stop') || lbl.includes('tamat')) {
+        endNode = n;
+      }
+    } else if (type === 'decision') {
+      decisionNodes.push(n);
+    } else if (type === 'io') {
+      const isOut =
+        lbl.includes('cetak') ||
+        lbl.includes('tampil') ||
+        lbl.includes('output') ||
+        lbl.includes('print') ||
+        lbl.includes('hasil') ||
+        lbl.includes('lulus') ||
+        lbl.includes('remedial');
+      if (isOut) {
+        outputNodes.push(n);
+      } else {
+        inputNodes.push(n);
+      }
+    } else if (type === 'process') {
+      const isOut = lbl.includes('lulus') || lbl.includes('remedial');
+      if (isOut) {
+        outputNodes.push(n);
+      } else {
+        processNodes.push(n);
+      }
+    }
+  });
+
+  // Helper fungsi direct edge & reachability BFS (mencegah loop tak terhingga)
+  const hasDirectEdge = (srcId, tgtId) => {
+    if (!srcId || !tgtId) return false;
+    return (outgoing[srcId] || []).some((out) => out.target === tgtId);
+  };
+
+  const hasPath = (startId, targetId) => {
+    if (!startId || !targetId || startId === targetId) return false;
+    const queue = [startId];
+    const visited = { [startId]: true };
+    while (queue.length > 0) {
+      const curr = queue.shift();
+      if (curr === targetId) return true;
+      const nextList = outgoing[curr] || [];
+      for (let i = 0; i < nextList.length; i++) {
+        const nxt = nextList[i].target;
+        if (!visited[nxt]) {
+          visited[nxt] = true;
+          queue.push(nxt);
+        }
+      }
+    }
+    return false;
+  };
+
+  // 2. Evaluasi Arah Panah Terminator Mulai & Selesai (Maks 5 Poin)
+  const terminatorScore = 5;
+  let terminatorErrors = 0;
+
+  if (startNode) {
+    const sId = startNode.id;
+    if ((outgoing[sId] || []).length === 0) {
+      feedback.push('⚠️ Simbol "Mulai" belum memiliki panah keluar untuk mengalirkan langkah awal.');
+      terminatorErrors++;
+    }
+    if ((incoming[sId] || []).length > 0) {
+      feedback.push('⚠️ Arah panah keliru: Simbol "Mulai" adalah titik awal program dan tidak boleh menerima panah masuk.');
+      terminatorErrors++;
+    }
+  }
+
+  if (endNode) {
+    const eId = endNode.id;
+    if ((incoming[eId] || []).length === 0) {
+      feedback.push('⚠️ Simbol "Selesai" belum menerima panah masuk dari langkah akhir diagram.');
+      terminatorErrors++;
+    }
+    if ((outgoing[eId] || []).length > 0) {
+      feedback.push('⚠️ Arah panah keliru: Simbol "Selesai" adalah akhir alur dan tidak boleh memiliki panah keluar.');
+      terminatorErrors++;
+    }
+  }
+
+  if (terminatorErrors === 0 && startNode && endNode) {
+    score += terminatorScore;
+    feedback.push('✅ Arah panah Terminator tepat: Panah mengalir keluar dari "Mulai" dan bermuara ke "Selesai".');
+  } else if (terminatorErrors === 1) {
+    score += 3;
+  }
+
+  // 3. Evaluasi Ketepatan Urutan & Arah Panah Algoritma (Maks 10 Poin)
+  const isBranching = caseKey === 'kelulusan' || currentCase.flow_type === 'branching';
+  let hasCriticalFlowError = false;
+
+  if (!isBranching) {
+    // === ALUR SEKUENSIAL (LUAS SEGITIGA & SEKUENSIAL LAINNYA) ===
+    let seqScore = 0;
+    const seqErrors = [];
+
+    // A. Mulai ➔ Input
+    let hasReversedStartInput = false;
+    if (startNode && inputNodes.length > 0) {
+      for (let i = 0; i < inputNodes.length; i++) {
+        if (hasPath(inputNodes[i].id, startNode.id)) {
+          hasReversedStartInput = true;
+          hasCriticalFlowError = true;
+          seqErrors.push('⚠️ Alur panah terbalik: Panah harus mengalir dari "Mulai" ke "Input", bukan sebaliknya.');
+          break;
+        }
+      }
+    }
+
+    let startDirectlyToInput = false;
+    if (startNode && inputNodes.length > 0) {
+      for (let i = 0; i < inputNodes.length; i++) {
+        if (hasDirectEdge(startNode.id, inputNodes[i].id)) {
+          startDirectlyToInput = true;
+          break;
+        }
+      }
+    }
+
+    if (startDirectlyToInput && !hasReversedStartInput) {
+      seqScore += 2.5;
+    } else if (startNode && inputNodes.length > 0 && !hasReversedStartInput) {
+      const startTargets = (outgoing[startNode.id] || []).map((o) => o.target);
+      if (startTargets.length > 0) {
+        const firstTargetId = startTargets[0];
+        const firstTargetLbl = cleanLabels[firstTargetId] || '';
+        if (firstTargetLbl.includes('luas') || firstTargetLbl.includes('=')) {
+          seqErrors.push('⚠️ Urutan alur keliru: Simbol "Mulai" terhubung langsung ke Proses rumus. Masukkan data terlebih dahulu (Mulai ➔ Input).');
+          hasCriticalFlowError = true;
+        } else {
+          seqErrors.push('⚠️ Simbol "Mulai" seharusnya terhubung langsung ke simbol Input terlebih dahulu.');
+        }
+      } else {
+        seqErrors.push('⚠️ Simbol "Mulai" seharusnya terhubung ke simbol Input.');
+      }
+    }
+
+    // B. Input ➔ Proses Rumus
+    let hasReversedInputProcess = false;
+    if (inputNodes.length > 0 && processNodes.length > 0) {
+      for (let i = 0; i < processNodes.length; i++) {
+        for (let j = 0; j < inputNodes.length; j++) {
+          if (hasPath(processNodes[i].id, inputNodes[j].id)) {
+            hasReversedInputProcess = true;
+            hasCriticalFlowError = true;
+            seqErrors.push('⚠️ Alur panah terbalik: Data masukan (Input) harus mengalir menuju langkah perhitungan (Proses Rumus), bukan sebaliknya.');
+            break;
+          }
+        }
+        if (hasReversedInputProcess) break;
+      }
+    }
+
+    let inputLeadsToProcess = false;
+    if (inputNodes.length > 0 && processNodes.length > 0) {
+      for (let i = 0; i < inputNodes.length; i++) {
+        for (let j = 0; j < processNodes.length; j++) {
+          if (hasDirectEdge(inputNodes[i].id, processNodes[j].id) || hasPath(inputNodes[i].id, processNodes[j].id)) {
+            inputLeadsToProcess = true;
+            break;
+          }
+        }
+        if (inputLeadsToProcess) break;
+      }
+    }
+
+    if (inputLeadsToProcess && !hasReversedInputProcess) {
+      seqScore += 2.5;
+    } else if (inputNodes.length > 0 && processNodes.length > 0 && !hasReversedInputProcess) {
+      seqErrors.push('⚠️ Hubungkan simbol Input ke simbol Proses Rumus agar nilai data dapat dihitung.');
+    }
+
+    // C. Proses Rumus ➔ Output
+    let hasReversedProcessOutput = false;
+    if (processNodes.length > 0 && outputNodes.length > 0) {
+      for (let i = 0; i < outputNodes.length; i++) {
+        for (let j = 0; j < processNodes.length; j++) {
+          if (hasPath(outputNodes[i].id, processNodes[j].id)) {
+            hasReversedProcessOutput = true;
+            hasCriticalFlowError = true;
+            seqErrors.push('⚠️ Alur panah terbalik: Hasil baru dapat dicetak setelah rumus perhitungan selesai diproses (Proses Rumus ➔ Output Cetak).');
+            break;
+          }
+        }
+        if (hasReversedProcessOutput) break;
+      }
+    }
+
+    let processLeadsToOutput = false;
+    if (processNodes.length > 0 && outputNodes.length > 0) {
+      for (let i = 0; i < processNodes.length; i++) {
+        for (let j = 0; j < outputNodes.length; j++) {
+          if (hasDirectEdge(processNodes[i].id, outputNodes[j].id) || hasPath(processNodes[i].id, outputNodes[j].id)) {
+            processLeadsToOutput = true;
+            break;
+          }
+        }
+        if (processLeadsToOutput) break;
+      }
+    } else if (processNodes.length === 0 && inputNodes.length > 0 && outputNodes.length > 0) {
+      for (let i = 0; i < inputNodes.length; i++) {
+        for (let j = 0; j < outputNodes.length; j++) {
+          if (hasDirectEdge(inputNodes[i].id, outputNodes[j].id) || hasPath(inputNodes[i].id, outputNodes[j].id)) {
+            processLeadsToOutput = true;
+            break;
+          }
+        }
+        if (processLeadsToOutput) break;
+      }
+    }
+
+    if (processLeadsToOutput && !hasReversedProcessOutput) {
+      seqScore += 2.5;
+    } else if (outputNodes.length > 0 && !hasReversedProcessOutput) {
+      seqErrors.push('⚠️ Hubungkan langkah perhitungan (Proses Rumus) menuju simbol Output cetak hasil.');
+    }
+
+    // D. Output ➔ Selesai
+    let hasReversedOutputEnd = false;
+    if (outputNodes.length > 0 && endNode) {
+      for (let i = 0; i < outputNodes.length; i++) {
+        if (hasPath(endNode.id, outputNodes[i].id)) {
+          hasReversedOutputEnd = true;
+          hasCriticalFlowError = true;
+          seqErrors.push('⚠️ Alur panah terbalik: Simbol Output harus mengalir menuju "Selesai", bukan sebaliknya.');
+          break;
+        }
+      }
+    }
+
+    let outputLeadsToEnd = false;
+    if (outputNodes.length > 0 && endNode) {
+      for (let i = 0; i < outputNodes.length; i++) {
+        if (hasDirectEdge(outputNodes[i].id, endNode.id) || hasPath(outputNodes[i].id, endNode.id)) {
+          outputLeadsToEnd = true;
+          break;
+        }
+      }
+    }
+
+    if (outputLeadsToEnd && !hasReversedOutputEnd) {
+      seqScore += 2.5;
+    } else if (outputNodes.length > 0 && endNode && !hasReversedOutputEnd) {
+      seqErrors.push('⚠️ Hubungkan simbol Output cetak hasil menuju simbol akhir "Selesai".');
+    }
+
+    if (hasCriticalFlowError) {
+      seqScore = 0;
+    }
+    score += seqScore;
+
+    if (seqScore >= 10 && seqErrors.length === 0) {
+      feedback.push('✅ Urutan alur panah tepat: Mulai ➔ Input ➔ Proses Rumus ➔ Output ➔ Selesai tersambung runtut.');
+    } else {
+      seqErrors.forEach((err) => feedback.push(err));
+    }
+
+  } else {
+    // === ALUR PERCABANGAN (KELULUSAN NILAI & PERCABANGAN LAINNYA) ===
+    let branchScore = 0;
+    const branchErrors = [];
+
+    // A. Mulai ➔ Input
+    let startLeadsToInput = false;
+    if (startNode && inputNodes.length > 0) {
+      for (let i = 0; i < inputNodes.length; i++) {
+        if (hasDirectEdge(startNode.id, inputNodes[i].id) || hasPath(startNode.id, inputNodes[i].id)) {
+          startLeadsToInput = true;
+          break;
+        }
+      }
+    }
+
+    if (startLeadsToInput) {
+      branchScore += 2;
+    } else if (startNode && inputNodes.length > 0) {
+      branchErrors.push('⚠️ Simbol "Mulai" seharusnya mengarah ke simbol Input Nilai terlebih dahulu.');
+    }
+
+    // B. Input ➔ Keputusan
+    let hasReversedInputDecision = false;
+    if (decisionNodes.length > 0 && inputNodes.length > 0) {
+      for (let i = 0; i < decisionNodes.length; i++) {
+        for (let j = 0; j < inputNodes.length; j++) {
+          if (hasPath(decisionNodes[i].id, inputNodes[j].id)) {
+            hasReversedInputDecision = true;
+            hasCriticalFlowError = true;
+            branchErrors.push('⚠️ Alur panah terbalik: Nilai harus diinputkan sebelum diperiksa dalam simbol Keputusan (Input Nilai ➔ Keputusan).');
+            break;
+          }
+        }
+        if (hasReversedInputDecision) break;
+      }
+    }
+
+    let inputLeadsToDecision = false;
+    if (inputNodes.length > 0 && decisionNodes.length > 0) {
+      for (let i = 0; i < inputNodes.length; i++) {
+        for (let j = 0; j < decisionNodes.length; j++) {
+          if (hasDirectEdge(inputNodes[i].id, decisionNodes[j].id) || hasPath(inputNodes[i].id, decisionNodes[j].id)) {
+            inputLeadsToDecision = true;
+            break;
+          }
+        }
+        if (inputLeadsToDecision) break;
+      }
+    }
+
+    if (inputLeadsToDecision && !hasReversedInputDecision) {
+      branchScore += 2;
+    } else if (inputNodes.length > 0 && decisionNodes.length > 0 && !hasReversedInputDecision) {
+      branchErrors.push('⚠️ Hubungkan simbol Input Nilai ke simbol Keputusan.');
+    }
+
+    // C. Pemeriksaan Ketepatan Cabang "Ya" dan "Tidak" dari Simbol Keputusan
+    if (decisionNodes.length > 0) {
+      const mainDec = decisionNodes[0];
+      const decId = mainDec.id;
+      const outEdges = outgoing[decId] || [];
+
+      // Cari node Lulus dan node Remedial
+      const lulusNodes = [];
+      const remedialNodes = [];
+      nodes.forEach((n) => {
+        const lbl = cleanLabels[n.id] || '';
+        if (lbl.includes('lulus') && !lbl.includes('tidak lulus') && !lbl.includes('belum')) {
+          lulusNodes.push(n.id);
+        }
+        if (lbl.includes('remedial') || lbl.includes('tidak lulus') || lbl.includes('gagal')) {
+          remedialNodes.push(n.id);
+        }
+      });
+
+      let yesTargetId = null;
+      let noTargetId = null;
+
+      outEdges.forEach((oe) => {
+        const lbl = oe.label;
+        const hnd = oe.sourceHandle;
+        const tgt = oe.target;
+
+        if (lbl === 'ya' || lbl === 'yes' || lbl.includes('ya') || hnd === 'left') {
+          yesTargetId = tgt;
+        } else if (lbl === 'tidak' || lbl === 'no' || lbl.includes('tidak') || hnd === 'right') {
+          noTargetId = tgt;
+        }
+      });
+
+      let isSwapped = false;
+      if (yesTargetId && (remedialNodes.includes(yesTargetId) || (remedialNodes.length > 0 && hasPath(yesTargetId, remedialNodes[0])))) {
+        isSwapped = true;
+      }
+      if (noTargetId && (lulusNodes.includes(noTargetId) || (lulusNodes.length > 0 && hasPath(noTargetId, lulusNodes[0])))) {
+        isSwapped = true;
+      }
+
+      if (isSwapped) {
+        hasCriticalFlowError = true;
+        branchErrors.push('⚠️ Alur percabangan tertukar: Cabang "Ya" (kondisi Nilai >= 75 terpenuhi) harus menuju ke "LULUS", sedangkan cabang "Tidak" menuju ke "REMEDIAL".');
+      } else if (outEdges.length >= 2 && yesTargetId && noTargetId) {
+        branchScore += 3;
+        feedback.push('✅ Arah percabangan tepat: Cabang "Ya" mengarah ke hasil Lulus dan cabang "Tidak" ke hasil Remedial.');
+      } else if (outEdges.length >= 2) {
+        branchScore += 2;
+        feedback.push('✅ Simbol Keputusan memiliki 2 cabang keluar (Ya dan Tidak).');
+      } else if (outEdges.length === 1) {
+        branchScore += 1;
+        branchErrors.push('⚠️ Simbol Keputusan baru memiliki 1 cabang keluar. Hubungkan cabang kedua untuk kondisi sebaliknya.');
+      }
+    }
+
+    // D. Cabang Output Mengalir ke Selesai
+    if (endNode && outputNodes.length > 0) {
+      let reachCount = 0;
+      outputNodes.forEach((out) => {
+        if (hasDirectEdge(out.id, endNode.id) || hasPath(out.id, endNode.id)) {
+          reachCount++;
+        }
+      });
+
+      if (reachCount >= outputNodes.length && outputNodes.length >= 2) {
+        branchScore += 3;
+      } else if (reachCount > 0) {
+        branchScore += 1.5;
+        branchErrors.push('⚠️ Salah satu cabang luaran belum terhubung ke simbol "Selesai". Pastikan seluruh cabang bermuara ke Selesai.');
+      } else {
+        branchErrors.push('⚠️ Hubungkan kedua cabang luaran (Lulus dan Remedial) menuju simbol akhir "Selesai".');
+      }
+    }
+
+    if (hasCriticalFlowError) {
+      branchScore = 0;
+    }
+    score += branchScore;
+
+    if (branchScore >= 10 && branchErrors.length === 0) {
+      feedback.push('✅ Urutan percabangan alur panah sangat baik: Keputusan bercabang dengan tepat dan berakhir di Selesai.');
+    } else {
+      branchErrors.forEach((err) => feedback.push(err));
+    }
+  }
+
+  // 4. Keterhubungan Seluruh Simbol & Jalur Utuh Mulai ➔ Selesai (Maks 4 Poin)
+  const isolatedNodes = [];
+  const deadEndNodes = [];
+  nodes.forEach((n) => {
+    const id = n.id;
+    const lbl = n.data?.label || 'Simbol';
+    const inCount = (incoming[id] || []).length;
+    const outCount = (outgoing[id] || []).length;
+
+    if (inCount === 0 && outCount === 0) {
+      isolatedNodes.push(lbl);
+    } else if (inCount > 0 && outCount === 0 && (n.type || '') !== 'terminator') {
+      deadEndNodes.push(lbl);
+    }
+  });
+
+  if (isolatedNodes.length > 0) {
+    feedback.push(`⚠️ Simbol "${isolatedNodes.slice(0, 2).join('", "')}" belum terhubung ke dalam alur (tidak memiliki panah).`);
+  }
+
+  if (deadEndNodes.length > 0) {
+    feedback.push(`⚠️ Alur buntu: Simbol "${deadEndNodes[0]}" belum memiliki panah keluar untuk melanjutkan alur.`);
+  }
+
+  // Cek jalur utuh Mulai ➔ Selesai
+  const fullPathExists = startNode && endNode && hasPath(startNode.id, endNode.id);
+
+  if (fullPathExists && isolatedNodes.length === 0 && deadEndNodes.length === 0) {
+    score += 4;
+    feedback.push('✅ Alur flowchart utuh: Seluruh simbol terhubung dalam satu kesatuan alur dari Mulai hingga Selesai.');
+  } else if (fullPathExists) {
+    score += 2;
+  } else {
+    feedback.push('⚠️ Alur terputus: Belum ada jalur panah yang tersambung utuh dari simbol "Mulai" hingga mencapai "Selesai".');
+  }
+
+  return {
+    score: Math.min(25, Math.max(0, score)),
+    feedback,
+    hasCriticalFlowError,
   };
 }
 

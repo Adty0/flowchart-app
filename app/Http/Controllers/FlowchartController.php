@@ -899,31 +899,559 @@ class FlowchartController extends Controller
         }
 
         // ====================================================================
-        // 3. EVALUASI GARIS ALIR & KONEKTOR PANAH (25 Poin)
+        // 3. EVALUASI KETEPATAN GARIS ALIR & LOGIKA PANAH FLOWCHART (25 Poin)
         // ====================================================================
-        $nodeIds = array_column($nodes, 'id');
-        $validEdges = 0;
-        foreach ($edges as $edge) {
-            $src = $edge['source'] ?? null;
-            $tgt = $edge['target'] ?? null;
-            if ($src && $tgt && in_array($src, $nodeIds, true) && in_array($tgt, $nodeIds, true) && $src !== $tgt) {
-                $validEdges++;
-            }
+        $customCaseObj = ($caseKey !== 'luas_segitiga' && $caseKey !== 'kelulusan' && $caseKey !== 'bebas')
+            ? (isset($customCase) && $customCase ? $customCase : CaseStudy::where('case_key', $caseKey)->first())
+            : null;
+
+        $arrowAssessment = $this->evaluateFlowlines($nodes, $edges, $caseKey, $customCaseObj);
+        $score += $arrowAssessment['score'];
+        foreach ($arrowAssessment['feedback'] as $fb) {
+            $feedback[] = $fb;
         }
 
-        if (count($edges) > 0 && $validEdges === count($edges)) {
-            $score += 25;
-            $feedback[] = '✅ Alur konektor panah terhubung dengan runtut dan valid dari awal hingga akhir.';
-        } elseif (count($edges) > 0) {
-            $score += 12;
-            $feedback[] = '⚠️ Terdapat beberapa garis penghubung yang belum terpasang ke simbol yang sah.';
-        } else {
-            $feedback[] = '⚠️ Hubungkan simbol-simbol di atas menggunakan garis panah penghubung.';
+        // Jika terdapat kesalahan fatal pada arah panah / logika percabangan, batasi nilai maksimal (belum tuntas < 75)
+        if (!empty($arrowAssessment['hasCriticalFlowError'])) {
+            $score = min($score, 65);
+            $feedback[] = '⛔ Alur logika algoritma belum benar: Perbaiki arah panah atau percabangan yang keliru agar alur algoritma valid.';
         }
 
         return [
             'score'    => min(100, max(0, $score)),
             'feedback' => $feedback,
+        ];
+    }
+
+    /**
+     * Evaluasi ketepatan arah, urutan logika algoritma, dan konektivitas garis panah alir (edges).
+     */
+    private function evaluateFlowlines(array $nodes, array $edges, string $caseKey, ?CaseStudy $customCase = null): array
+    {
+        $feedback = [];
+        $score = 0;
+
+        if (empty($nodes)) {
+            return ['score' => 0, 'feedback' => ['⚠️ Belum ada simbol flowchart yang disusun.']];
+        }
+
+        if (empty($edges)) {
+            return [
+                'score'    => 0,
+                'feedback' => ['⚠️ Hubungkan simbol-simbol di atas menggunakan garis panah alir sesuai urutan algoritma.'],
+            ];
+        }
+
+        $nodeIds = array_column($nodes, 'id');
+        $nodeMap = [];
+        foreach ($nodes as $n) {
+            $nodeMap[$n['id']] = $n;
+        }
+
+        // 1. Validitas & Integritas Garis Panah (Maks 6 Poin)
+        $validEdges = [];
+        $invalidEdgeCount = 0;
+        foreach ($edges as $edge) {
+            $src = $edge['source'] ?? null;
+            $tgt = $edge['target'] ?? null;
+            if ($src && $tgt && isset($nodeMap[$src]) && isset($nodeMap[$tgt]) && $src !== $tgt) {
+                $validEdges[] = $edge;
+            } else {
+                $invalidEdgeCount++;
+            }
+        }
+
+        if ($invalidEdgeCount === 0 && count($validEdges) > 0) {
+            $score += 6;
+        } elseif (count($validEdges) > 0) {
+            $score += 3;
+            $feedback[] = '⚠️ Terdapat garis panah yang terlepas atau belum terhubung ke simbol yang sah.';
+        } else {
+            return [
+                'score'    => 0,
+                'feedback' => ['⚠️ Garis panah penghubung belum terpasang dengan benar pada simbol-simbol flowchart.'],
+            ];
+        }
+
+        // Peta ketetanggaan (Adjacency maps)
+        $outgoing = [];
+        $incoming = [];
+        foreach ($nodeIds as $id) {
+            $outgoing[$id] = [];
+            $incoming[$id] = [];
+        }
+
+        foreach ($validEdges as $e) {
+            $src = $e['source'];
+            $tgt = $e['target'];
+            $edgeData = [
+                'target'       => $tgt,
+                'source'       => $src,
+                'label'        => strtolower(trim($e['label'] ?? '')),
+                'sourceHandle' => strtolower(trim($e['sourceHandle'] ?? '')),
+            ];
+            $outgoing[$src][] = $edgeData;
+            $incoming[$tgt][] = $edgeData;
+        }
+
+        $cleanLabels = [];
+        foreach ($nodes as $n) {
+            $id = $n['id'];
+            $cleanLabels[$id] = strtolower(trim($n['data']['label'] ?? ''));
+        }
+
+        // Klasifikasi peran simbol dalam diagram
+        $startNode = null;
+        $endNode = null;
+        $inputNodes = [];
+        $processNodes = [];
+        $decisionNodes = [];
+        $outputNodes = [];
+
+        foreach ($nodes as $n) {
+            $id = $n['id'];
+            $type = $n['type'] ?? '';
+            $lbl = $cleanLabels[$id];
+
+            if ($type === 'terminator') {
+                if (str_contains($lbl, 'mulai') || str_contains($lbl, 'start') || str_contains($lbl, 'begin')) {
+                    $startNode = $n;
+                } elseif (str_contains($lbl, 'selesai') || str_contains($lbl, 'end') || str_contains($lbl, 'stop') || str_contains($lbl, 'tamat')) {
+                    $endNode = $n;
+                }
+            } elseif ($type === 'decision') {
+                $decisionNodes[] = $n;
+            } elseif ($type === 'io') {
+                $isOut = str_contains($lbl, 'cetak') || str_contains($lbl, 'tampil') || str_contains($lbl, 'output') || str_contains($lbl, 'print') || str_contains($lbl, 'hasil') || str_contains($lbl, 'lulus') || str_contains($lbl, 'remedial');
+                if ($isOut) {
+                    $outputNodes[] = $n;
+                } else {
+                    $inputNodes[] = $n;
+                }
+            } elseif ($type === 'process') {
+                $isOut = str_contains($lbl, 'lulus') || str_contains($lbl, 'remedial');
+                if ($isOut) {
+                    $outputNodes[] = $n;
+                } else {
+                    $processNodes[] = $n;
+                }
+            }
+        }
+
+        // Helper fungsi reachability BFS & direct edge (mencegah loop tak terhingga)
+        $hasDirectEdge = function ($srcId, $tgtId) use ($outgoing) {
+            if (!$srcId || !$tgtId) return false;
+            foreach ($outgoing[$srcId] ?? [] as $out) {
+                if ($out['target'] === $tgtId) return true;
+            }
+            return false;
+        };
+
+        $hasPath = function ($startId, $targetId) use ($outgoing) {
+            if (!$startId || !$targetId || $startId === $targetId) return false;
+            $queue = [$startId];
+            $visited = [$startId => true];
+            while (!empty($queue)) {
+                $curr = array_shift($queue);
+                if ($curr === $targetId) return true;
+                foreach ($outgoing[$curr] ?? [] as $out) {
+                    $nxt = $out['target'];
+                    if (!isset($visited[$nxt])) {
+                        $visited[$nxt] = true;
+                        $queue[] = $nxt;
+                    }
+                }
+            }
+            return false;
+        };
+
+        // 2. Evaluasi Arah Panah Terminator Mulai & Selesai (Maks 5 Poin)
+        $terminatorScore = 5;
+        $terminatorErrors = 0;
+
+        if ($startNode) {
+            $sId = $startNode['id'];
+            if (empty($outgoing[$sId])) {
+                $feedback[] = '⚠️ Simbol "Mulai" belum memiliki panah keluar untuk mengalirkan langkah awal.';
+                $terminatorErrors++;
+            }
+            if (!empty($incoming[$sId])) {
+                $feedback[] = '⚠️ Arah panah keliru: Simbol "Mulai" adalah titik awal program dan tidak boleh menerima panah masuk.';
+                $terminatorErrors++;
+            }
+        }
+
+        if ($endNode) {
+            $eId = $endNode['id'];
+            if (empty($incoming[$eId])) {
+                $feedback[] = '⚠️ Simbol "Selesai" belum menerima panah masuk dari langkah akhir diagram.';
+                $terminatorErrors++;
+            }
+            if (!empty($outgoing[$eId])) {
+                $feedback[] = '⚠️ Arah panah keliru: Simbol "Selesai" adalah akhir alur dan tidak boleh memiliki panah keluar.';
+                $terminatorErrors++;
+            }
+        }
+
+        if ($terminatorErrors === 0 && $startNode && $endNode) {
+            $score += $terminatorScore;
+            $feedback[] = '✅ Arah panah Terminator tepat: Panah mengalir keluar dari "Mulai" dan bermuara ke "Selesai".';
+        } elseif ($terminatorErrors === 1) {
+            $score += 3;
+        }
+
+        // 3. Evaluasi Ketepatan Urutan & Arah Panah Algoritma (Maks 10 Poin)
+        $isBranching = ($caseKey === 'kelulusan') || ($customCase && $customCase->flow_type === 'branching');
+        $hasCriticalFlowError = false;
+
+        if (!$isBranching) {
+            // === ALUR SEKUENSIAL (LUAS SEGITIGA & SEKUENSIAL LAINNYA) ===
+            // Standar urutan: Mulai ➔ Input ➔ Proses Rumus ➔ Output ➔ Selesai
+            $seqScore = 0;
+            $seqErrors = [];
+
+            // A. Mulai ➔ Input
+            $hasReversedStartInput = false;
+            if ($startNode && !empty($inputNodes)) {
+                foreach ($inputNodes as $inp) {
+                    if ($hasPath($inp['id'], $startNode['id'])) {
+                        $hasReversedStartInput = true;
+                        $hasCriticalFlowError = true;
+                        $seqErrors[] = '⚠️ Alur panah terbalik: Panah harus mengalir dari "Mulai" ke "Input", bukan sebaliknya.';
+                        break;
+                    }
+                }
+            }
+
+            $startDirectlyToInput = false;
+            if ($startNode && !empty($inputNodes)) {
+                foreach ($inputNodes as $inp) {
+                    if ($hasDirectEdge($startNode['id'], $inp['id'])) {
+                        $startDirectlyToInput = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($startDirectlyToInput && !$hasReversedStartInput) {
+                $seqScore += 2.5;
+            } elseif ($startNode && !empty($inputNodes) && !$hasReversedStartInput) {
+                $startTargets = array_column($outgoing[$startNode['id']] ?? [], 'target');
+                if (!empty($startTargets)) {
+                    $firstTargetId = $startTargets[0];
+                    $firstTargetLbl = $cleanLabels[$firstTargetId] ?? '';
+                    if (str_contains($firstTargetLbl, 'luas') || str_contains($firstTargetLbl, '=')) {
+                        $seqErrors[] = '⚠️ Urutan alur keliru: Simbol "Mulai" terhubung langsung ke Proses rumus. Masukkan data terlebih dahulu (Mulai ➔ Input).';
+                        $hasCriticalFlowError = true;
+                    } else {
+                        $seqErrors[] = '⚠️ Simbol "Mulai" seharusnya terhubung langsung ke simbol Input terlebih dahulu.';
+                    }
+                } else {
+                    $seqErrors[] = '⚠️ Simbol "Mulai" seharusnya terhubung ke simbol Input.';
+                }
+            }
+
+            // B. Input ➔ Proses Rumus
+            $hasReversedInputProcess = false;
+            if (!empty($inputNodes) && !empty($processNodes)) {
+                foreach ($processNodes as $prc) {
+                    foreach ($inputNodes as $inp) {
+                        if ($hasPath($prc['id'], $inp['id'])) {
+                            $hasReversedInputProcess = true;
+                            $hasCriticalFlowError = true;
+                            $seqErrors[] = '⚠️ Alur panah terbalik: Data masukan (Input) harus mengalir menuju langkah perhitungan (Proses Rumus), bukan sebaliknya.';
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            $inputLeadsToProcess = false;
+            if (!empty($inputNodes) && !empty($processNodes)) {
+                foreach ($inputNodes as $inp) {
+                    foreach ($processNodes as $prc) {
+                        if ($hasDirectEdge($inp['id'], $prc['id']) || $hasPath($inp['id'], $prc['id'])) {
+                            $inputLeadsToProcess = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($inputLeadsToProcess && !$hasReversedInputProcess) {
+                $seqScore += 2.5;
+            } elseif (!empty($inputNodes) && !empty($processNodes) && !$hasReversedInputProcess) {
+                $seqErrors[] = '⚠️ Hubungkan simbol Input ke simbol Proses Rumus agar nilai data dapat dihitung.';
+            }
+
+            // C. Proses Rumus ➔ Output
+            $hasReversedProcessOutput = false;
+            if (!empty($processNodes) && !empty($outputNodes)) {
+                foreach ($outputNodes as $out) {
+                    foreach ($processNodes as $prc) {
+                        if ($hasPath($out['id'], $prc['id'])) {
+                            $hasReversedProcessOutput = true;
+                            $hasCriticalFlowError = true;
+                            $seqErrors[] = '⚠️ Alur panah terbalik: Hasil baru dapat dicetak setelah rumus perhitungan selesai diproses (Proses Rumus ➔ Output Cetak).';
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            $processLeadsToOutput = false;
+            if (!empty($processNodes) && !empty($outputNodes)) {
+                foreach ($processNodes as $prc) {
+                    foreach ($outputNodes as $out) {
+                        if ($hasDirectEdge($prc['id'], $out['id']) || $hasPath($prc['id'], $out['id'])) {
+                            $processLeadsToOutput = true;
+                            break 2;
+                        }
+                    }
+                }
+            } elseif (empty($processNodes) && !empty($inputNodes) && !empty($outputNodes)) {
+                foreach ($inputNodes as $inp) {
+                    foreach ($outputNodes as $out) {
+                        if ($hasDirectEdge($inp['id'], $out['id']) || $hasPath($inp['id'], $out['id'])) {
+                            $processLeadsToOutput = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($processLeadsToOutput && !$hasReversedProcessOutput) {
+                $seqScore += 2.5;
+            } elseif (!empty($outputNodes) && !$hasReversedProcessOutput) {
+                $seqErrors[] = '⚠️ Hubungkan langkah perhitungan (Proses Rumus) menuju simbol Output cetak hasil.';
+            }
+
+            // D. Output ➔ Selesai
+            $hasReversedOutputEnd = false;
+            if (!empty($outputNodes) && $endNode) {
+                foreach ($outputNodes as $out) {
+                    if ($hasPath($endNode['id'], $out['id'])) {
+                        $hasReversedOutputEnd = true;
+                        $hasCriticalFlowError = true;
+                        $seqErrors[] = '⚠️ Alur panah terbalik: Simbol Output harus mengalir menuju "Selesai", bukan sebaliknya.';
+                        break;
+                    }
+                }
+            }
+
+            $outputLeadsToEnd = false;
+            if (!empty($outputNodes) && $endNode) {
+                foreach ($outputNodes as $out) {
+                    if ($hasDirectEdge($out['id'], $endNode['id']) || $hasPath($out['id'], $endNode['id'])) {
+                        $outputLeadsToEnd = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($outputLeadsToEnd && !$hasReversedOutputEnd) {
+                $seqScore += 2.5;
+            } elseif (!empty($outputNodes) && $endNode && !$hasReversedOutputEnd) {
+                $seqErrors[] = '⚠️ Hubungkan simbol Output cetak hasil menuju simbol akhir "Selesai".';
+            }
+
+            if ($hasCriticalFlowError) {
+                $seqScore = 0;
+            }
+            $score += $seqScore;
+            if ($seqScore >= 10 && empty($seqErrors)) {
+                $feedback[] = '✅ Urutan alur panah tepat: Mulai ➔ Input ➔ Proses Rumus ➔ Output ➔ Selesai tersambung runtut.';
+            } else {
+                foreach ($seqErrors as $err) {
+                    $feedback[] = $err;
+                }
+            }
+
+        } else {
+            // === ALUR PERCABANGAN (KELULUSAN NILAI & PERCABANGAN LAINNYA) ===
+            // Standar urutan: Mulai ➔ Input ➔ Keputusan (Belah Ketupat) ➔ Cabang Ya/Tidak ➔ Output ➔ Selesai
+            $branchScore = 0;
+            $branchErrors = [];
+
+            // A. Mulai ➔ Input
+            $startLeadsToInput = false;
+            if ($startNode && !empty($inputNodes)) {
+                foreach ($inputNodes as $inp) {
+                    if ($hasDirectEdge($startNode['id'], $inp['id']) || $hasPath($startNode['id'], $inp['id'])) {
+                        $startLeadsToInput = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($startLeadsToInput) {
+                $branchScore += 2;
+            } elseif ($startNode && !empty($inputNodes)) {
+                $branchErrors[] = '⚠️ Simbol "Mulai" seharusnya mengarah ke simbol Input Nilai terlebih dahulu.';
+            }
+
+            // B. Input ➔ Keputusan
+            $hasReversedInputDecision = false;
+            if (!empty($decisionNodes) && !empty($inputNodes)) {
+                foreach ($decisionNodes as $dec) {
+                    foreach ($inputNodes as $inp) {
+                        if ($hasPath($dec['id'], $inp['id'])) {
+                            $hasReversedInputDecision = true;
+                            $hasCriticalFlowError = true;
+                            $branchErrors[] = '⚠️ Alur panah terbalik: Nilai harus diinputkan sebelum diperiksa dalam simbol Keputusan (Input Nilai ➔ Keputusan).';
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            $inputLeadsToDecision = false;
+            if (!empty($inputNodes) && !empty($decisionNodes)) {
+                foreach ($inputNodes as $inp) {
+                    foreach ($decisionNodes as $dec) {
+                        if ($hasDirectEdge($inp['id'], $dec['id']) || $hasPath($inp['id'], $dec['id'])) {
+                            $inputLeadsToDecision = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($inputLeadsToDecision && !$hasReversedInputDecision) {
+                $branchScore += 2;
+            } elseif (!empty($inputNodes) && !empty($decisionNodes) && !$hasReversedInputDecision) {
+                $branchErrors[] = '⚠️ Hubungkan simbol Input Nilai ke simbol Keputusan.';
+            }
+
+            // C. Pemeriksaan Ketepatan Cabang "Ya" dan "Tidak" dari Simbol Keputusan
+            if (!empty($decisionNodes)) {
+                $mainDec = $decisionNodes[0];
+                $decId = $mainDec['id'];
+                $outEdges = $outgoing[$decId] ?? [];
+
+                // Cari node Lulus dan node Remedial
+                $lulusNodes = [];
+                $remedialNodes = [];
+                foreach ($nodes as $n) {
+                    $lbl = $cleanLabels[$n['id']];
+                    if (str_contains($lbl, 'lulus') && !str_contains($lbl, 'tidak lulus') && !str_contains($lbl, 'belum')) {
+                        $lulusNodes[] = $n['id'];
+                    }
+                    if (str_contains($lbl, 'remedial') || str_contains($lbl, 'tidak lulus') || str_contains($lbl, 'gagal')) {
+                        $remedialNodes[] = $n['id'];
+                    }
+                }
+
+                $yesTargetId = null;
+                $noTargetId = null;
+
+                foreach ($outEdges as $oe) {
+                    $lbl = $oe['label'];
+                    $hnd = $oe['sourceHandle'];
+                    $tgt = $oe['target'];
+
+                    if ($lbl === 'ya' || $lbl === 'yes' || str_contains($lbl, 'ya') || $hnd === 'left') {
+                        $yesTargetId = $tgt;
+                    } elseif ($lbl === 'tidak' || $lbl === 'no' || str_contains($lbl, 'tidak') || $hnd === 'right') {
+                        $noTargetId = $tgt;
+                    }
+                }
+
+                $isSwapped = false;
+                if ($yesTargetId && (in_array($yesTargetId, $remedialNodes, true) || (!empty($remedialNodes) && $hasPath($yesTargetId, $remedialNodes[0])))) {
+                    $isSwapped = true;
+                }
+                if ($noTargetId && (in_array($noTargetId, $lulusNodes, true) || (!empty($lulusNodes) && $hasPath($noTargetId, $lulusNodes[0])))) {
+                    $isSwapped = true;
+                }
+
+                if ($isSwapped) {
+                    $hasCriticalFlowError = true;
+                    $branchErrors[] = '⚠️ Alur percabangan tertukar: Cabang "Ya" (kondisi Nilai >= 75 terpenuhi) harus menuju ke "LULUS", sedangkan cabang "Tidak" menuju ke "REMEDIAL".';
+                } elseif (count($outEdges) >= 2 && $yesTargetId && $noTargetId) {
+                    $branchScore += 3;
+                    $feedback[] = '✅ Arah percabangan tepat: Cabang "Ya" mengarah ke hasil Lulus dan cabang "Tidak" ke hasil Remedial.';
+                } elseif (count($outEdges) >= 2) {
+                    $branchScore += 2;
+                    $feedback[] = '✅ Simbol Keputusan memiliki 2 cabang keluar (Ya dan Tidak).';
+                } elseif (count($outEdges) === 1) {
+                    $branchScore += 1;
+                    $branchErrors[] = '⚠️ Simbol Keputusan baru memiliki 1 cabang keluar. Hubungkan cabang kedua untuk kondisi sebaliknya.';
+                }
+            }
+
+            // D. Cabang Output Mengalir ke Selesai
+            if ($endNode && !empty($outputNodes)) {
+                $reachCount = 0;
+                foreach ($outputNodes as $out) {
+                    if ($hasDirectEdge($out['id'], $endNode['id']) || $hasPath($out['id'], $endNode['id'])) {
+                        $reachCount++;
+                    }
+                }
+
+                if ($reachCount >= count($outputNodes) && count($outputNodes) >= 2) {
+                    $branchScore += 3;
+                } elseif ($reachCount > 0) {
+                    $branchScore += 1.5;
+                    $branchErrors[] = '⚠️ Salah satu cabang luaran belum terhubung ke simbol "Selesai". Pastikan seluruh cabang bermuara ke Selesai.';
+                } else {
+                    $branchErrors[] = '⚠️ Hubungkan kedua cabang luaran (Lulus dan Remedial) menuju simbol akhir "Selesai".';
+                }
+            }
+
+            if ($hasCriticalFlowError) {
+                $branchScore = 0;
+            }
+            $score += $branchScore;
+            if ($branchScore >= 10 && empty($branchErrors)) {
+                $feedback[] = '✅ Urutan percabangan alur panah sangat baik: Keputusan bercabang dengan tepat dan berakhir di Selesai.';
+            } else {
+                foreach ($branchErrors as $err) {
+                    $feedback[] = $err;
+                }
+            }
+        }
+
+        // 4. Keterhubungan Seluruh Simbol & Jalur Utuh Mulai ➔ Selesai (Maks 4 Poin)
+        $isolatedNodes = [];
+        $deadEndNodes = [];
+        foreach ($nodes as $n) {
+            $id = $n['id'];
+            $lbl = $n['data']['label'] ?? 'Simbol';
+            $inCount = count($incoming[$id] ?? []);
+            $outCount = count($outgoing[$id] ?? []);
+
+            if ($inCount === 0 && $outCount === 0) {
+                $isolatedNodes[] = $lbl;
+            } elseif ($inCount > 0 && $outCount === 0 && ($n['type'] ?? '') !== 'terminator') {
+                $deadEndNodes[] = $lbl;
+            }
+        }
+
+        if (!empty($isolatedNodes)) {
+            $feedback[] = '⚠️ Simbol "' . implode('", "', array_slice($isolatedNodes, 0, 2)) . '" belum terhubung ke dalam alur (tidak memiliki panah).';
+        }
+
+        if (!empty($deadEndNodes)) {
+            $feedback[] = '⚠️ Alur buntu: Simbol "' . $deadEndNodes[0] . '" belum memiliki panah keluar untuk melanjutkan alur.';
+        }
+
+        // Cek jalur utuh Mulai ➔ Selesai
+        $fullPathExists = ($startNode && $endNode && $hasPath($startNode['id'], $endNode['id']));
+
+        if ($fullPathExists && empty($isolatedNodes) && empty($deadEndNodes)) {
+            $score += 4;
+            $feedback[] = '✅ Alur flowchart utuh: Seluruh simbol terhubung dalam satu kesatuan alur dari Mulai hingga Selesai.';
+        } elseif ($fullPathExists) {
+            $score += 2;
+        } else {
+            $feedback[] = '⚠️ Alur terputus: Belum ada jalur panah yang tersambung utuh dari simbol "Mulai" hingga mencapai "Selesai".';
+        }
+
+        return [
+            'score'                => min(25, max(0, $score)),
+            'feedback'             => $feedback,
+            'hasCriticalFlowError' => $hasCriticalFlowError,
         ];
     }
 }
