@@ -1630,6 +1630,13 @@ export default function FlowchartEditor({ currentUser }) {
   // Lampiran file gambar / foto hasil praktikum siswa
   const [attachedImage, setAttachedImage] = useState(null);
   const fileInputRef = useRef(null);
+  const jsonFileInputRef = useRef(null);
+
+  // Kunci Penyimpanan Draf Mandiri Siswa
+  const getDraftKey = useCallback((name, caseKey) => {
+    const clean = (name || 'siswa').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    return `flowchart_student_draft_${clean}_${caseKey}`;
+  }, []);
 
   const handleAttachImage = (e) => {
     const file = e.target.files?.[0];
@@ -1709,6 +1716,56 @@ export default function FlowchartEditor({ currentUser }) {
       return () => clearTimeout(timer);
     }
   }, [assessment]);
+
+  // Muat draf tersimpan secara otomatis saat berganti studi kasus atau siswa
+  useEffect(() => {
+    try {
+      const draftKey = getDraftKey(studentName, selectedCaseKey);
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (Array.isArray(parsed?.nodes) && parsed.nodes.length > 0) {
+          setNodes(parsed.nodes);
+          setEdges(Array.isArray(parsed?.edges) ? parsed.edges : []);
+          if (parsed.attachedImage) setAttachedImage(parsed.attachedImage);
+          return;
+        }
+      }
+      // Jika tidak ada draf, cek apakah ada riwayat submission tersimpan sebelumnya
+      if (existingSubmission && existingSubmission.diagram_data) {
+        let diag = existingSubmission.diagram_data;
+        if (typeof diag === 'string') {
+          try { diag = JSON.parse(diag); } catch(e) { diag = {}; }
+        }
+        if (Array.isArray(diag?.nodes) && diag.nodes.length > 0) {
+          setNodes(diag.nodes);
+          setEdges(Array.isArray(diag?.edges) ? diag.edges : []);
+          if (diag.uploaded_image) setAttachedImage(diag.uploaded_image);
+          return;
+        }
+      }
+      // Jika benar-benar baru, kosongkan kanvas
+      setNodes([]);
+      setEdges([]);
+      setAttachedImage(null);
+    } catch (e) {}
+  }, [selectedCaseKey, studentName, getDraftKey]);
+
+  // Simpan draf otomatis ke localStorage setiap ada perubahan pada kanvas
+  useEffect(() => {
+    if (nodes.length === 0 && edges.length === 0) return;
+    try {
+      const draftKey = getDraftKey(studentName, selectedCaseKey);
+      const draftData = {
+        nodes,
+        edges,
+        case_key: selectedCaseKey,
+        attachedImage,
+        updated_at: new Date().toISOString(),
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+    } catch (e) {}
+  }, [nodes, edges, attachedImage, studentName, selectedCaseKey, getDraftKey]);
 
   const handleNameChange = (e) => {
     const name = e.target.value;
@@ -1924,39 +1981,35 @@ export default function FlowchartEditor({ currentUser }) {
     showToast(`Simbol ${type.toUpperCase()} ditambahkan ke kanvas.`, 'info');
   };
 
-  // Pilih studi kasus (Kanvas tetap bersih / kosong)
+  // Pilih studi kasus (Draf tersimpan otomatis dimuat)
   const handleSelectCase = (key) => {
     if (selectedCaseKey === key) return;
     const targetCase = caseStudiesMap[key] || {};
 
+    // Simpan draf kasus saat ini sebelum berpindah
     if (nodes.length > 0) {
-      showConfirmCard({
-        title: 'Ganti Soal Studi Kasus?',
-        message: `Anda akan beralih ke "${targetCase.title || key}". Kanvas saat ini berisi ${nodes.length} simbol dan akan dikosongkan agar Anda dapat mengerjakan soal baru dari awal.`,
-        confirmText: 'Ya, Pindah & Kosongkan',
-        cancelText: 'Batal',
-        type: 'warning',
-        icon: targetCase.icon || '🔄',
-        onConfirm: () => {
-          setNodes([]);
-          setEdges([]);
-          setAssessment(null);
-          setSelectedCaseKey(key);
-          showToast(`Studi kasus dialihkan ke "${targetCase.title || key}". Silakan susun flowchart baru!`, 'info');
-        },
-      });
-      return;
+      try {
+        const currentDraftKey = getDraftKey(studentName, selectedCaseKey);
+        localStorage.setItem(currentDraftKey, JSON.stringify({
+          nodes,
+          edges,
+          case_key: selectedCaseKey,
+          attachedImage,
+          updated_at: new Date().toISOString(),
+        }));
+      } catch (e) {}
     }
 
+    setAssessment(null);
     setSelectedCaseKey(key);
-    showToast(`Studi kasus "${targetCase.title || key}" dipilih. Silakan rangkai flowchart Anda!`, 'info');
+    showToast(`Studi kasus "${targetCase.title || key}" dipilih.`, 'info');
   };
 
   // Bersihkan kanvas
   const handleClearCanvas = () => {
     showConfirmCard({
       title: 'Kosongkan Kanvas?',
-      message: `Seluruh simbol (${nodes.length}) dan garis penghubung yang telah disusun akan dihapus secara permanen dari kanvas pengerjaan.`,
+      message: `Seluruh simbol (${nodes.length}) dan garis penghubung yang telah disusun akan dihapus dari kanvas pengerjaan.`,
       confirmText: 'Ya, Kosongkan',
       cancelText: 'Batal',
       type: 'danger',
@@ -1965,9 +2018,83 @@ export default function FlowchartEditor({ currentUser }) {
         setNodes([]);
         setEdges([]);
         setAssessment(null);
+        setAttachedImage(null);
+        try {
+          const draftKey = getDraftKey(studentName, selectedCaseKey);
+          localStorage.removeItem(draftKey);
+        } catch (e) {}
         showToast('Kanvas telah dikosongkan.', 'info');
       },
     });
+  };
+
+  // Simpan Draf Flowchart Siswa secara Manual
+  const handleSaveDraftManually = () => {
+    if (nodes.length === 0) {
+      showToast('Kanvas masih kosong. Tambahkan simbol terlebih dahulu untuk disimpan.', 'warning');
+      return;
+    }
+    try {
+      const draftKey = getDraftKey(studentName, selectedCaseKey);
+      const draftData = {
+        nodes,
+        edges,
+        case_key: selectedCaseKey,
+        attachedImage,
+        updated_at: new Date().toISOString(),
+      };
+      localStorage.setItem(draftKey, JSON.stringify(draftData));
+      showToast('💾 Draf flowchart Anda berhasil disimpan di memori!', 'success');
+    } catch (e) {
+      showToast('Gagal menyimpan draf.', 'error');
+    }
+  };
+
+  // Unduh / Ekspor File Data Flowchart (.json)
+  const handleExportJson = () => {
+    if (nodes.length === 0) {
+      showToast('Kanvas masih kosong. Belum ada simbol flowchart untuk diekspor.', 'warning');
+      return;
+    }
+    const safeName = (studentName || 'Siswa').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
+      student_name: studentName,
+      class_name: studentClass,
+      case_key: selectedCaseKey,
+      nodes,
+      edges,
+      saved_at: new Date().toISOString(),
+    }, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute('href', dataStr);
+    dlAnchor.setAttribute('download', `Flowchart_${safeName}_${selectedCaseKey}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+    showToast('📥 File data flowchart (.json) berhasil diunduh ke komputer!', 'success');
+  };
+
+  // Buka / Impor File Data Flowchart (.json) dari Komputer
+  const handleImportJson = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+        if (Array.isArray(parsed?.nodes)) {
+          setNodes(parsed.nodes);
+          setEdges(Array.isArray(parsed?.edges) ? parsed.edges : []);
+          showToast(`📂 File flowchart berhasil dimuat (${parsed.nodes.length} simbol)!`, 'success');
+        } else {
+          showToast('Format file JSON tidak sesuai struktur flowchart.', 'error');
+        }
+      } catch (err) {
+        showToast('Gagal membaca file JSON.', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   // Sinkronisasi riwayat pengerjaan lokal (termasuk pergantian nilai jika remedial tuntas)
@@ -2431,15 +2558,59 @@ export default function FlowchartEditor({ currentUser }) {
           </div>
         </div>
 
-        {/* Tombol Aksi */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 sm:border-t-0 sm:pt-0 sm:ml-auto">
+        {/* Tombol Aksi & Penyimpanan Flowchart Siswa */}
+        <div className="flex items-center gap-1.5 sm:gap-2 pt-2 border-t border-slate-100 sm:border-t-0 sm:pt-0 sm:ml-auto flex-wrap">
+          {/* Tombol Simpan Draf ke Memori */}
+          <button
+            type="button"
+            onClick={handleSaveDraftManually}
+            className="px-2.5 sm:px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer flex items-center gap-1"
+            title="Simpan draf diagram yang sedang Anda buat ke memori peramban"
+          >
+            <span>💾</span>
+            <span className="hidden sm:inline">Simpan Draf</span>
+            <span className="sm:hidden">Draf</span>
+          </button>
+
+          {/* Tombol Unduh / Ekspor File .json Flowchart */}
+          <button
+            type="button"
+            onClick={handleExportJson}
+            className="px-2.5 sm:px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer flex items-center gap-1"
+            title="Unduh file data flowchart (.json) buatan Anda ke komputer"
+          >
+            <span>📥</span>
+            <span className="hidden md:inline">Unduh File (.json)</span>
+            <span className="md:hidden">Unduh</span>
+          </button>
+
+          {/* Tombol Buka / Impor File .json Flowchart */}
+          <input
+            type="file"
+            ref={jsonFileInputRef}
+            onChange={handleImportJson}
+            accept=".json,application/json"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => jsonFileInputRef.current?.click()}
+            className="px-2.5 sm:px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer flex items-center gap-1"
+            title="Buka file data flowchart (.json) yang tersimpan di komputer Anda"
+          >
+            <span>📤</span>
+            <span className="hidden md:inline">Buka File (.json)</span>
+            <span className="md:hidden">Buka</span>
+          </button>
+
           <button
             type="button"
             onClick={handleClearCanvas}
-            className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer text-center"
+            className="px-2.5 sm:px-3 py-2 bg-slate-50 hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer text-center flex items-center gap-1"
             title="Kosongkan Kanvas"
           >
-            🗑️ Kosongkan
+            <span>🗑️</span>
+            <span className="hidden sm:inline">Kosongkan</span>
           </button>
 
           {/* Input & Tombol Lampirkan Foto / Screenshot */}
@@ -4409,7 +4580,12 @@ function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
       ? submission.image
       : null);
 
-  const caseInfo = caseStudiesMap[submission.case_key] || {
+  const safeCaseStudiesMap =
+    caseStudiesMap && typeof caseStudiesMap === 'object' && Object.keys(caseStudiesMap).length > 0
+      ? caseStudiesMap
+      : getCaseStudiesMap();
+
+  const caseInfo = safeCaseStudiesMap[submission.case_key] || {
     title: submission.case_key === 'cek_kelulusan' ? 'Cek Kelulusan Nilai Ujian' : 'Menghitung Luas Segitiga',
     icon: submission.case_key === 'cek_kelulusan' ? '🎓' : '📐',
   };
@@ -4424,6 +4600,17 @@ function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
   const handleDownloadSvg = () => {
     const safeName = (submission.student_name || 'Siswa').replace(/[^a-zA-Z0-9_-]/g, '_');
     downloadFlowchartSvg(svgContent, `Flowchart_${safeName}_${submission.case_key || 'kasus'}.svg`);
+  };
+
+  const handleDownloadJson = () => {
+    const safeName = (submission.student_name || 'Siswa').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(diagram, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute('href', dataStr);
+    dlAnchor.setAttribute('download', `Flowchart_${safeName}_${submission.case_key || 'kasus'}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
   };
 
   const handleOpenSvgNewTab = () => {
@@ -4594,6 +4781,16 @@ function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
 
               <button
                 type="button"
+                onClick={handleDownloadJson}
+                className="px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                title="Unduh file data struktur flowchart (.json) buatan siswa"
+              >
+                <span>📋</span>
+                <span className="hidden sm:inline">Data JSON</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleOpenSvgNewTab}
                 className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
                 title="Buka gambar diagram di jendela tab baru"
@@ -4687,6 +4884,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const [selectedSubDetail, setSelectedSubDetail] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [portalConfirmCard, setPortalConfirmCard] = useState(null);
+
+  // Peta data studi kasus aktif untuk portal guru
+  const caseStudiesMap = React.useMemo(() => getCaseStudiesMap(), []);
 
   const showPortalConfirm = ({
     title,
@@ -5639,11 +5839,13 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
 
       {/* Modal Detail Submission Beserta Gambar & Diagram Lengkap */}
       {selectedSubDetail && typeof document !== 'undefined' && createPortal(
-        <DetailSubmissionModal
-          submission={selectedSubDetail}
-          onClose={() => setSelectedSubDetail(null)}
-          caseStudiesMap={caseStudiesMap}
-        />,
+        <ErrorBoundary>
+          <DetailSubmissionModal
+            submission={selectedSubDetail}
+            onClose={() => setSelectedSubDetail(null)}
+            caseStudiesMap={caseStudiesMap}
+          />
+        </ErrorBoundary>,
         document.body
       )}
 
@@ -6239,14 +6441,64 @@ function StaticAppContainer() {
 }
 
 // ============================================================================
+// ERROR BOUNDARY (MENCEGAH CRASH WHITE SCREEN / LAYAR PUTIH PADA REACT)
+// ============================================================================
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Flowchart App Error Caught by Boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xl max-w-md w-full p-6 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mx-auto border border-amber-200">
+              🛠️
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900">Menyegarkan Tampilan Flowchart</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Data flowchart Anda tetap tersimpan dengan aman di memori. Silakan klik tombol di bawah untuk memuat ulang tampilan.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            >
+              🔄 Muat Ulang Halaman
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ============================================================================
 // ROOT COMPONENT (MEMISAHKAN MODE LARAVEL VS MODE GITHUB PAGES STATIS)
 // ============================================================================
 function AppRoot() {
   const isLaravel = Boolean(document.querySelector('meta[name="csrf-token"]'));
-  if (isLaravel) {
-    return <FlowchartEditor />;
-  }
-  return <StaticAppContainer />;
+  return (
+    <ErrorBoundary>
+      {isLaravel ? <FlowchartEditor /> : <StaticAppContainer />}
+    </ErrorBoundary>
+  );
 }
 
 // Inisialisasi Root React
