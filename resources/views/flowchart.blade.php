@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <meta name="user-name" content="{{ Auth::user() ? Auth::user()->name : '' }}">
-    <meta name="user-class" content="{{ Auth::user() ? (Auth::user()->class_name ?: '10 RPL 1') : '10 RPL 1' }}">
+    <meta name="user-class" content="{{ Auth::user() ? (Auth::user()->class_name ?: 'X TE 1') : 'X TE 1' }}">
     <meta name="user-role" content="{{ Auth::user() ? Auth::user()->role : '' }}">
     <!-- Production Compiled Vite Assets (Tailwind CSS & React Flowchart) -->
     @vite(['resources/css/app.css', 'resources/js/flowchart.jsx'])
@@ -226,7 +226,7 @@
                                     <td class="px-5 py-4">
                                         <div class="font-bold text-slate-900">{{ $item->student_name ?: 'Anonim' }}</div>
                                         <span class="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                            {{ $item->class_name ?: '10 RPL 1' }}
+                                            {{ $item->class_name ?: 'X TE 1' }}
                                         </span>
                                     </td>
                                     <td class="px-5 py-4 text-center">

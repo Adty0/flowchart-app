@@ -1580,18 +1580,38 @@ export default function FlowchartEditor({ currentUser }) {
   };
 
   const [studentName, setStudentName] = useState(() => {
-    if (currentUser?.name) return currentUser.name;
+    if (currentUser?.name && !currentUser.name.match(/^\d+$/)) return currentUser.name;
     const metaUser = document.querySelector('meta[name="user-name"]')?.getAttribute('content');
-    if (metaUser && metaUser.trim()) return metaUser.trim();
-    return localStorage.getItem('flowchart_student_name') || 'RAFIANSYAH CIPTA PRANATA';
+    if (metaUser && metaUser.trim() && !metaUser.match(/^\d+$/)) return metaUser.trim();
+    const saved = localStorage.getItem('flowchart_student_name');
+    if (saved && !saved.match(/^\d+$/) && saved !== 'Kelas Demo') return saved;
+    if (saved && saved.match(/^\d+$/)) {
+      const match = findOfficialStudent(saved);
+      if (match) return match.name;
+    }
+    return currentUser?.name || 'Abdullah Mumtaz Daffa Al Kayies';
   });
 
   const [studentClass, setStudentClass] = useState(() => {
-    if (currentUser?.className) return currentUser.className;
+    if (currentUser?.className && currentUser.className !== 'Kelas Demo') return currentUser.className;
     const metaClass = document.querySelector('meta[name="user-class"]')?.getAttribute('content');
-    if (metaClass && metaClass.trim()) return metaClass.trim();
-    return localStorage.getItem('flowchart_student_class') || 'X TO 3';
+    if (metaClass && metaClass.trim() && metaClass !== 'Kelas Demo') return metaClass.trim();
+    const saved = localStorage.getItem('flowchart_student_class');
+    if (saved && saved !== 'Kelas Demo') return saved;
+    return currentUser?.className || 'X TE 1';
   });
+
+  // Sinkronisasi otomatis setiap kali currentUser berubah
+  useEffect(() => {
+    if (currentUser?.name) {
+      setStudentName(currentUser.name);
+      localStorage.setItem('flowchart_student_name', currentUser.name);
+    }
+    if (currentUser?.className) {
+      setStudentClass(currentUser.className);
+      localStorage.setItem('flowchart_student_class', currentUser.className);
+    }
+  }, [currentUser]);
 
   const [selectedCaseKey, setSelectedCaseKey] = useState(() => {
     return caseKeys[0] || 'luas_segitiga';
@@ -1669,6 +1689,15 @@ export default function FlowchartEditor({ currentUser }) {
 
   const handleNameChange = (e) => {
     const name = e.target.value;
+    const match = findOfficialStudent(name);
+    if (match) {
+      setStudentName(match.name);
+      setStudentClass(match.className);
+      localStorage.setItem('flowchart_student_name', match.name);
+      localStorage.setItem('flowchart_student_class', match.className);
+      localStorage.setItem('flowchart_student_nisn', match.nisn);
+      return;
+    }
     setStudentName(name);
     localStorage.setItem('flowchart_student_name', name);
   };
@@ -2154,7 +2183,7 @@ export default function FlowchartEditor({ currentUser }) {
                 type="text"
                 value={studentName}
                 onChange={handleNameChange}
-                placeholder="Ketik Nama Anda..."
+                placeholder="Ketik Nama atau NISN Siswa..."
                 className="w-full px-2.5 sm:px-3 py-1.5 bg-slate-50/70 border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 font-bold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
               />
             </div>
@@ -2164,7 +2193,7 @@ export default function FlowchartEditor({ currentUser }) {
                 type="text"
                 value={studentClass}
                 onChange={handleClassChange}
-                placeholder="10 RPL 1"
+                placeholder="X TE 1 / X TO 3"
                 className="w-full px-2.5 sm:px-3 py-1.5 bg-indigo-50/60 border border-indigo-200 rounded-lg text-xs sm:text-sm text-indigo-900 font-extrabold focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
               />
             </div>
@@ -2659,6 +2688,66 @@ export const isBlockedStudent = (name = '') => {
     n === 'adit' ||
     n === 'adit pratama' ||
     n === 'aditya pratama'
+  );
+};
+
+// Fungsi utilitas pencarian siswa resmi (mendukung input NISN dengan/tanpa awalan nol 00, email, maupun nama)
+export const findOfficialStudent = (input) => {
+  if (!input) return null;
+  const raw = String(input).trim().toLowerCase();
+  if (!raw || isBlockedStudent(raw)) return null;
+
+  // Angka bersih dari input
+  const cleanDigits = raw.replace(/[^0-9]/g, '');
+  const normDigits = cleanDigits.replace(/^0+/, '');
+  const padded10 = cleanDigits ? cleanDigits.padStart(10, '0') : '';
+
+  // Bagian teks sebelum @ jika input berupa email
+  const prefix = raw.includes('@') ? raw.split('@')[0] : raw;
+  const prefixDigits = prefix.replace(/[^0-9]/g, '');
+  const prefixNorm = prefixDigits.replace(/^0+/, '');
+
+  return (
+    ALL_OFFICIAL_STUDENTS.find((s) => {
+      const sNisnClean = String(s.nisn).replace(/[^0-9]/g, '');
+      const sNisnNorm = sNisnClean.replace(/^0+/, '');
+      const sNisnPad = sNisnClean.padStart(10, '0');
+      const sNameLower = (s.name || '').toLowerCase();
+
+      // 1. Pencocokan NISN Numerik (Mendukung ada atau tidak adanya angka 0 di depan, misal 93963138 vs 0093963138)
+      if (cleanDigits) {
+        if (sNisnClean === cleanDigits) return true;
+        if (normDigits && sNisnNorm === normDigits) return true;
+        if (padded10 && (sNisnClean === padded10 || sNisnPad === padded10)) return true;
+        if (prefixNorm && sNisnNorm === prefixNorm) return true;
+        if (cleanDigits.length >= 6 && (sNisnClean.includes(cleanDigits) || cleanDigits.includes(sNisnClean))) {
+          return true;
+        }
+      }
+
+      // 2. Pencocokan String Input Langsung dengan NISN
+      if (
+        raw === sNisnClean ||
+        raw === sNisnNorm ||
+        raw.includes(sNisnClean) ||
+        (sNisnNorm && raw.includes(sNisnNorm))
+      ) {
+        return true;
+      }
+
+      // 3. Pencocokan Nama Lengkap Siswa
+      if (sNameLower === raw || sNameLower === prefix) return true;
+      if (raw.length >= 3 && sNameLower.includes(raw)) return true;
+      if (prefix.length >= 3 && sNameLower.includes(prefix)) return true;
+
+      // Cek perkata nama (misal ketik "daffa" atau "abdullah")
+      const nameParts = sNameLower.split(/\s+/);
+      if (nameParts.some((part) => part.length >= 3 && (part === raw || part === prefix))) {
+        return true;
+      }
+
+      return false;
+    }) || null
   );
 };
 
@@ -3794,21 +3883,15 @@ function LoginForm({ onLogin }) {
       return;
     }
 
-    // Cek daftar resmi siswa kelas X TO 3 & X TE 1
-    const matched = ALL_OFFICIAL_STUDENTS.find(
-      (s) =>
-        (cleanNisn && s.nisn === cleanNisn) ||
-        inputVal.includes(s.nisn) ||
-        s.name.toLowerCase() === inputVal ||
-        s.name.toLowerCase().includes(inputVal)
-    );
+    // Cek daftar resmi siswa kelas X TO 3 & X TE 1 (mendukung tanpa 00, dengan 00, email, maupun nama)
+    const matched = findOfficialStudent(inputVal);
 
     if (matched) {
       onLogin({
         name: matched.name,
         email: `${matched.nisn}@sekolah.id`,
         role: 'siswa',
-        className: matched.className || 'X TO 3',
+        className: matched.className || 'X TE 1',
         nisn: matched.nisn,
       });
       return;
@@ -5297,7 +5380,7 @@ function StaticAppContainer() {
     try {
       const saved = localStorage.getItem('flowchart_auth_user');
       if (saved) {
-        const parsed = JSON.parse(saved);
+        let parsed = JSON.parse(saved);
         if (
           parsed?.name?.includes('Budi Santoso') ||
           parsed?.name?.includes('Aditya Pratama') ||
@@ -5306,6 +5389,26 @@ function StaticAppContainer() {
           localStorage.removeItem('flowchart_auth_user');
           return null;
         }
+
+        // AUTO-REPAIR STALE SESSION:
+        // Jika sebelumnya login dengan NISN angka tanpa nama (misal nama tersimpan "93963138")
+        // atau className "Kelas Demo" padahal NISN-nya terdaftar di siswa resmi X TE 1 atau X TO 3
+        const possibleInput = parsed?.name || parsed?.nisn || parsed?.email || '';
+        const match = findOfficialStudent(possibleInput);
+        if (match && (parsed?.className === 'Kelas Demo' || /^\d+$/.test(parsed?.name || ''))) {
+          parsed = {
+            name: match.name,
+            email: `${match.nisn}@sekolah.id`,
+            role: 'siswa',
+            className: match.className,
+            nisn: match.nisn,
+          };
+          localStorage.setItem('flowchart_auth_user', JSON.stringify(parsed));
+          localStorage.setItem('flowchart_student_name', match.name);
+          localStorage.setItem('flowchart_student_class', match.className);
+          localStorage.setItem('flowchart_student_nisn', match.nisn);
+        }
+
         return parsed;
       }
       return null;
@@ -5322,17 +5425,40 @@ function StaticAppContainer() {
   const [caseVersion, setCaseVersion] = useState(0);
 
   const handleLogin = (user) => {
-    setCurrentUser(user);
+    const match = findOfficialStudent(user.name || user.email || user.nisn);
+    const finalUser = match
+      ? {
+          name: match.name,
+          email: `${match.nisn}@sekolah.id`,
+          role: 'siswa',
+          className: match.className,
+          nisn: match.nisn,
+        }
+      : user;
+
+    setCurrentUser(finalUser);
     try {
-      localStorage.setItem('flowchart_auth_user', JSON.stringify(user));
+      localStorage.setItem('flowchart_auth_user', JSON.stringify(finalUser));
+      if (finalUser.name) {
+        localStorage.setItem('flowchart_student_name', finalUser.name);
+      }
+      if (finalUser.className) {
+        localStorage.setItem('flowchart_student_class', finalUser.className);
+      }
+      if (finalUser.nisn) {
+        localStorage.setItem('flowchart_student_nisn', finalUser.nisn);
+      }
     } catch (e) {}
-    setCurrentView(user.role === 'guru' ? 'guru' : 'flowchart');
+    setCurrentView(finalUser.role === 'guru' ? 'guru' : 'flowchart');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     try {
       localStorage.removeItem('flowchart_auth_user');
+      localStorage.removeItem('flowchart_student_name');
+      localStorage.removeItem('flowchart_student_class');
+      localStorage.removeItem('flowchart_student_nisn');
     } catch (e) {}
     setCurrentView('login');
   };
@@ -5498,7 +5624,7 @@ function StaticAppContainer() {
 
           {/* Card Flowchart Editor React */}
           <section className="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 p-2 sm:p-6 transition-all">
-            <FlowchartEditor currentUser={currentUser} key={caseVersion} />
+            <FlowchartEditor currentUser={currentUser} key={`${currentUser?.email || currentUser?.name || 'siswa'}-${caseVersion}`} />
           </section>
         </main>
       )}

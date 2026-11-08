@@ -86,8 +86,46 @@ class AuthController extends Controller
         ]);
 
         $loginInput = trim($request->input('email'));
+        
+        // Cek jika input tanpa domain email (@)
         if (!str_contains($loginInput, '@')) {
-            $loginInput .= '@sekolah.id';
+            $cleanNisn = preg_replace('/[^0-9]/', '', $loginInput);
+            if (!empty($cleanNisn)) {
+                $padded = str_pad($cleanNisn, 10, '0', STR_PAD_LEFT);
+                $norm = ltrim($cleanNisn, '0');
+                $existUser = User::where('email', $cleanNisn . '@sekolah.id')
+                    ->orWhere('email', $padded . '@sekolah.id')
+                    ->orWhere('email', 'LIKE', '%' . $norm . '@sekolah.id')
+                    ->first();
+                if ($existUser) {
+                    $loginInput = $existUser->email;
+                } else {
+                    $loginInput = $padded . '@sekolah.id';
+                }
+            } else {
+                // Jika input nama siswa (huruf)
+                $existUser = User::where('name', 'LIKE', '%' . $loginInput . '%')->first();
+                if ($existUser) {
+                    $loginInput = $existUser->email;
+                } else {
+                    $loginInput .= '@sekolah.id';
+                }
+            }
+        } else {
+            // Jika input menyertakan @ (misal: 93963138@sekolah.id)
+            list($username, $domain) = explode('@', $loginInput, 2);
+            $cleanNisn = preg_replace('/[^0-9]/', '', $username);
+            if (!empty($cleanNisn) && $username === $cleanNisn) {
+                $padded = str_pad($cleanNisn, 10, '0', STR_PAD_LEFT);
+                $norm = ltrim($cleanNisn, '0');
+                $existUser = User::where('email', $loginInput)
+                    ->orWhere('email', $padded . '@' . $domain)
+                    ->orWhere('email', 'LIKE', '%' . $norm . '@' . $domain)
+                    ->first();
+                if ($existUser) {
+                    $loginInput = $existUser->email;
+                }
+            }
         }
 
         $credentials = [
