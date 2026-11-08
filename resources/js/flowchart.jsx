@@ -1627,6 +1627,29 @@ export default function FlowchartEditor({ currentUser }) {
   const [submissionsHistoryVersion, setSubmissionsHistoryVersion] = useState(0);
   const assessmentRef = useRef(null);
 
+  // Lampiran file gambar / foto hasil praktikum siswa
+  const [attachedImage, setAttachedImage] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleAttachImage = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('File yang dipilih harus berupa gambar (PNG, JPG, JPEG, WEBP)', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran gambar maksimal 5 MB', 'warning');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAttachedImage(event.target.result);
+      showToast('📸 Foto/gambar berhasil dilampirkan!', 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Cek apakah siswa sudah pernah mengerjakan studi kasus ini sebelumnya
   const existingSubmission = React.useMemo(() => {
     const cleanName = (studentName || '').trim().toLowerCase();
@@ -1962,6 +1985,22 @@ export default function FlowchartEditor({ currentUser }) {
           (s.student_name || '').trim().toLowerCase() === cleanName.toLowerCase()
       );
 
+      const svgContent = generateFlowchartSvg(nodes, edges, { caseKey: selectedCaseKey });
+      const diagramDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
+
+      const diagramPayload = {
+        case_key: selectedCaseKey,
+        nodes: nodes.map(({ id, type, position, data }) => ({
+          id,
+          type,
+          position,
+          data: { label: data.label },
+        })),
+        edges,
+        image: diagramDataUrl,
+        uploaded_image: attachedImage || null,
+      };
+
       if (existingIndex >= 0) {
         const existing = history[existingIndex];
         // Jika sedang remedial:
@@ -1975,6 +2014,10 @@ export default function FlowchartEditor({ currentUser }) {
               feedback: newFeedback,
               is_remedial_open: false, // Remedial selesai
               remedial_success: true,
+              diagram_data: diagramPayload,
+              diagram_image: diagramDataUrl,
+              uploaded_image: attachedImage || existing.uploaded_image || null,
+              image: attachedImage || diagramDataUrl,
               updated_at: new Date().toISOString(),
             };
           } else {
@@ -1983,6 +2026,10 @@ export default function FlowchartEditor({ currentUser }) {
               ...existing,
               score: Math.max(existing.score || 0, newScore),
               feedback: newFeedback,
+              diagram_data: diagramPayload,
+              diagram_image: diagramDataUrl,
+              uploaded_image: attachedImage || existing.uploaded_image || null,
+              image: attachedImage || diagramDataUrl,
               updated_at: new Date().toISOString(),
             };
           }
@@ -1992,6 +2039,10 @@ export default function FlowchartEditor({ currentUser }) {
             ...existing,
             score: newScore,
             feedback: newFeedback,
+            diagram_data: diagramPayload,
+            diagram_image: diagramDataUrl,
+            uploaded_image: attachedImage || existing.uploaded_image || null,
+            image: attachedImage || diagramDataUrl,
             updated_at: new Date().toISOString(),
           };
         }
@@ -2005,6 +2056,10 @@ export default function FlowchartEditor({ currentUser }) {
           score: newScore,
           is_remedial_open: false,
           feedback: newFeedback,
+          diagram_data: diagramPayload,
+          diagram_image: diagramDataUrl,
+          uploaded_image: attachedImage || null,
+          image: attachedImage || diagramDataUrl,
           created_at: new Date().toISOString(),
         });
       }
@@ -2053,6 +2108,9 @@ export default function FlowchartEditor({ currentUser }) {
     setLoading(true);
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+    const svgContent = generateFlowchartSvg(nodes, edges, { caseKey: selectedCaseKey });
+    const diagramDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgContent);
+
     const payload = {
       submission_id: existingSubmission?.id || null,
       student_name: isDemo ? (studentName.trim() || 'Siswa Demo') : (studentName.trim() || 'RAFIANSYAH CIPTA PRANATA'),
@@ -2067,7 +2125,11 @@ export default function FlowchartEditor({ currentUser }) {
           data: { label: data.label },
         })),
         edges,
+        image: diagramDataUrl,
+        uploaded_image: attachedImage || null,
       },
+      image: attachedImage || diagramDataUrl,
+      uploaded_image: attachedImage || null,
     };
 
     try {
@@ -2099,6 +2161,9 @@ export default function FlowchartEditor({ currentUser }) {
             window.__FLOWCHART_SUBMISSIONS__[matchIdx].score = data.score;
             window.__FLOWCHART_SUBMISSIONS__[matchIdx].feedback = data.feedback;
             window.__FLOWCHART_SUBMISSIONS__[matchIdx].is_remedial_open = false;
+            window.__FLOWCHART_SUBMISSIONS__[matchIdx].diagram_data = payload.diagram_data;
+            window.__FLOWCHART_SUBMISSIONS__[matchIdx].image = payload.image;
+            window.__FLOWCHART_SUBMISSIONS__[matchIdx].uploaded_image = payload.uploaded_image;
           }
         }
 
@@ -2376,6 +2441,50 @@ export default function FlowchartEditor({ currentUser }) {
           >
             🗑️ Kosongkan
           </button>
+
+          {/* Input & Tombol Lampirkan Foto / Screenshot */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleAttachImage}
+            accept="image/*"
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shadow-2xs transition-all active:scale-95 cursor-pointer ${
+              attachedImage
+                ? 'bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+            }`}
+            title="Lampirkan foto/gambar flowchart hasil pengerjaan (opsional)"
+          >
+            <span>📷</span>
+            <span className="hidden sm:inline">{attachedImage ? 'Foto Terlampir' : 'Lampirkan Foto'}</span>
+            <span className="sm:hidden">{attachedImage ? 'Foto ✓' : 'Foto'}</span>
+          </button>
+
+          {attachedImage && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded-xl text-[11px] font-bold text-blue-900 animate-fadeIn">
+              <img
+                src={attachedImage}
+                alt="Foto"
+                className="w-5 h-5 rounded object-cover cursor-pointer"
+                onClick={() => window.open(attachedImage, '_blank')}
+                title="Klik untuk melihat foto"
+              />
+              <span className="hidden md:inline">Siap dikirim</span>
+              <button
+                type="button"
+                onClick={() => setAttachedImage(null)}
+                className="text-rose-500 hover:text-rose-700 font-bold ml-1 cursor-pointer"
+                title="Hapus lampiran foto"
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {isCompletedAndLocked ? (
             <button
@@ -2750,6 +2859,261 @@ export const findOfficialStudent = (input) => {
     }) || null
   );
 };
+
+// ============================================================================
+// GENERATOR GAMBAR & VISUAL DIAGRAM FLOWCHART (EXPORT SVG & PNG)
+// ============================================================================
+export function generateFlowchartSvg(nodes = [], edges = [], options = {}) {
+  let effectiveNodes = nodes;
+  let effectiveEdges = edges;
+
+  // Jika submission belum memiliki node tersimpan (misal data bawaan/seed), bangun struktur diagram autentik sesuai kasus
+  if (!effectiveNodes || effectiveNodes.length === 0) {
+    const caseKey = options.caseKey || 'luas_segitiga';
+    if (caseKey === 'cek_kelulusan') {
+      effectiveNodes = [
+        { id: '1', type: 'terminator', position: { x: 230, y: 30 }, data: { label: 'Mulai' } },
+        { id: '2', type: 'io', position: { x: 215, y: 110 }, data: { label: 'Baca nilai_ujian' } },
+        { id: '3', type: 'decision', position: { x: 220, y: 195 }, data: { label: 'nilai >= 75 ?' } },
+        { id: '4', type: 'io', position: { x: 420, y: 305 }, data: { label: 'Cetak "Lulus"' } },
+        { id: '5', type: 'io', position: { x: 50, y: 305 }, data: { label: 'Cetak "Remedial"' } },
+        { id: '6', type: 'terminator', position: { x: 230, y: 410 }, data: { label: 'Selesai' } },
+      ];
+      effectiveEdges = [
+        { id: 'e1-2', source: '1', target: '2' },
+        { id: 'e2-3', source: '2', target: '3' },
+        { id: 'e3-4', source: '3', target: '4', label: 'Ya' },
+        { id: 'e3-5', source: '3', target: '5', label: 'Tidak' },
+        { id: 'e4-6', source: '4', target: '6' },
+        { id: 'e5-6', source: '5', target: '6' },
+      ];
+    } else {
+      // Default: luas_segitiga
+      effectiveNodes = [
+        { id: '1', type: 'terminator', position: { x: 220, y: 30 }, data: { label: 'Mulai' } },
+        { id: '2', type: 'io', position: { x: 205, y: 115 }, data: { label: 'Baca alas, tinggi' } },
+        { id: '3', type: 'process', position: { x: 205, y: 200 }, data: { label: 'luas = 0.5 * alas * tinggi' } },
+        { id: '4', type: 'io', position: { x: 205, y: 285 }, data: { label: 'Cetak luas' } },
+        { id: '5', type: 'terminator', position: { x: 220, y: 370 }, data: { label: 'Selesai' } },
+      ];
+      effectiveEdges = [
+        { id: 'e1-2', source: '1', target: '2' },
+        { id: 'e2-3', source: '2', target: '3' },
+        { id: 'e3-4', source: '3', target: '4' },
+        { id: 'e4-5', source: '4', target: '5' },
+      ];
+    }
+  }
+
+  const nodeWidth = 200;
+  const nodeHeight = 56;
+  const decisionHeight = 72;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  effectiveNodes.forEach((n) => {
+    const x = n.position?.x ?? 100;
+    const y = n.position?.y ?? 100;
+    const h = n.type === 'decision' ? decisionHeight : nodeHeight;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + nodeWidth);
+    maxY = Math.max(maxY, y + h);
+  });
+
+  const pad = 45;
+  const viewX = minX - pad;
+  const viewY = minY - pad;
+  const viewW = Math.max(540, (maxX - minX) + pad * 2);
+  const viewH = Math.max(340, (maxY - minY) + pad * 2);
+
+  const nodeMap = {};
+  effectiveNodes.forEach((n) => {
+    nodeMap[n.id] = n;
+  });
+
+  const edgesSvg = (effectiveEdges || []).map((e) => {
+    const sNode = nodeMap[e.source];
+    const tNode = nodeMap[e.target];
+    if (!sNode || !tNode) return '';
+
+    const sW = nodeWidth;
+    const sH = sNode.type === 'decision' ? decisionHeight : nodeHeight;
+    const tW = nodeWidth;
+    const tH = tNode.type === 'decision' ? decisionHeight : nodeHeight;
+
+    const sPos = sNode.position || { x: 0, y: 0 };
+    const tPos = tNode.position || { x: 0, y: 0 };
+
+    let sx = sPos.x + sW / 2;
+    let sy = sPos.y + sH;
+    let tx = tPos.x + tW / 2;
+    let ty = tPos.y;
+
+    if (sNode.type === 'decision' && Math.abs(tPos.x - sPos.x) > 60) {
+      if (tPos.x > sPos.x) {
+        sx = sPos.x + sW;
+        sy = sPos.y + sH / 2;
+      } else {
+        sx = sPos.x;
+        sy = sPos.y + sH / 2;
+      }
+    }
+
+    let pathD = '';
+    const midY = (sy + ty) / 2;
+    if (Math.abs(sx - tx) < 15) {
+      pathD = `M ${sx} ${sy} L ${tx} ${ty}`;
+    } else {
+      pathD = `M ${sx} ${sy} C ${sx} ${midY}, ${tx} ${midY}, ${tx} ${ty}`;
+    }
+
+    const labelText = e.label || e.data?.label || '';
+    let labelSvg = '';
+    if (labelText) {
+      const lx = (sx + tx) / 2;
+      const ly = (sy + ty) / 2;
+      const isYa = labelText.toLowerCase().includes('ya') || labelText.toLowerCase().includes('true');
+      const bgCol = isYa ? '#10b981' : '#ef4444';
+      labelSvg = `
+        <g transform="translate(${lx}, ${ly})">
+          <rect x="-20" y="-11" width="40" height="22" rx="11" fill="${bgCol}" stroke="#ffffff" stroke-width="2" filter="url(#drop-shadow)" />
+          <text x="0" y="4" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff" font-family="Plus Jakarta Sans, sans-serif">${labelText}</text>
+        </g>
+      `;
+    }
+
+    return `
+      <g class="flow-edge">
+        <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)" />
+        ${labelSvg}
+      </g>
+    `;
+  }).join('');
+
+  const nodesSvg = effectiveNodes.map((n) => {
+    const x = n.position?.x ?? 0;
+    const y = n.position?.y ?? 0;
+    const w = nodeWidth;
+    const h = n.type === 'decision' ? decisionHeight : nodeHeight;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rawLabel = (n.data?.label || '').trim() || (n.type === 'terminator' ? 'Mulai / Selesai' : 'Simbol');
+    const label = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    if (n.type === 'terminator') {
+      const r = h / 2;
+      return `
+        <g class="flow-node terminator" transform="translate(0, 0)">
+          <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5" filter="url(#drop-shadow)" />
+          <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#b45309" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">TERMINATOR</text>
+          <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="12" font-weight="700" fill="#78350f" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+        </g>
+      `;
+    } else if (n.type === 'io') {
+      const skew = 18;
+      const pts = `${x + skew},${y} ${x + w},${y} ${x + w - skew},${y + h} ${x},${y + h}`;
+      return `
+        <g class="flow-node io" transform="translate(0, 0)">
+          <polygon points="${pts}" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="2.5" filter="url(#drop-shadow)" />
+          <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#0369a1" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">INPUT / OUTPUT</text>
+          <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="12" font-weight="700" fill="#0c4a6e" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+        </g>
+      `;
+    } else if (n.type === 'process') {
+      return `
+        <g class="flow-node process" transform="translate(0, 0)">
+          <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5" filter="url(#drop-shadow)" />
+          <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#047857" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">PROSES</text>
+          <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="12" font-weight="700" fill="#064e3b" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+        </g>
+      `;
+    } else if (n.type === 'decision') {
+      const pts = `${cx},${y} ${x + w},${cy} ${cx},${y + h} ${x},${cy}`;
+      return `
+        <g class="flow-node decision" transform="translate(0, 0)">
+          <polygon points="${pts}" fill="#fff7ed" stroke="#f97316" stroke-width="2.5" filter="url(#drop-shadow)" />
+          <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#c2410c" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">KEPUTUSAN</text>
+          <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="11" font-weight="700" fill="#7c2d12" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+        </g>
+      `;
+    }
+    return '';
+  }).join('');
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="100%" height="100%" style="background-color: #f8fafc; border-radius: 16px;">
+      <defs>
+        <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
+        </marker>
+        <filter id="drop-shadow" x="-5%" y="-5%" width="115%" height="115%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.08" />
+        </filter>
+        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1" fill="#cbd5e1" />
+        </pattern>
+      </defs>
+      <rect x="${viewX}" y="${viewY}" width="${viewW}" height="${viewH}" fill="url(#grid)" />
+      ${edgesSvg}
+      ${nodesSvg}
+    </svg>
+  `;
+}
+
+export function downloadFlowchartPng(svgString, filename = 'flowchart.png') {
+  if (typeof document === 'undefined') return;
+  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 800;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    URL.revokeObjectURL(url);
+    try {
+      const pngUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.replace(/\.png$/, '.svg');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+  img.onerror = () => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.replace(/\.png$/, '.svg');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  img.src = url;
+}
+
+export function downloadFlowchartSvg(svgString, filename = 'flowchart.svg') {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // Generator waktu pengerjaan siswa antara jam 08.00 - 08.30
 const makeSubmissionTime = (minute, second = 0) => {
@@ -4014,6 +4378,307 @@ function LoginForm({ onLogin }) {
 }
 
 // ============================================================================
+// KOMPONEN MODAL DETAIL SUBMISSION BESERTA GAMBAR & DIAGRAM FLOWCHART LENGKAP
+// ============================================================================
+function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
+  const [zoom, setZoom] = useState(1);
+  const [activeTab, setActiveTab] = useState('diagram'); // 'diagram' | 'uploaded'
+
+  if (!submission) return null;
+
+  let diagram = submission.diagram_data;
+  if (typeof diagram === 'string') {
+    try {
+      diagram = JSON.parse(diagram);
+    } catch (e) {
+      diagram = {};
+    }
+  }
+
+  const nodes = Array.isArray(diagram?.nodes) ? diagram.nodes : [];
+  const edges = Array.isArray(diagram?.edges) ? diagram.edges : [];
+
+  // Deteksi foto/screenshot kiriman siswa jika ada
+  const uploadedImage =
+    submission.uploaded_image ||
+    diagram?.uploaded_image ||
+    (submission.image &&
+    typeof submission.image === 'string' &&
+    submission.image.startsWith('data:image/') &&
+    !submission.image.includes('image/svg+xml')
+      ? submission.image
+      : null);
+
+  const caseInfo = caseStudiesMap[submission.case_key] || {
+    title: submission.case_key === 'cek_kelulusan' ? 'Cek Kelulusan Nilai Ujian' : 'Menghitung Luas Segitiga',
+    icon: submission.case_key === 'cek_kelulusan' ? '🎓' : '📐',
+  };
+
+  const svgContent = generateFlowchartSvg(nodes, edges, { caseKey: submission.case_key });
+
+  const handleDownloadPng = () => {
+    const safeName = (submission.student_name || 'Siswa').replace(/[^a-zA-Z0-9_-]/g, '_');
+    downloadFlowchartPng(svgContent, `Flowchart_${safeName}_${submission.case_key || 'kasus'}.png`);
+  };
+
+  const handleDownloadSvg = () => {
+    const safeName = (submission.student_name || 'Siswa').replace(/[^a-zA-Z0-9_-]/g, '_');
+    downloadFlowchartSvg(svgContent, `Flowchart_${safeName}_${submission.case_key || 'kasus'}.svg`);
+  };
+
+  const handleOpenSvgNewTab = () => {
+    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  };
+
+  const isLulus = (submission.score || 0) >= 75;
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-5 overflow-y-auto animate-fadeIn"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 my-auto max-h-[92vh] overflow-y-auto transform animate-scaleUp"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Modal */}
+        <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-lg sm:text-xl font-black">
+              👤
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                {submission.student_name || 'Nama Siswa'}
+              </h3>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold">
+                  {submission.class_name || 'Kelas'}
+                </span>
+                {submission.nisn && (
+                  <span className="text-[11px] font-mono text-slate-400 font-semibold">
+                    NISN: {submission.nisn}
+                  </span>
+                )}
+                {submission.created_at && (
+                  <span className="text-[11px] text-slate-400">
+                    • {new Date(submission.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(submission.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer transition-all active:scale-95"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Baris Skor & Kasus Soal */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-gradient-to-r from-slate-50 to-blue-50/30 rounded-2xl border border-slate-200/80">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl sm:text-3xl">{caseInfo.icon || '📌'}</span>
+            <div>
+              <span className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider block">Studi Kasus:</span>
+              <p className="text-xs sm:text-sm font-black text-slate-900 leading-tight">{caseInfo.title || submission.case_key}</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between sm:justify-end gap-3 sm:border-l sm:border-slate-200 sm:pl-4">
+            <div>
+              <span className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider block">Skor Akhir:</span>
+              <span className={`text-xl sm:text-2xl font-black ${isLulus ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {submission.score} / 100
+              </span>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border shadow-2xs ${
+              isLulus
+                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                : 'bg-amber-100 text-amber-800 border-amber-300'
+            }`}>
+              {isLulus ? '✓ Tuntas' : '⚠️ Remedial'}
+            </span>
+          </div>
+        </div>
+
+        {/* KARTU UTAMA: GAMBAR & DIAGRAM FLOWCHART SISWA */}
+        <div className="bg-white border-2 border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🖼️</span>
+              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
+                Gambar Diagram Flowchart Siswa
+              </h4>
+              <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
+                {nodes.length > 0 ? `${nodes.length} Simbol • ${edges.length} Panah` : 'Diagram Alur Lengkap'}
+              </span>
+            </div>
+
+            {/* Tombol Aksi Gambar */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Tombol Zoom */}
+              <div className="inline-flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.2).toFixed(1)))}
+                  className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-all"
+                  title="Perkecil Diagram"
+                >
+                  -
+                </button>
+                <span className="px-1.5 text-[11px] font-mono font-bold text-slate-700">{Math.round(zoom * 100)}%</span>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.2).toFixed(1)))}
+                  className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-all"
+                  title="Perbesar Diagram"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom(1)}
+                  className="px-1.5 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 hover:bg-white rounded-lg transition-all"
+                  title="Reset Zoom"
+                >
+                  100%
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDownloadPng}
+                className="px-2.5 sm:px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                title="Unduh gambar flowchart ini sebagai file PNG berkualitas tinggi"
+              >
+                <span>💾</span>
+                <span>Unduh PNG</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenSvgNewTab}
+                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                title="Buka gambar diagram di jendela tab baru"
+              >
+                <span>🔍</span>
+                <span className="hidden sm:inline">Ukuran Penuh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Tab jika siswa juga melampirkan foto / screenshot manual */}
+          {uploadedImage && (
+            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+              <button
+                type="button"
+                onClick={() => setActiveTab('diagram')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'diagram' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📐 Diagram Alur Kanvas
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('uploaded')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'uploaded' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                📸 Foto/Screenshot Siswa
+              </button>
+            </div>
+          )}
+
+          {/* Area Render Gambar */}
+          {activeTab === 'uploaded' && uploadedImage ? (
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-center">
+              <img
+                src={uploadedImage}
+                alt="Foto kiriman siswa"
+                className="max-h-96 mx-auto rounded-xl object-contain shadow-md cursor-zoom-in border border-slate-200"
+                onClick={() => window.open(uploadedImage, '_blank')}
+                title="Klik untuk melihat foto resolusi penuh"
+              />
+              <p className="text-[11px] text-slate-500 mt-2">
+                📸 Foto/screenshot yang dilampirkan siswa secara langsung saat pengumpulan praktikum.
+              </p>
+            </div>
+          ) : (
+            <div className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl overflow-auto p-2 sm:p-4 min-h-[300px] sm:min-h-[380px] max-h-[500px] flex items-center justify-center">
+              <div
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.15s ease-out',
+                  width: '100%',
+                  minWidth: '480px',
+                }}
+                dangerouslySetInnerHTML={{ __html: svgContent }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Catatan Evaluasi & Umpan Balik Sistem */}
+        <div>
+          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <span>📝</span>
+            <span>Catatan Evaluasi & Umpan Balik Sistem:</span>
+          </h4>
+          <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            {Array.isArray(submission.feedback) && submission.feedback.length > 0 ? (
+              submission.feedback.map((fb, i) => (
+                <div
+                  key={i}
+                  className={`p-2.5 rounded-xl text-xs font-medium border ${
+                    fb.includes('✅') || fb.includes('valid') || fb.includes('tepat')
+                      ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                      : 'bg-amber-50/70 border-amber-200 text-amber-900'
+                  }`}
+                >
+                  {fb}
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-400 italic">Tidak ada catatan evaluasi.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Struktur Data JSON (Accordion Collapsible) */}
+        <details className="text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50/50">
+          <summary className="font-bold text-slate-600 cursor-pointer hover:text-slate-900 flex items-center justify-between">
+            <span>🔧 Data Teknis Struktur Diagram ({nodes.length} nodes, {edges.length} edges)</span>
+            <span className="text-[10px] text-slate-400">Klik untuk melihat JSON</span>
+          </summary>
+          <pre className="mt-2 p-3 bg-slate-900 text-emerald-400 font-mono rounded-xl overflow-x-auto text-[11px] max-h-48">
+            {JSON.stringify(diagram, null, 2)}
+          </pre>
+        </details>
+
+        {/* Tombol Tutup */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // KOMPONEN DASHBOARD & PORTAL GURU (STANDALONE GITHUB PAGES)
 // ============================================================================
 function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChanged }) {
@@ -4975,69 +5640,13 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
         )}
       </main>
 
-      {/* Modal Detail Submission */}
+      {/* Modal Detail Submission Beserta Gambar & Diagram Lengkap */}
       {selectedSubDetail && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-fadeIn"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-          onClick={() => setSelectedSubDetail(null)}
-        >
-          <div
-            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto max-h-[88vh] overflow-y-auto transform animate-scaleUp"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-base font-black text-slate-900">Detail Hasil Praktikum</h3>
-                <p className="text-xs text-slate-500">{selectedSubDetail.student_name} ({selectedSubDetail.class_name})</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedSubDetail(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center cursor-pointer"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl">
-              <div>
-                <span className="text-xs text-slate-500 font-bold uppercase">Studi Kasus:</span>
-                <p className="text-sm font-black text-slate-900">{selectedSubDetail.case_key}</p>
-              </div>
-              <div className="text-right">
-                <span className="text-xs text-slate-500 font-bold uppercase">Skor Evaluasi:</span>
-                <p className="text-xl font-black text-indigo-600">{selectedSubDetail.score} / 100</p>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Catatan Evaluasi Sistem:</h4>
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
-                {Array.isArray(selectedSubDetail.feedback) && selectedSubDetail.feedback.map((fb, i) => (
-                  <div
-                    key={i}
-                    className={`p-2.5 rounded-xl text-xs font-medium border ${
-                      fb.includes('✅') || fb.includes('valid') || fb.includes('tepat')
-                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
-                        : 'bg-amber-50/70 border-amber-200 text-amber-900'
-                    }`}
-                  >
-                    {fb}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedSubDetail(null)}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 rounded-xl cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>,
+        <DetailSubmissionModal
+          submission={selectedSubDetail}
+          onClose={() => setSelectedSubDetail(null)}
+          caseStudiesMap={caseStudiesMap}
+        />,
         document.body
       )}
 

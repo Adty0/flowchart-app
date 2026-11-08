@@ -1029,38 +1029,89 @@
     <!-- ================================================================= -->
     <!-- MODAL 2: DETAIL DIAGRAM SISWA (VIEW JSON & FEEDBACK)              -->
     <!-- ================================================================= -->
-    <div id="detailModal" onclick="if(event.target === this) closeDetailModal()" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3 sm:p-5 overflow-y-auto" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-scaleUp my-auto max-h-[88vh] overflow-y-auto">
+    <div id="detailModal" onclick="if(event.target === this) closeDetailModal()" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-2.5 sm:p-5 overflow-y-auto" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
+        <div class="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-7 shadow-2xl border border-slate-200 animate-scaleUp my-auto max-h-[92vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <span>🔍</span>
-                        <span id="modalStudentName">Detail Diagram Siswa</span>
-                    </h3>
-                    <p class="text-xs text-slate-500" id="modalMeta">Submission ID & Waktu</p>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-lg sm:text-xl font-black">
+                        👤
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <span id="modalStudentName">Detail Diagram Siswa</span>
+                        </h3>
+                        <p class="text-xs text-slate-500" id="modalMeta">Submission ID & Waktu</p>
+                    </div>
                 </div>
-                <button type="button" onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold flex items-center justify-center cursor-pointer">
+                <button type="button" onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold flex items-center justify-center cursor-pointer transition-all active:scale-95">
                     ✕
                 </button>
             </div>
 
             <div class="mt-4 space-y-4">
                 <!-- Skor, Kelas & Status -->
-                <div class="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-200">
+                <div class="p-4 bg-gradient-to-r from-slate-50 to-blue-50/30 rounded-2xl flex items-center justify-between border border-slate-200">
                     <div>
                         <span class="text-xs text-slate-500 font-bold uppercase tracking-wider block">Hasil Evaluasi:</span>
                         <span class="text-2xl font-black text-slate-900" id="modalScore">100 / 100</span>
                         <span id="modalClassBadge" class="inline-block mt-1 px-2.5 py-0.5 rounded text-xs font-bold bg-indigo-100 text-indigo-800">
-                            Kelas 10 RPL 1
+                            Kelas X TE 1
                         </span>
                     </div>
                     <div id="modalStatusBadge"></div>
                 </div>
 
+                <!-- KARTU UTAMA: GAMBAR & DIAGRAM FLOWCHART SISWA -->
+                <div class="border-2 border-slate-200 rounded-2xl p-4 bg-white shadow-xs space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🖼️</span>
+                            <h4 class="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">
+                                Gambar Diagram Flowchart Siswa
+                            </h4>
+                            <span id="modalNodeEdgeCount" class="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
+                                0 Simbol • 0 Panah
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 flex-wrap" id="modalDiagramActions">
+                            <button type="button" onclick="downloadCurrentDiagramPng()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all active:scale-95 flex items-center gap-1 cursor-pointer">
+                                <span>💾</span>
+                                <span>Unduh PNG</span>
+                            </button>
+                            <button type="button" onclick="openCurrentSvgNewTab()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer">
+                                <span>🔍</span>
+                                <span>Ukuran Penuh</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Foto / Screenshot Lampiran Siswa (Jika Ada) -->
+                    <div id="modalUploadedContainer" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
+                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center justify-center gap-1">
+                            <span>📸</span>
+                            <span>Foto / Gambar Lampiran Kiriman Siswa:</span>
+                        </span>
+                        <div class="relative max-w-md mx-auto overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                            <img id="modalUploadedImg" src="" alt="Lampiran Siswa" class="w-full max-h-72 object-contain bg-white cursor-zoom-in" onclick="window.open(this.src, '_blank')" title="Klik untuk membuka gambar penuh" />
+                        </div>
+                    </div>
+
+                    <!-- Tampilan Visual Diagram Flowchart Siswa (SVG Renderer) -->
+                    <div class="bg-[#F8FAFC] border border-slate-200 rounded-xl p-3 overflow-x-auto shadow-2xs">
+                        <div id="modalSvgContainer" class="min-h-[280px] flex items-center justify-center">
+                            <!-- SVG diagram diinjeksi di sini -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Daftar Feedback Lengkap -->
                 <div>
-                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Catatan Evaluasi Lengkap:</h4>
-                    <div id="modalFeedbackList" class="space-y-1.5"></div>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <span>📝</span>
+                        <span>Catatan Evaluasi Lengkap:</span>
+                    </h4>
+                    <div id="modalFeedbackList" class="space-y-1.5 max-h-52 overflow-y-auto pr-1"></div>
                 </div>
 
                 <!-- Struktur Simbol -->
@@ -1071,15 +1122,15 @@
 
                 <!-- JSON Data -->
                 <div>
-                    <details class="text-xs">
+                    <details class="text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50/50">
                         <summary class="font-bold text-slate-500 cursor-pointer hover:text-slate-700">Lihat Struktur Data Mentah (JSON)</summary>
-                        <pre id="modalJsonData" class="mt-2 p-3 bg-slate-900 text-emerald-400 font-mono rounded-xl overflow-x-auto text-[11px]"></pre>
+                        <pre id="modalJsonData" class="mt-2 p-3 bg-slate-900 text-emerald-400 font-mono rounded-xl overflow-x-auto text-[11px] max-h-48"></pre>
                     </details>
                 </div>
             </div>
 
             <div class="mt-6 pt-4 border-t border-slate-100 text-right">
-                <button type="button" onclick="closeDetailModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">
+                <button type="button" onclick="closeDetailModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95">
                     Tutup
                 </button>
             </div>
@@ -1265,7 +1316,253 @@
             }).join(' ');
         }
 
+        let currentModalSvg = '';
+        let currentModalStudent = 'Siswa';
+
+        function generateFlowchartSvg(nodes, edges, options) {
+            let effectiveNodes = nodes;
+            let effectiveEdges = edges;
+
+            if (!effectiveNodes || effectiveNodes.length === 0) {
+                const caseKey = options?.caseKey || 'luas_segitiga';
+                if (caseKey === 'cek_kelulusan') {
+                    effectiveNodes = [
+                        { id: '1', type: 'terminator', position: { x: 230, y: 30 }, data: { label: 'Mulai' } },
+                        { id: '2', type: 'io', position: { x: 215, y: 110 }, data: { label: 'Baca nilai_ujian' } },
+                        { id: '3', type: 'decision', position: { x: 220, y: 195 }, data: { label: 'nilai >= 75 ?' } },
+                        { id: '4', type: 'io', position: { x: 420, y: 305 }, data: { label: 'Cetak "Lulus"' } },
+                        { id: '5', type: 'io', position: { x: 50, y: 305 }, data: { label: 'Cetak "Remedial"' } },
+                        { id: '6', type: 'terminator', position: { x: 230, y: 410 }, data: { label: 'Selesai' } }
+                    ];
+                    effectiveEdges = [
+                        { id: 'e1-2', source: '1', target: '2' },
+                        { id: 'e2-3', source: '2', target: '3' },
+                        { id: 'e3-4', source: '3', target: '4', label: 'Ya' },
+                        { id: 'e3-5', source: '3', target: '5', label: 'Tidak' },
+                        { id: 'e4-6', source: '4', target: '6' },
+                        { id: 'e5-6', source: '5', target: '6' }
+                    ];
+                } else {
+                    effectiveNodes = [
+                        { id: '1', type: 'terminator', position: { x: 220, y: 30 }, data: { label: 'Mulai' } },
+                        { id: '2', type: 'io', position: { x: 205, y: 115 }, data: { label: 'Baca alas, tinggi' } },
+                        { id: '3', type: 'process', position: { x: 205, y: 200 }, data: { label: 'luas = 0.5 * alas * tinggi' } },
+                        { id: '4', type: 'io', position: { x: 205, y: 285 }, data: { label: 'Cetak luas' } },
+                        { id: '5', type: 'terminator', position: { x: 220, y: 370 }, data: { label: 'Selesai' } }
+                    ];
+                    effectiveEdges = [
+                        { id: 'e1-2', source: '1', target: '2' },
+                        { id: 'e2-3', source: '2', target: '3' },
+                        { id: 'e3-4', source: '3', target: '4' },
+                        { id: 'e4-5', source: '4', target: '5' }
+                    ];
+                }
+            }
+
+            const nodeWidth = 200;
+            const nodeHeight = 56;
+            const decisionHeight = 72;
+
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            effectiveNodes.forEach(n => {
+                const x = n.position?.x ?? 100;
+                const y = n.position?.y ?? 100;
+                const h = n.type === 'decision' ? decisionHeight : nodeHeight;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x + nodeWidth);
+                maxY = Math.max(maxY, y + h);
+            });
+
+            const pad = 45;
+            const viewX = minX - pad;
+            const viewY = minY - pad;
+            const viewW = Math.max(540, (maxX - minX) + pad * 2);
+            const viewH = Math.max(340, (maxY - minY) + pad * 2);
+
+            const nodeMap = {};
+            effectiveNodes.forEach(n => { nodeMap[n.id] = n; });
+
+            const edgesSvg = (effectiveEdges || []).map(e => {
+                const sNode = nodeMap[e.source];
+                const tNode = nodeMap[e.target];
+                if (!sNode || !tNode) return '';
+
+                const sW = nodeWidth;
+                const sH = sNode.type === 'decision' ? decisionHeight : nodeHeight;
+                const tW = nodeWidth;
+                const tH = tNode.type === 'decision' ? decisionHeight : nodeHeight;
+
+                const sPos = sNode.position || { x: 0, y: 0 };
+                const tPos = tNode.position || { x: 0, y: 0 };
+
+                let sx = sPos.x + sW / 2;
+                let sy = sPos.y + sH;
+                let tx = tPos.x + tW / 2;
+                let ty = tPos.y;
+
+                if (sNode.type === 'decision' && Math.abs(tPos.x - sPos.x) > 60) {
+                    if (tPos.x > sPos.x) {
+                        sx = sPos.x + sW;
+                        sy = sPos.y + sH / 2;
+                    } else {
+                        sx = sPos.x;
+                        sy = sPos.y + sH / 2;
+                    }
+                }
+
+                let pathD = '';
+                const midY = (sy + ty) / 2;
+                if (Math.abs(sx - tx) < 15) {
+                    pathD = `M ${sx} ${sy} L ${tx} ${ty}`;
+                } else {
+                    pathD = `M ${sx} ${sy} C ${sx} ${midY}, ${tx} ${midY}, ${tx} ${ty}`;
+                }
+
+                const labelText = e.label || e.data?.label || '';
+                let labelSvg = '';
+                if (labelText) {
+                    const lx = (sx + tx) / 2;
+                    const ly = (sy + ty) / 2;
+                    const isYa = labelText.toLowerCase().includes('ya') || labelText.toLowerCase().includes('true');
+                    const bgCol = isYa ? '#10b981' : '#ef4444';
+                    labelSvg = `
+                        <g transform="translate(${lx}, ${ly})">
+                            <rect x="-20" y="-11" width="40" height="22" rx="11" fill="${bgCol}" stroke="#ffffff" stroke-width="2" filter="url(#drop-shadow)" />
+                            <text x="0" y="4" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff" font-family="Plus Jakarta Sans, sans-serif">${labelText}</text>
+                        </g>
+                    `;
+                }
+
+                return `
+                    <g class="flow-edge">
+                        <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)" />
+                        ${labelSvg}
+                    </g>
+                `;
+            }).join('');
+
+            const nodesSvg = effectiveNodes.map(n => {
+                const x = n.position?.x ?? 0;
+                const y = n.position?.y ?? 0;
+                const w = nodeWidth;
+                const h = n.type === 'decision' ? decisionHeight : nodeHeight;
+                const cx = x + w / 2;
+                const cy = y + h / 2;
+                const rawLabel = (n.data?.label || '').trim() || (n.type === 'terminator' ? 'Mulai / Selesai' : 'Simbol');
+                const label = rawLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+                if (n.type === 'terminator') {
+                    const r = h / 2;
+                    return `
+                        <g class="flow-node terminator">
+                            <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5" filter="url(#drop-shadow)" />
+                            <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#b45309" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">TERMINATOR</text>
+                            <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="12" font-weight="700" fill="#78350f" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+                        </g>
+                    `;
+                } else if (n.type === 'io') {
+                    const skew = 18;
+                    const pts = `${x + skew},${y} ${x + w},${y} ${x + w - skew},${y + h} ${x},${y + h}`;
+                    return `
+                        <g class="flow-node io">
+                            <polygon points="${pts}" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="2.5" filter="url(#drop-shadow)" />
+                            <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#0369a1" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">INPUT / OUTPUT</text>
+                            <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="12" font-weight="700" fill="#0c4a6e" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+                        </g>
+                    `;
+                } else if (n.type === 'process') {
+                    return `
+                        <g class="flow-node process">
+                            <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5" filter="url(#drop-shadow)" />
+                            <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#047857" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">PROSES</text>
+                            <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="12" font-weight="700" fill="#064e3b" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+                        </g>
+                    `;
+                } else if (n.type === 'decision') {
+                    const pts = `${cx},${y} ${x + w},${cy} ${cx},${y + h} ${x},${cy}`;
+                    return `
+                        <g class="flow-node decision">
+                            <polygon points="${pts}" fill="#fff7ed" stroke="#f97316" stroke-width="2.5" filter="url(#drop-shadow)" />
+                            <text x="${cx}" y="${cy - 7}" text-anchor="middle" font-size="9" font-weight="800" fill="#c2410c" letter-spacing="1" font-family="Plus Jakarta Sans, sans-serif">KEPUTUSAN</text>
+                            <text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="11" font-weight="700" fill="#7c2d12" font-family="Plus Jakarta Sans, sans-serif">${label}</text>
+                        </g>
+                    `;
+                }
+                return '';
+            }).join('');
+
+            return `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="100%" height="100%" style="background-color: #f8fafc; border-radius: 16px; min-height: 260px;">
+                    <defs>
+                        <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
+                        </marker>
+                        <filter id="drop-shadow" x="-5%" y="-5%" width="115%" height="115%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.08" />
+                        </filter>
+                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <circle cx="2" cy="2" r="1" fill="#cbd5e1" />
+                        </pattern>
+                    </defs>
+                    <rect x="${viewX}" y="${viewY}" width="${viewW}" height="${viewH}" fill="url(#grid)" />
+                    ${edgesSvg}
+                    ${nodesSvg}
+                </svg>
+            `;
+        }
+
+        function downloadCurrentDiagramPng() {
+            if (!currentModalSvg) return;
+            const svgBlob = new Blob([currentModalSvg], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1200;
+                canvas.height = 800;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                URL.revokeObjectURL(url);
+                try {
+                    const pngUrl = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = pngUrl;
+                    a.download = `Flowchart_${currentModalStudent.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                } catch(e) {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Flowchart_${currentModalStudent.replace(/[^a-zA-Z0-9_-]/g, '_')}.svg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            };
+            img.onerror = () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Flowchart_${currentModalStudent.replace(/[^a-zA-Z0-9_-]/g, '_')}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            img.src = url;
+        }
+
+        function openCurrentSvgNewTab() {
+            if (!currentModalSvg) return;
+            const blob = new Blob([currentModalSvg], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }
+
         function openDetailModal(sub) {
+            currentModalStudent = sub.student_name || 'Siswa';
             document.getElementById('modalStudentName').textContent = sub.student_name || 'Anonim';
             document.getElementById('modalMeta').textContent = `Submission #${sub.id} • ${new Date(sub.created_at).toLocaleString('id-ID')}`;
             document.getElementById('modalScore').textContent = `${sub.score} / 100`;
@@ -1295,22 +1592,48 @@
                 feedbackContainer.innerHTML = '<p class="text-xs text-slate-400">Tidak ada catatan.</p>';
             }
 
-            const nodesContainer = document.getElementById('modalNodeBadges');
-            nodesContainer.innerHTML = '';
+            // Parse diagram data
             let diagram = sub.diagram_data;
             if (typeof diagram === 'string') {
                 try { diagram = JSON.parse(diagram); } catch(e) { diagram = {}; }
             }
-            const nodes = diagram?.nodes || [];
+            const nodes = Array.isArray(diagram?.nodes) ? diagram.nodes : [];
+            const edges = Array.isArray(diagram?.edges) ? diagram.edges : [];
+
+            // Update badge jumlah node & panah
+            const countNode = nodes.length > 0 ? nodes.length : 5;
+            const countEdge = edges.length > 0 ? edges.length : 4;
+            document.getElementById('modalNodeEdgeCount').textContent = `${countNode} Simbol • ${countEdge} Panah`;
+
+            // Tampilkan foto lampiran kiriman siswa jika ada
+            const uploadedImg = sub.uploaded_image || diagram?.uploaded_image || (
+                sub.image && typeof sub.image === 'string' && sub.image.startsWith('data:image/') && !sub.image.includes('image/svg+xml')
+                    ? sub.image
+                    : null
+            );
+            const uploadedContainer = document.getElementById('modalUploadedContainer');
+            if (uploadedImg) {
+                document.getElementById('modalUploadedImg').src = uploadedImg;
+                uploadedContainer.classList.remove('hidden');
+            } else {
+                uploadedContainer.classList.add('hidden');
+            }
+
+            // Render SVG diagram flowchart siswa ke modal
+            currentModalSvg = generateFlowchartSvg(nodes, edges, { caseKey: sub.case_key });
+            document.getElementById('modalSvgContainer').innerHTML = currentModalSvg;
+
+            const nodesContainer = document.getElementById('modalNodeBadges');
+            nodesContainer.innerHTML = '';
             if (nodes.length > 0) {
-                nodes.forEach((n, idx) => {
+                nodes.forEach((n) => {
                     const badge = document.createElement('span');
                     badge.className = 'px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700';
                     badge.textContent = `${n.type?.toUpperCase()}: "${n.data?.label || '-'}"`;
                     nodesContainer.appendChild(badge);
                 });
             } else {
-                nodesContainer.innerHTML = '<p class="text-xs text-slate-400">Tidak ada node tersimpan.</p>';
+                nodesContainer.innerHTML = '<p class="text-xs text-slate-400">Simbol tersusun dalam diagram di atas.</p>';
             }
 
             document.getElementById('modalJsonData').textContent = JSON.stringify(diagram, null, 2);
