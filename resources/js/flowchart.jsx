@@ -3040,8 +3040,14 @@ export function generateFlowchartSvg(nodes = [], edges = [], options = {}) {
 
   // Jika submission belum memiliki node tersimpan (misal data bawaan/seed), bangun struktur diagram autentik sesuai kasus
   if (!effectiveNodes || effectiveNodes.length === 0) {
-    const caseKey = options.caseKey || 'luas_segitiga';
-    if (caseKey === 'cek_kelulusan') {
+    const rawKey = options?.caseKey || options?.case_key || '';
+    const caseKey = String(rawKey).toLowerCase().trim();
+    const caseMap = typeof getCaseStudiesMap === 'function' ? getCaseStudiesMap() : {};
+    const caseObj = caseMap[rawKey] || caseMap[caseKey] || null;
+    const isKelulusan = caseKey === 'kelulusan' || caseKey === 'cek_kelulusan' || caseKey.includes('lulus');
+    const isBranching = isKelulusan || caseObj?.flow_type === 'branching';
+
+    if (isKelulusan) {
       effectiveNodes = [
         { id: '1', type: 'terminator', position: { x: 230, y: 30 }, data: { label: 'Mulai' } },
         { id: '2', type: 'io', position: { x: 215, y: 110 }, data: { label: 'Baca nilai_ujian' } },
@@ -3057,6 +3063,46 @@ export function generateFlowchartSvg(nodes = [], edges = [], options = {}) {
         { id: 'e3-5', source: '3', target: '5', label: 'Tidak' },
         { id: 'e4-6', source: '4', target: '6' },
         { id: 'e5-6', source: '5', target: '6' },
+      ];
+    } else if (isBranching && caseObj) {
+      const inputLabel = caseObj.expected_inputs ? `Baca ${caseObj.expected_inputs}` : 'Baca input';
+      const decisionLabel = caseObj.expected_decision ? `${caseObj.expected_decision} ?` : 'Kondisi Syarat ?';
+      const yesLabel = caseObj.expected_yes_output ? `Cetak "${caseObj.expected_yes_output}"` : 'Cetak "Ya"';
+      const noLabel = caseObj.expected_no_output ? `Cetak "${caseObj.expected_no_output}"` : 'Cetak "Tidak"';
+
+      effectiveNodes = [
+        { id: '1', type: 'terminator', position: { x: 230, y: 30 }, data: { label: 'Mulai' } },
+        { id: '2', type: 'io', position: { x: 215, y: 110 }, data: { label: inputLabel } },
+        { id: '3', type: 'decision', position: { x: 220, y: 195 }, data: { label: decisionLabel } },
+        { id: '4', type: 'io', position: { x: 420, y: 305 }, data: { label: yesLabel } },
+        { id: '5', type: 'io', position: { x: 50, y: 305 }, data: { label: noLabel } },
+        { id: '6', type: 'terminator', position: { x: 230, y: 410 }, data: { label: 'Selesai' } },
+      ];
+      effectiveEdges = [
+        { id: 'e1-2', source: '1', target: '2' },
+        { id: 'e2-3', source: '2', target: '3' },
+        { id: 'e3-4', source: '3', target: '4', label: 'Ya' },
+        { id: 'e3-5', source: '3', target: '5', label: 'Tidak' },
+        { id: 'e4-6', source: '4', target: '6' },
+        { id: 'e5-6', source: '5', target: '6' },
+      ];
+    } else if (caseObj && caseObj.flow_type === 'sequential' && caseObj.id !== 'luas_segitiga') {
+      const inputLabel = caseObj.expected_inputs ? `Baca ${caseObj.expected_inputs}` : 'Baca masukan';
+      const procLabel = caseObj.expected_process || 'Perhitungan';
+      const outLabel = caseObj.expected_outputs ? `Cetak ${caseObj.expected_outputs}` : 'Cetak hasil';
+
+      effectiveNodes = [
+        { id: '1', type: 'terminator', position: { x: 220, y: 30 }, data: { label: 'Mulai' } },
+        { id: '2', type: 'io', position: { x: 205, y: 115 }, data: { label: inputLabel } },
+        { id: '3', type: 'process', position: { x: 205, y: 200 }, data: { label: procLabel } },
+        { id: '4', type: 'io', position: { x: 205, y: 285 }, data: { label: outLabel } },
+        { id: '5', type: 'terminator', position: { x: 220, y: 370 }, data: { label: 'Selesai' } },
+      ];
+      effectiveEdges = [
+        { id: 'e1-2', source: '1', target: '2' },
+        { id: 'e2-3', source: '2', target: '3' },
+        { id: 'e3-4', source: '3', target: '4' },
+        { id: 'e4-5', source: '4', target: '5' },
       ];
     } else {
       // Default: luas_segitiga
@@ -4360,10 +4406,61 @@ export const DEFAULT_SUBMISSIONS_X_TE1 = [
   },
 ];
 
-// GABUNGAN SELURUH DATA SUBMISSION SISWA DARI KELAS X TO 3 DAN X TE 1
+// DATA SUBMISSION UNTUK STUDI KASUS 2: CEK KELULUSAN NILAI UJIAN (ROMBEL X TE 1 & X TO 3)
+export const DEFAULT_SUBMISSIONS_KELULUSAN = [
+  ...STUDENTS_X_TE1.map((st, idx) => {
+    const isRemedial = idx === 9 || idx === 19;
+    return {
+      id: `sub_te1_kel_${idx + 1}`,
+      student_name: st.name,
+      class_name: 'X TE 1',
+      case_key: 'kelulusan',
+      score: isRemedial ? 65 : (90 + (idx % 3) * 5),
+      feedback: isRemedial ? [
+        '✅ Simbol Mulai dan Selesai terpasang.',
+        '✅ Variabel masukan nilai ujian terdeteksi.',
+        '⚠️ Simbol keputusan belum memiliki 2 cabang keluaran (Ya & Tidak).',
+        '❌ Alur logika percabangan belum tuntas menuju Selesai.',
+      ] : [
+        '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+        '✅ Input nilai ujian (I/O) sesuai instruksi.',
+        '✅ Kondisi percabangan logika (nilai >= 75) tepat.',
+        '✅ Cabang Ya (Lulus) dan Tidak (Remedial) terhubung benar.',
+        '✅ Alur konvergen menuju simbol Selesai secara runtut.',
+      ],
+      created_at: makeSubmissionTime(14, (idx * 2) % 60),
+    };
+  }),
+  ...STUDENTS_X_TO3.map((st, idx) => {
+    const isRemedial = idx === 3 || idx === 16;
+    return {
+      id: `sub_to3_kel_${idx + 1}`,
+      student_name: st.name,
+      class_name: 'X TO 3',
+      case_key: 'kelulusan',
+      score: isRemedial ? 65 : (88 + (idx % 3) * 5),
+      feedback: isRemedial ? [
+        '✅ Simbol Mulai dan Selesai terpasang.',
+        '✅ Variabel masukan nilai terdeteksi.',
+        '⚠️ Kondisi keputusan belum memuat nilai pembanding 75.',
+        '❌ Percabangan flowchart perlu diperbaiki.',
+      ] : [
+        '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+        '✅ Input nilai ujian (I/O) sesuai instruksi.',
+        '✅ Kondisi percabangan logika (nilai >= 75) tepat.',
+        '✅ Cabang Ya (Lulus) dan Tidak (Remedial) terhubung benar.',
+        '✅ Alur konvergen menuju simbol Selesai secara runtut.',
+      ],
+      created_at: makeSubmissionTime(15, (idx * 2) % 60),
+    };
+  }),
+];
+
+// GABUNGAN SELURUH DATA SUBMISSION SISWA DARI KELAS X TO 3 DAN X TE 1 (PER STUDI KASUS)
 export const DEFAULT_STUDENT_SUBMISSIONS = [
   ...DEFAULT_SUBMISSIONS_X_TO3,
   ...DEFAULT_SUBMISSIONS_X_TE1,
+  ...DEFAULT_SUBMISSIONS_KELULUSAN,
 ];
 
 // ============================================================================
@@ -4585,9 +4682,10 @@ function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
       ? caseStudiesMap
       : getCaseStudiesMap();
 
+  const isKelulusan = submission.case_key === 'kelulusan' || submission.case_key === 'cek_kelulusan' || (submission.case_key && submission.case_key.includes('lulus'));
   const caseInfo = safeCaseStudiesMap[submission.case_key] || {
-    title: submission.case_key === 'cek_kelulusan' ? 'Cek Kelulusan Nilai Ujian' : 'Menghitung Luas Segitiga',
-    icon: submission.case_key === 'cek_kelulusan' ? '🎓' : '📐',
+    title: isKelulusan ? 'Cek Kelulusan Nilai Ujian' : 'Menghitung Luas Segitiga',
+    icon: isKelulusan ? '🎓' : '📐',
   };
 
   const svgContent = generateFlowchartSvg(nodes, edges, { caseKey: submission.case_key });
@@ -4936,9 +5034,9 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     try {
       const v = localStorage.getItem('flowchart_submissions_v');
       const saved = localStorage.getItem('flowchart_submissions_history');
-      if (v === 'v7_rombel_xte1' && saved) {
+      if (v === 'v8_per_studi_kasus' && saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 60) {
+        if (Array.isArray(parsed) && parsed.length >= 100) {
           return parsed.filter(
             (s) =>
               !isBlockedStudent(s.student_name) &&
@@ -4949,7 +5047,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
         }
       }
       const initialClean = DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
-      localStorage.setItem('flowchart_submissions_v', 'v7_rombel_xte1');
+      localStorage.setItem('flowchart_submissions_v', 'v8_per_studi_kasus');
       localStorage.setItem('flowchart_submissions_history', JSON.stringify(initialClean));
       return initialClean;
     } catch (e) {

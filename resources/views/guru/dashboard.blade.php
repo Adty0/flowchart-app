@@ -1341,8 +1341,11 @@
             let effectiveEdges = edges;
 
             if (!effectiveNodes || effectiveNodes.length === 0) {
-                const caseKey = options?.caseKey || 'luas_segitiga';
-                if (caseKey === 'cek_kelulusan') {
+                const rawKey = options?.caseKey || options?.case_key || 'luas_segitiga';
+                const caseKey = String(rawKey).toLowerCase().trim();
+                const isKelulusan = caseKey === 'kelulusan' || caseKey === 'cek_kelulusan' || caseKey.includes('lulus');
+
+                if (isKelulusan) {
                     effectiveNodes = [
                         { id: '1', type: 'terminator', position: { x: 230, y: 30 }, data: { label: 'Mulai' } },
                         { id: '2', type: 'io', position: { x: 215, y: 110 }, data: { label: 'Baca nilai_ujian' } },

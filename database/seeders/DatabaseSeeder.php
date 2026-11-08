@@ -803,5 +803,77 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => $today->copy()->setTime(8, $minute, $second),
             ]);
         }
+
+        // 6. Template Diagram Branching (Cek Kelulusan Nilai Ujian)
+        $diagramBranching = [
+            'nodes' => [
+                ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai'], 'position' => ['x' => 230, 'y' => 30]],
+                ['id' => '2', 'type' => 'io', 'data' => ['label' => 'Baca nilai_ujian'], 'position' => ['x' => 215, 'y' => 110]],
+                ['id' => '3', 'type' => 'decision', 'data' => ['label' => 'nilai >= 75 ?'], 'position' => ['x' => 220, 'y' => 195]],
+                ['id' => '4', 'type' => 'io', 'data' => ['label' => 'Cetak "Lulus"'], 'position' => ['x' => 420, 'y' => 305]],
+                ['id' => '5', 'type' => 'io', 'data' => ['label' => 'Cetak "Remedial"'], 'position' => ['x' => 50, 'y' => 305]],
+                ['id' => '6', 'type' => 'terminator', 'data' => ['label' => 'Selesai'], 'position' => ['x' => 230, 'y' => 410]],
+            ],
+            'edges' => [
+                ['id' => 'e1-2', 'source' => '1', 'target' => '2'],
+                ['id' => 'e2-3', 'source' => '2', 'target' => '3'],
+                ['id' => 'e3-4', 'source' => '3', 'target' => '4', 'label' => 'Ya'],
+                ['id' => 'e3-5', 'source' => '3', 'target' => '5', 'label' => 'Tidak'],
+                ['id' => 'e4-6', 'source' => '4', 'target' => '6'],
+                ['id' => 'e5-6', 'source' => '5', 'target' => '6'],
+            ],
+        ];
+
+        $diagramBranchingRemedial = [
+            'nodes' => [
+                ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai'], 'position' => ['x' => 230, 'y' => 30]],
+                ['id' => '2', 'type' => 'io', 'data' => ['label' => 'Baca nilai'], 'position' => ['x' => 215, 'y' => 110]],
+                ['id' => '3', 'type' => 'decision', 'data' => ['label' => 'nilai > 75 ?'], 'position' => ['x' => 220, 'y' => 195]],
+                ['id' => '4', 'type' => 'io', 'data' => ['label' => 'Lulus'], 'position' => ['x' => 420, 'y' => 305]],
+                ['id' => '5', 'type' => 'terminator', 'data' => ['label' => 'Selesai'], 'position' => ['x' => 230, 'y' => 410]],
+            ],
+            'edges' => [
+                ['id' => 'e1-2', 'source' => '1', 'target' => '2'],
+                ['id' => 'e2-3', 'source' => '2', 'target' => '3'],
+                ['id' => 'e3-4', 'source' => '3', 'target' => '4', 'label' => 'Ya'],
+                ['id' => 'e4-5', 'source' => '4', 'target' => '5'],
+            ],
+        ];
+
+        // Submission Cek Kelulusan Siswa Rombel X TE 1
+        foreach ($studentsXTE1 as $idx => $st) {
+            $user = User::where('email', $st['nisn'] . '@sekolah.id')->first();
+            $isRemedial = ($idx === 9 || $idx === 19);
+            $score = $isRemedial ? 65 : (90 + ($idx % 3) * 5);
+            $diag = $isRemedial ? $diagramBranchingRemedial : $diagramBranching;
+            $minute = min(58, 30 + (int)floor($idx * 0.8));
+            $second = ($idx * 23) % 60;
+
+            $feedback = $isRemedial ? [
+                '✅ Simbol Mulai dan Selesai terpasang.',
+                '✅ Variabel masukan nilai ujian terdeteksi.',
+                '⚠️ Simbol keputusan belum memiliki 2 cabang keluaran (Ya & Tidak).',
+                '❌ Alur logika percabangan belum tuntas menuju Selesai.',
+            ] : [
+                '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+                '✅ Input nilai ujian (I/O) sesuai instruksi.',
+                '✅ Kondisi percabangan logika (nilai >= 75) tepat.',
+                '✅ Cabang Ya (Lulus) dan Tidak (Remedial) terhubung benar.',
+                '✅ Alur konvergen menuju simbol Selesai secara runtut.',
+            ];
+
+            FlowchartSubmission::create([
+                'user_id' => $user ? $user->id : null,
+                'student_name' => $st['name'],
+                'class_name' => 'X TE 1',
+                'case_key' => 'kelulusan',
+                'diagram_data' => $diag,
+                'score' => $score,
+                'feedback' => $feedback,
+                'checked_at' => $today->copy()->setTime(8, $minute, $second),
+                'created_at' => $today->copy()->setTime(8, $minute, $second),
+                'updated_at' => $today->copy()->setTime(8, $minute, $second),
+            ]);
+        }
     }
 }
