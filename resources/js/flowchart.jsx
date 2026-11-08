@@ -2602,6 +2602,51 @@ export const STUDENTS_X_TO3 = [
   { nisn: '000000', name: 'Simulasi Siswa' },
 ];
 
+// ============================================================================
+// DATA RESMI SISWA KELAS X TE 1 (34 SISWA)
+// ============================================================================
+export const STUDENTS_X_TE1 = [
+  { nisn: '0093963138', name: 'Abdullah Mumtaz Daffa Al Kayies' },
+  { nisn: '0098266853', name: 'Aditya Ramadhan' },
+  { nisn: '0093680985', name: 'Aisyah Aulia Rahma' },
+  { nisn: '0098318394', name: 'Akbar Aulia Hasan' },
+  { nisn: '0107638818', name: 'Allysa Nur Khairunisa' },
+  { nisn: '0094562507', name: 'Anggi Syafa Olivia' },
+  { nisn: '0099404032', name: 'Anggit Dwi Saputro' },
+  { nisn: '0096059920', name: 'Ardiansyah Ahmad Hanafi' },
+  { nisn: '0094855859', name: 'Arkan Hafidz Assikin' },
+  { nisn: '3097339151', name: 'Athaya Lingga Mahardika' },
+  { nisn: '0096450852', name: 'Athaya Ridwan Ramadhan' },
+  { nisn: '0108387625', name: 'Auladan Rafca Algaysan' },
+  { nisn: '0097349592', name: 'Defano Riszaki' },
+  { nisn: '0094542479', name: 'Enrico Albani Saputro' },
+  { nisn: '0085021179', name: 'Fajar Wahyu Setiawan' },
+  { nisn: '0097437819', name: 'Fitri Ramadhani' },
+  { nisn: '0093635938', name: 'Gumawang Agus Prasetyo' },
+  { nisn: '0088825730', name: 'Java Kharisma Irawan' },
+  { nisn: '0098325550', name: 'Kayyis Ahmad Aliyuddin Sholeh' },
+  { nisn: '0106219097', name: 'Kenzio Tristan Gitara' },
+  { nisn: '0094817663', name: 'Luthfia Berliana Subekti' },
+  { nisn: '0096900525', name: 'Muhammad Azhar Sulaiman' },
+  { nisn: '0107057585', name: 'Muhammad Fadhil Trismantoro' },
+  { nisn: '0096741236', name: 'Muhammad Fahril Ramadhan' },
+  { nisn: '0093819743', name: 'Nandito Rezki Deco Saputro' },
+  { nisn: '0099591381', name: 'Naufal Afif Rahmadi' },
+  { nisn: '0094049286', name: 'Oscar Arien Prasetya' },
+  { nisn: '0075166847', name: 'Pramudia Tri Lestari' },
+  { nisn: '0097672810', name: 'Radea Shollahuddin Nurwicaksono Shafa' },
+  { nisn: '0106763956', name: 'Rayhan Nashif' },
+  { nisn: '0096472762', name: 'Rezza Rakha Aryaguna' },
+  { nisn: '0098855133', name: 'Rifqi Prada Indrianto' },
+  { nisn: '0086917909', name: 'Rifqi Ramadhan Pratama' },
+  { nisn: '0096828066', name: 'Soraya Wanda Safarina' },
+];
+
+export const ALL_OFFICIAL_STUDENTS = [
+  ...STUDENTS_X_TO3.map((s) => ({ ...s, className: 'X TO 3' })),
+  ...STUDENTS_X_TE1.map((s) => ({ ...s, className: 'X TE 1' })),
+];
+
 // Filter nama respon yang dilarang / dihapus (Contoh1, adit)
 export const isBlockedStudent = (name = '') => {
   if (!name) return false;
@@ -3231,8 +3276,8 @@ function LoginForm({ onLogin }) {
       return;
     }
 
-    // Cek daftar resmi 36 siswa kelas X TO 3
-    const matched = STUDENTS_X_TO3.find(
+    // Cek daftar resmi siswa kelas X TO 3 & X TE 1
+    const matched = ALL_OFFICIAL_STUDENTS.find(
       (s) =>
         (cleanNisn && s.nisn === cleanNisn) ||
         inputVal.includes(s.nisn) ||
@@ -3245,7 +3290,7 @@ function LoginForm({ onLogin }) {
         name: matched.name,
         email: `${matched.nisn}@sekolah.id`,
         role: 'siswa',
-        className: 'X TO 3',
+        className: matched.className || 'X TO 3',
         nisn: matched.nisn,
       });
       return;
@@ -3599,7 +3644,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     const nisnMap = {
       'SIMULASI SISWA': '000000',
     };
-    STUDENTS_X_TO3.forEach((st) => {
+    ALL_OFFICIAL_STUDENTS.forEach((st) => {
       nisnMap[st.name.toUpperCase().trim()] = st.nisn;
     });
 
@@ -3749,7 +3794,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     const nisnMap = {
       'SIMULASI SISWA': '000000',
     };
-    STUDENTS_X_TO3.forEach((st) => {
+    ALL_OFFICIAL_STUDENTS.forEach((st) => {
       nisnMap[st.name.toUpperCase().trim()] = st.nisn;
     });
 
@@ -3907,7 +3952,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
   const cleanSubmissions = submissions.filter((s) => !isBlockedStudent(s.student_name));
 
   const availableClasses = React.useMemo(() => {
-    const set = new Set(['X TO 3', 'Kelas Demo']);
+    const set = new Set(['X TO 3', 'X TE 1', 'Kelas Demo']);
     cleanSubmissions.forEach((s) => {
       if (s.class_name) set.add(s.class_name);
     });

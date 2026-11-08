@@ -142,7 +142,7 @@
         </tr>
         <tr>
             <td class="meta-label">Rombel / Kelas</td>
-            <td colspan="3" class="meta-value"><strong>{{ $selectedClass ?: 'Semua Kelas (X TO 3)' }}</strong></td>
+            <td colspan="3" class="meta-value"><strong>{{ $selectedClass ?: 'Semua Kelas' }}</strong></td>
             <td class="meta-label">Kriteria Kelulusan (KKM)</td>
             <td colspan="4" class="meta-value"><strong>75 / 100</strong> (Nilai Minimal Tuntas)</td>
         </tr>

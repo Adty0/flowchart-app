@@ -342,9 +342,10 @@ class GuruController extends Controller
             return $name !== 'contoh1' && $name !== 'adit' && !str_contains($name, 'contoh1');
         })->values();
 
-        // Mapping NISN Resmi Siswa X TO 3 & Akun Simulasi
+        // Mapping NISN Resmi Siswa X TO 3, X TE 1 & Akun Simulasi
         $studentNisnMap = [
             'SIMULASI SISWA' => '000000',
+            // Rombel X TO 3
             'RAFIANSYAH CIPTA PRANATA' => '0106572131',
             'RAFIQI DWI SAPUTRA' => '0109053073',
             'RAIHAN NUR RAHMAN' => '0102160972',
@@ -381,6 +382,41 @@ class GuruController extends Controller
             'IRFANO DIKA PRATAMA' => '0107988726',
             'LANJAR REZKY BAKTI AJI SAPUTRA' => '0101764559',
             'NAUFAL LATIF CHAIRUL HAKAN' => '0108854779',
+            // Rombel X TE 1
+            'ABDULLAH MUMTAZ DAFFA AL KAYIES' => '0093963138',
+            'ADITYA RAMADHAN' => '0098266853',
+            'AISYAH AULIA RAHMA' => '0093680985',
+            'AKBAR AULIA HASAN' => '0098318394',
+            'ALLYSA NUR KHAIRUNISA' => '0107638818',
+            'ANGGI SYAFA OLIVIA' => '0094562507',
+            'ANGGIT DWI SAPUTRO' => '0099404032',
+            'ARDIANSYAH AHMAD HANAFI' => '0096059920',
+            'ARKAN HAFIDZ ASSIKIN' => '0094855859',
+            'ATHAYA LINGGA MAHARDIKA' => '3097339151',
+            'ATHAYA RIDWAN RAMADHAN' => '0096450852',
+            'AULADAN RAFCA ALGAYSAN' => '0108387625',
+            'DEFANO RISZAKI' => '0097349592',
+            'ENRICO ALBANI SAPUTRO' => '0094542479',
+            'FAJAR WAHYU SETIAWAN' => '0085021179',
+            'FITRI RAMADHANI' => '0097437819',
+            'GUMAWANG AGUS PRASETYO' => '0093635938',
+            'JAVA KHARISMA IRAWAN' => '0088825730',
+            'KAYYIS AHMAD ALIYUDDIN SHOLEH' => '0098325550',
+            'KENZIO TRISTAN GITARA' => '0106219097',
+            'LUTHFIA BERLIANA SUBEKTI' => '0094817663',
+            'MUHAMMAD AZHAR SULAIMAN' => '0096900525',
+            'MUHAMMAD FADHIL TRISMANTORO' => '0107057585',
+            'MUHAMMAD FAHRIL RAMADHAN' => '0096741236',
+            'NANDITO REZKI DECO SAPUTRO' => '0093819743',
+            'NAUFAL AFIF RAHMADI' => '0099591381',
+            'OSCAR ARIEN PRASETYA' => '0094049286',
+            'PRAMUDIA TRI LESTARI' => '0075166847',
+            'RADEA SHOLLAHUDDIN NURWICAKSONO SHAFA' => '0097672810',
+            'RAYHAN NASHIF' => '0106763956',
+            'REZZA RAKHA ARYAGUNA' => '0096472762',
+            'RIFQI PRADA INDRIANTO' => '0098855133',
+            'RIFQI RAMADHAN PRATAMA' => '0086917909',
+            'SORAYA WANDA SAFARINA' => '0096828066',
         ];
 
         // Assign calculated_nisn ke setiap submission

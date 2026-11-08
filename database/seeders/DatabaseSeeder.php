@@ -150,6 +150,54 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password123'),
         ]);
 
+        // 2b. Data 34 Siswa Kelas X TE 1
+        $studentsXTE1 = [
+            ['nisn' => '0093963138', 'name' => 'Abdullah Mumtaz Daffa Al Kayies'],
+            ['nisn' => '0098266853', 'name' => 'Aditya Ramadhan'],
+            ['nisn' => '0093680985', 'name' => 'Aisyah Aulia Rahma'],
+            ['nisn' => '0098318394', 'name' => 'Akbar Aulia Hasan'],
+            ['nisn' => '0107638818', 'name' => 'Allysa Nur Khairunisa'],
+            ['nisn' => '0094562507', 'name' => 'Anggi Syafa Olivia'],
+            ['nisn' => '0099404032', 'name' => 'Anggit Dwi Saputro'],
+            ['nisn' => '0096059920', 'name' => 'Ardiansyah Ahmad Hanafi'],
+            ['nisn' => '0094855859', 'name' => 'Arkan Hafidz Assikin'],
+            ['nisn' => '3097339151', 'name' => 'Athaya Lingga Mahardika'],
+            ['nisn' => '0096450852', 'name' => 'Athaya Ridwan Ramadhan'],
+            ['nisn' => '0108387625', 'name' => 'Auladan Rafca Algaysan'],
+            ['nisn' => '0097349592', 'name' => 'Defano Riszaki'],
+            ['nisn' => '0094542479', 'name' => 'Enrico Albani Saputro'],
+            ['nisn' => '0085021179', 'name' => 'Fajar Wahyu Setiawan'],
+            ['nisn' => '0097437819', 'name' => 'Fitri Ramadhani'],
+            ['nisn' => '0093635938', 'name' => 'Gumawang Agus Prasetyo'],
+            ['nisn' => '0088825730', 'name' => 'Java Kharisma Irawan'],
+            ['nisn' => '0098325550', 'name' => 'Kayyis Ahmad Aliyuddin Sholeh'],
+            ['nisn' => '0106219097', 'name' => 'Kenzio Tristan Gitara'],
+            ['nisn' => '0094817663', 'name' => 'Luthfia Berliana Subekti'],
+            ['nisn' => '0096900525', 'name' => 'Muhammad Azhar Sulaiman'],
+            ['nisn' => '0107057585', 'name' => 'Muhammad Fadhil Trismantoro'],
+            ['nisn' => '0096741236', 'name' => 'Muhammad Fahril Ramadhan'],
+            ['nisn' => '0093819743', 'name' => 'Nandito Rezki Deco Saputro'],
+            ['nisn' => '0099591381', 'name' => 'Naufal Afif Rahmadi'],
+            ['nisn' => '0094049286', 'name' => 'Oscar Arien Prasetya'],
+            ['nisn' => '0075166847', 'name' => 'Pramudia Tri Lestari'],
+            ['nisn' => '0097672810', 'name' => 'Radea Shollahuddin Nurwicaksono Shafa'],
+            ['nisn' => '0106763956', 'name' => 'Rayhan Nashif'],
+            ['nisn' => '0096472762', 'name' => 'Rezza Rakha Aryaguna'],
+            ['nisn' => '0098855133', 'name' => 'Rifqi Prada Indrianto'],
+            ['nisn' => '0086917909', 'name' => 'Rifqi Ramadhan Pratama'],
+            ['nisn' => '0096828066', 'name' => 'Soraya Wanda Safarina'],
+        ];
+
+        foreach ($studentsXTE1 as $st) {
+            User::create([
+                'name' => $st['name'],
+                'email' => $st['nisn'] . '@sekolah.id',
+                'role' => 'siswa',
+                'class_name' => 'X TE 1',
+                'password' => Hash::make('password'),
+            ]);
+        }
+
         // 3. Template Diagram Flowchart Luas Segitiga
         $diagramSequential = [
             'nodes' => [
