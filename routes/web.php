@@ -43,6 +43,7 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
     Route::get('/export-excel', [GuruController::class, 'exportExcel'])->name('export_excel');
     Route::post('/submission/{id}/toggle-remedial', [GuruController::class, 'toggleRemedial'])->name('submission.toggle_remedial');
     Route::delete('/submission/{id}', [GuruController::class, 'destroy'])->name('submission.destroy');
+    Route::post('/submissions/clear-all', [GuruController::class, 'clearAllSubmissions'])->name('submissions.clear_all');
     Route::post('/case-study', [GuruController::class, 'storeCaseStudy'])->name('case_study.store');
     Route::delete('/case-study/{id}', [GuruController::class, 'destroyCaseStudy'])->name('case_study.destroy');
 });

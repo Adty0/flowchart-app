@@ -4456,12 +4456,15 @@ export const DEFAULT_SUBMISSIONS_KELULUSAN = [
   }),
 ];
 
-// GABUNGAN SELURUH DATA SUBMISSION SISWA DARI KELAS X TO 3 DAN X TE 1 (PER STUDI KASUS)
-export const DEFAULT_STUDENT_SUBMISSIONS = [
+// CONTOH DATA SIMULASI SISWA (OPSIONAL JIKA GURU INGIN MENGISI SIMULASI)
+export const SAMPLE_STUDENT_SUBMISSIONS = [
   ...DEFAULT_SUBMISSIONS_X_TO3,
   ...DEFAULT_SUBMISSIONS_X_TE1,
   ...DEFAULT_SUBMISSIONS_KELULUSAN,
 ];
+
+// DATA AWAL SUBMISSION SISWA: KOSONGKAN SELURUH DATA NILAI SISWA (0 SUBMISSION)
+export const DEFAULT_STUDENT_SUBMISSIONS = [];
 
 // ============================================================================
 // KOMPONEN HALAMAN LOGIN (UNTUK HOSTING GITHUB PAGES / STANDALONE)
@@ -5029,14 +5032,14 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     });
   };
 
-  // Ambil riwayat submission dari localStorage (default seluruh siswa kelas X TO 3 dan X TE 1)
+  // Ambil riwayat submission dari localStorage (kosongkan semua data nilai siswa)
   const [submissions, setSubmissions] = useState(() => {
     try {
       const v = localStorage.getItem('flowchart_submissions_v');
       const saved = localStorage.getItem('flowchart_submissions_history');
-      if (v === 'v8_per_studi_kasus' && saved) {
+      if (v === 'v9_kosongkan_nilai' && saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 100) {
+        if (Array.isArray(parsed)) {
           return parsed.filter(
             (s) =>
               !isBlockedStudent(s.student_name) &&
@@ -5046,12 +5049,11 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
           );
         }
       }
-      const initialClean = DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
-      localStorage.setItem('flowchart_submissions_v', 'v8_per_studi_kasus');
-      localStorage.setItem('flowchart_submissions_history', JSON.stringify(initialClean));
-      return initialClean;
+      localStorage.setItem('flowchart_submissions_v', 'v9_kosongkan_nilai');
+      localStorage.setItem('flowchart_submissions_history', JSON.stringify([]));
+      return [];
     } catch (e) {
-      return DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
+      return [];
     }
   });
 
@@ -5151,21 +5153,35 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
   };
 
-  // Isi data simulasi seluruh 36 siswa kelas X TO 3
+  // Isi data simulasi seluruh siswa (opsional jika guru ingin uji coba)
   const handleSeedSamples = () => {
-    saveSubmissions(DEFAULT_STUDENT_SUBMISSIONS);
+    saveSubmissions(SAMPLE_STUDENT_SUBMISSIONS);
   };
 
   const handleClearHistory = () => {
     showPortalConfirm({
-      title: 'Bersihkan Riwayat Nilai?',
-      message: 'Apakah Anda yakin ingin menghapus seluruh riwayat submission siswa dari memori lokal? Tindakan ini tidak dapat dibatalkan.',
-      confirmText: 'Ya, Bersihkan Riwayat',
+      title: 'Kosongkan Semua Nilai Siswa?',
+      message: 'Apakah Anda yakin ingin mengosongkan seluruh riwayat submission dan nilai siswa? Tindakan ini akan mengosongkan data agar praktikum dapat dimulai dari nol.',
+      confirmText: 'Ya, Kosongkan Semua',
       cancelText: 'Batal',
       type: 'danger',
       icon: '🗑️',
-      onConfirm: () => {
+      onConfirm: async () => {
         saveSubmissions([]);
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+          try {
+            await fetch(getApiUrl('guru/submissions/clear-all'), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+              },
+            });
+            window.location.reload();
+          } catch (e) {}
+        }
       },
     });
   };

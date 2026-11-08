@@ -521,6 +521,26 @@
                             <span>🖨️</span>
                             <span class="hidden sm:inline">Print</span>
                         </button>
+
+                        <form action="{{ route('guru.submissions.clear_all') }}" method="POST" class="inline">
+                            @csrf
+                            <button 
+                                type="button" 
+                                onclick="triggerCardConfirm({
+                                    title: 'Kosongkan Semua Nilai Siswa?',
+                                    message: 'Apakah Anda yakin ingin mengosongkan seluruh riwayat dan nilai siswa? Tindakan ini akan menghapus semua submission yang ada sehingga siswa dapat mengerjakan dari awal.',
+                                    form: this.form,
+                                    confirmText: 'Ya, Kosongkan Semua',
+                                    type: 'danger',
+                                    icon: '🗑️'
+                                })"
+                                class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                title="Kosongkan seluruh data nilai siswa"
+                            >
+                                <span>🗑️</span>
+                                <span class="hidden sm:inline">Kosongkan Nilai</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

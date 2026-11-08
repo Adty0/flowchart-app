@@ -599,4 +599,21 @@ class GuruController extends Controller
 
         return redirect()->route('guru.dashboard')->with('success', 'Data hasil praktikum berhasil dihapus.');
     }
+
+    /**
+     * Kosongkan seluruh data nilai praktikum siswa.
+     */
+    public function clearAllSubmissions(Request $request)
+    {
+        FlowchartSubmission::truncate();
+
+        if ($request->expectsJson() || $request->isJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Seluruh data nilai dan riwayat pengerjaan siswa berhasil dikosongkan.',
+            ]);
+        }
+
+        return redirect()->route('guru.dashboard')->with('success', 'Seluruh data nilai dan riwayat pengerjaan siswa berhasil dikosongkan.');
+    }
 }

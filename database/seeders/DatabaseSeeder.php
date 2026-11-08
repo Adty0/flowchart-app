@@ -198,7 +198,11 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // 3. Template Diagram Flowchart Luas Segitiga
+        // 3. Opsi Pembuatan Data Nilai Awal Siswa (Default: FALSE / Kosongkan Nilai agar siswa praktikum dari nol)
+        $seedDemoSubmissions = false;
+
+        if ($seedDemoSubmissions) {
+        // Template Diagram Flowchart Luas Segitiga
         $diagramSequential = [
             'nodes' => [
                 ['id' => '1', 'type' => 'terminator', 'data' => ['label' => 'Mulai'], 'position' => ['x' => 250, 'y' => 50]],
@@ -875,5 +879,6 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => $today->copy()->setTime(8, $minute, $second),
             ]);
         }
+        } // akhir if ($seedDemoSubmissions)
     }
 }
