@@ -3041,7 +3041,7 @@ export function generateFlowchartSvg(nodes = [], edges = [], options = {}) {
   }).join('');
 
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="100%" height="100%" style="background-color: #f8fafc; border-radius: 16px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="${viewW}" height="${viewH}" style="max-width: 100%; height: auto; display: block; margin: 0 auto; background-color: #f8fafc; border-radius: 16px;">
       <defs>
         <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
@@ -4506,7 +4506,39 @@ function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
           </div>
         </div>
 
-        {/* KARTU UTAMA: GAMBAR & DIAGRAM FLOWCHART SISWA */}
+        {/* 1. Foto / Bukti Gambar Lampiran Kiriman Siswa (Jika Ada) */}
+        {uploadedImage && (
+          <div className="p-3.5 sm:p-4 bg-amber-50/70 border-2 border-amber-300 rounded-2xl sm:rounded-3xl text-center space-y-2">
+            <div className="flex items-center justify-between pb-1.5 border-b border-amber-200">
+              <span className="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📸</span>
+                <span>Foto / Screenshot Lampiran yang Dikirimkan Siswa:</span>
+              </span>
+              <a
+                href={uploadedImage}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline"
+              >
+                Buka Ukuran Penuh ↗
+              </a>
+            </div>
+            <div className="relative max-w-xl mx-auto overflow-hidden rounded-xl border border-amber-200 shadow-sm bg-white p-1">
+              <img
+                src={uploadedImage}
+                alt="Foto kiriman siswa"
+                className="max-h-80 mx-auto rounded-lg object-contain shadow-xs cursor-zoom-in"
+                onClick={() => window.open(uploadedImage, '_blank')}
+                title="Klik untuk melihat foto resolusi penuh"
+              />
+            </div>
+            <p className="text-[11px] text-amber-800/80 font-medium">
+              Foto/screenshot ini dilampirkan langsung oleh siswa saat menekan tombol kumpulkan tugas praktikum.
+            </p>
+          </div>
+        )}
+
+        {/* 2. KARTU UTAMA: GAMBAR & DIAGRAM FLOWCHART SISWA */}
         <div className="bg-white border-2 border-slate-200 rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
             <div className="flex items-center gap-2">
@@ -4572,58 +4604,23 @@ function DetailSubmissionModal({ submission, onClose, caseStudiesMap = {} }) {
             </div>
           </div>
 
-          {/* Tab jika siswa juga melampirkan foto / screenshot manual */}
-          {uploadedImage && (
-            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
-              <button
-                type="button"
-                onClick={() => setActiveTab('diagram')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'diagram' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                📐 Diagram Alur Kanvas
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('uploaded')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'uploaded' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                📸 Foto/Screenshot Siswa
-              </button>
-            </div>
-          )}
-
-          {/* Area Render Gambar */}
-          {activeTab === 'uploaded' && uploadedImage ? (
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-center">
-              <img
-                src={uploadedImage}
-                alt="Foto kiriman siswa"
-                className="max-h-96 mx-auto rounded-xl object-contain shadow-md cursor-zoom-in border border-slate-200"
-                onClick={() => window.open(uploadedImage, '_blank')}
-                title="Klik untuk melihat foto resolusi penuh"
-              />
-              <p className="text-[11px] text-slate-500 mt-2">
-                📸 Foto/screenshot yang dilampirkan siswa secara langsung saat pengumpulan praktikum.
-              </p>
-            </div>
-          ) : (
-            <div className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl overflow-auto p-2 sm:p-4 min-h-[300px] sm:min-h-[380px] max-h-[500px] flex items-center justify-center">
-              <div
-                style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: 'center center',
-                  transition: 'transform 0.15s ease-out',
-                  width: '100%',
-                  minWidth: '480px',
-                }}
-                dangerouslySetInnerHTML={{ __html: svgContent }}
-              />
-            </div>
-          )}
+          {/* Area Render Gambar Diagram Flowchart (Native SVG Image Element) */}
+          <div className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl overflow-auto p-2 sm:p-4 min-h-[300px] sm:min-h-[380px] max-h-[520px] flex items-center justify-center">
+            <img
+              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`}
+              alt="Diagram Flowchart Siswa"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center center',
+                transition: 'transform 0.15s ease-out',
+                maxWidth: '100%',
+                height: 'auto',
+                maxHeight: '480px',
+                display: 'block',
+              }}
+              className="rounded-xl shadow-xs border border-slate-200 object-contain mx-auto bg-[#F8FAFC]"
+            />
+          </div>
         </div>
 
         {/* Catatan Evaluasi & Umpan Balik Sistem */}

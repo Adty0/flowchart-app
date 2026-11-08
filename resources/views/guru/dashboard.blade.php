@@ -663,9 +663,9 @@
 
                                                         <button 
                                                             type="button" 
-                                                            onclick='openDetailModal(@json($sub))'
+                                                            onclick="openDetailModalById({{ $sub->id }})"
                                                             class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-all cursor-pointer"
-                                                            title="Lihat Detail Diagram"
+                                                            title="Lihat Detail Diagram Siswa"
                                                         >
                                                             👁️ Detail
                                                         </button>
@@ -1087,13 +1087,18 @@
                     </div>
 
                     <!-- Foto / Screenshot Lampiran Siswa (Jika Ada) -->
-                    <div id="modalUploadedContainer" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center justify-center gap-1">
-                            <span>📸</span>
-                            <span>Foto / Gambar Lampiran Kiriman Siswa:</span>
-                        </span>
-                        <div class="relative max-w-md mx-auto overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-                            <img id="modalUploadedImg" src="" alt="Lampiran Siswa" class="w-full max-h-72 object-contain bg-white cursor-zoom-in" onclick="window.open(this.src, '_blank')" title="Klik untuk membuka gambar penuh" />
+                    <div id="modalUploadedContainer" class="hidden p-3 bg-amber-50/70 border-2 border-amber-300 rounded-2xl text-center space-y-2">
+                        <div class="flex items-center justify-between pb-1.5 border-b border-amber-200">
+                            <span class="text-xs font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                                <span>📸</span>
+                                <span>Foto / Bukti Gambar yang Dilampirkan Siswa:</span>
+                            </span>
+                            <a id="modalUploadedImgLink" href="#" target="_blank" class="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline">
+                                Buka Ukuran Penuh ↗
+                            </a>
+                        </div>
+                        <div class="relative max-w-lg mx-auto overflow-hidden rounded-xl border border-amber-200 shadow-sm bg-white p-1">
+                            <img id="modalUploadedImg" src="" alt="Lampiran Siswa" class="w-full max-h-80 object-contain mx-auto rounded-lg cursor-zoom-in" onclick="window.open(this.src, '_blank')" title="Klik untuk membuka gambar penuh" />
                         </div>
                     </div>
 
@@ -1138,6 +1143,18 @@
     </div>
 
     <script>
+        // Peta Data Submission untuk Lookup Aman (Bebas Masalah Tanda Petik / Quotes)
+        window.__SUBMISSIONS_MAP__ = {!! json_encode($submissions->keyBy('id')) !!};
+
+        function openDetailModalById(id) {
+            const sub = window.__SUBMISSIONS_MAP__[id];
+            if (!sub) {
+                console.warn('Data pengumpulan tidak ditemukan untuk ID:', id);
+                return;
+            }
+            openDetailModal(sub);
+        }
+
         // Tab & Modal State Management
         let currentFlowType = 'sequential';
 
@@ -1493,7 +1510,7 @@
             }).join('');
 
             return `
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="100%" height="100%" style="background-color: #f8fafc; border-radius: 16px; min-height: 260px;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}" width="${viewW}" height="${viewH}" style="max-width: 100%; height: auto; display: block; margin: 0 auto; background-color: #f8fafc; border-radius: 16px;">
                     <defs>
                         <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                             <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
@@ -1614,14 +1631,19 @@
             const uploadedContainer = document.getElementById('modalUploadedContainer');
             if (uploadedImg) {
                 document.getElementById('modalUploadedImg').src = uploadedImg;
+                const link = document.getElementById('modalUploadedImgLink');
+                if (link) link.href = uploadedImg;
                 uploadedContainer.classList.remove('hidden');
             } else {
                 uploadedContainer.classList.add('hidden');
             }
 
-            // Render SVG diagram flowchart siswa ke modal
+            // Render SVG diagram flowchart siswa ke modal sebagai Image native (kebal collapse)
             currentModalSvg = generateFlowchartSvg(nodes, edges, { caseKey: sub.case_key });
-            document.getElementById('modalSvgContainer').innerHTML = currentModalSvg;
+            const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(currentModalSvg);
+            document.getElementById('modalSvgContainer').innerHTML = `
+                <img src="${svgDataUrl}" alt="Diagram Flowchart Siswa" class="w-full max-h-[480px] object-contain mx-auto rounded-xl shadow-xs border border-slate-200 bg-[#F8FAFC]" style="display: block; max-width: 100%; height: auto;" />
+            `;
 
             const nodesContainer = document.getElementById('modalNodeBadges');
             nodesContainer.innerHTML = '';
