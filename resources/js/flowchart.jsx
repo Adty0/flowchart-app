@@ -2669,9 +2669,8 @@ const makeSubmissionTime = (minute, second = 0) => {
   return d.toISOString();
 };
 
-// DATA HASIL PENGERJAAN SELURUH 36 SISWA (SEMUA KASUS LUAS SEGITIGA, JAM 08.00 - 08.30)
-// 34 Tuntas (>= 75), 2 Perlu Perbaikan (< 75) => 94.4% ~ 95% Tuntas
-export const DEFAULT_STUDENT_SUBMISSIONS = [
+// DATA HASIL PENGERJAAN SISWA X TO 3 (SEMUA KASUS LUAS SEGITIGA, JAM 08.00 - 08.30)
+export const DEFAULT_SUBMISSIONS_X_TO3 = [
   {
     id: 'sub_01',
     student_name: 'RAFIANSYAH CIPTA PRANATA',
@@ -3224,6 +3223,525 @@ export const DEFAULT_STUDENT_SUBMISSIONS = [
   },
 ];
 
+// DATA HASIL PENGERJAAN SISWA X TE 1 (SEMUA KASUS LUAS SEGITIGA, JAM 08.00 - 08.30)
+export const DEFAULT_SUBMISSIONS_X_TE1 = [
+  {
+    id: 'sub_te1_01',
+    student_name: 'Abdullah Mumtaz Daffa Al Kayies',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+      '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+      '✅ Simbol cetak hasil output sesuai.',
+      '✅ Seluruh garis panah konektor terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(2, 30),
+  },
+  {
+    id: 'sub_te1_02',
+    student_name: 'Aditya Ramadhan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus perhitungan luas segitiga tepat.',
+      '✅ Luaran luas tercetak dengan benar.',
+      '⚠️ Rapikan tata letak posisi simbol dan garis alur.',
+    ],
+    created_at: makeSubmissionTime(3, 15),
+  },
+  {
+    id: 'sub_te1_03',
+    student_name: 'Aisyah Aulia Rahma',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Masukan nilai alas dan tinggi terdefinisi jelas.',
+      '✅ Rumus perhitungan luas segitiga valid.',
+      '✅ Simbol cetak luaran tepat.',
+      '✅ Alur panah mengalir runtut tanpa hambatan.',
+    ],
+    created_at: makeSubmissionTime(4, 10),
+  },
+  {
+    id: 'sub_te1_04',
+    student_name: 'Akbar Aulia Hasan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Terminator Mulai dan Selesai tepat.',
+      '✅ Variabel masukan alas dan tinggi sesuai.',
+      '✅ Rumus perhitungan luas segitiga benar.',
+      '⚠️ Tambahkan kata "Cetak" pada simbol luaran.',
+      '✅ Garis konektor tersambung dengan benar.',
+    ],
+    created_at: makeSubmissionTime(5, 5),
+  },
+  {
+    id: 'sub_te1_05',
+    student_name: 'Allysa Nur Khairunisa',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan alas dan tinggi tepat.',
+      '✅ Rumus matematika luas segitiga akurat.',
+      '✅ Simbol cetak output luas sesuai standar.',
+      '✅ Alur flowchart utuh dan runtut.',
+    ],
+    created_at: makeSubmissionTime(5, 50),
+  },
+  {
+    id: 'sub_te1_06',
+    student_name: 'Anggi Syafa Olivia',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi lengkap.',
+      '✅ Rumus luas segitiga sesuai.',
+      '✅ Output hasil luas berhasil dicetak.',
+      '⚠️ Berikan sedikit jarak vertikal antar simbol.',
+    ],
+    created_at: makeSubmissionTime(6, 40),
+  },
+  {
+    id: 'sub_te1_07',
+    student_name: 'Anggit Dwi Saputro',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 85,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai terpasang.',
+      '✅ Masukan alas dan tinggi ada.',
+      '✅ Rumus perhitungan luas segitiga benar.',
+      '⚠️ Penamaan variabel di output sebaiknya disamakan dengan rumus.',
+      '✅ Garis panah alir terhubung.',
+    ],
+    created_at: makeSubmissionTime(7, 25),
+  },
+  {
+    id: 'sub_te1_08',
+    student_name: 'Ardiansyah Ahmad Hanafi',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Terminator Mulai dan Selesai lengkap.',
+      '✅ Masukan nilai alas dan tinggi terdeteksi.',
+      '✅ Rumus matematika tepat.',
+      '⚠️ Simbol output sebaiknya diberi label instruksi "Tampilkan Hasil".',
+      '✅ Alur konektor panah tersambung baik.',
+    ],
+    created_at: makeSubmissionTime(8, 15),
+  },
+  {
+    id: 'sub_te1_09',
+    student_name: 'Arkan Hafidz Assikin',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+      '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+      '✅ Simbol cetak hasil output sesuai.',
+      '✅ Seluruh garis panah konektor terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(9, 0),
+  },
+  {
+    id: 'sub_te1_10',
+    student_name: 'Athaya Lingga Mahardika',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 65,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai terpasang.',
+      '✅ Variabel masukan alas dan tinggi ada.',
+      '⚠️ Rumus perhitungan keliru (menulis alas * tinggi tanpa membagi 2).',
+      '❌ Hasil luas segitiga belum akurat karena rumus tidak memuat 0.5.',
+    ],
+    created_at: makeSubmissionTime(9, 45),
+  },
+  {
+    id: 'sub_te1_11',
+    student_name: 'Athaya Ridwan Ramadhan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi lengkap.',
+      '✅ Rumus perhitungan luas segitiga tepat.',
+      '✅ Hasil luas dicetak dengan benar.',
+      '⚠️ Posisikan simbol Selesai tepat lurus di bawah output.',
+    ],
+    created_at: makeSubmissionTime(10, 30),
+  },
+  {
+    id: 'sub_te1_12',
+    student_name: 'Auladan Rafca Algaysan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Terminator Mulai dan Selesai ada.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus luas segitiga sesuai.',
+      '⚠️ Gunakan simbol jajar genjang untuk langkah keluaran luas.',
+      '✅ Alur panah terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(11, 20),
+  },
+  {
+    id: 'sub_te1_13',
+    student_name: 'Defano Riszaki',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Masukan nilai alas dan tinggi terdefinisi jelas.',
+      '✅ Rumus perhitungan luas segitiga valid.',
+      '✅ Simbol cetak luaran tepat.',
+      '✅ Alur panah mengalir runtut tanpa hambatan.',
+    ],
+    created_at: makeSubmissionTime(12, 10),
+  },
+  {
+    id: 'sub_te1_14',
+    student_name: 'Enrico Albani Saputro',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 85,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Masukan nilai data terdeteksi.',
+      '✅ Rumus matematika luas segitiga sesuai.',
+      '⚠️ Lengkapi teks luaran dengan kata "Cetak Luas".',
+      '✅ Konektor panah tersambung dengan baik.',
+    ],
+    created_at: makeSubmissionTime(13, 0),
+  },
+  {
+    id: 'sub_te1_15',
+    student_name: 'Fajar Wahyu Setiawan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus perhitungan luas segitiga tepat.',
+      '✅ Luaran luas tercetak dengan benar.',
+      '⚠️ Rapikan garis alur agar tidak bersilangan.',
+    ],
+    created_at: makeSubmissionTime(13, 50),
+  },
+  {
+    id: 'sub_te1_16',
+    student_name: 'Fitri Ramadhani',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan alas dan tinggi tepat.',
+      '✅ Rumus matematika luas segitiga akurat.',
+      '✅ Simbol cetak output luas sesuai standar.',
+      '✅ Alur flowchart utuh dan runtut.',
+    ],
+    created_at: makeSubmissionTime(14, 40),
+  },
+  {
+    id: 'sub_te1_17',
+    student_name: 'Gumawang Agus Prasetyo',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Terminator Mulai dan Selesai lengkap.',
+      '✅ Masukan nilai alas dan tinggi terdeteksi.',
+      '✅ Rumus matematika tepat.',
+      '⚠️ Tambahkan instruksi "Tampilkan" pada simbol output.',
+      '✅ Garis panah alir tersambung runtut.',
+    ],
+    created_at: makeSubmissionTime(15, 30),
+  },
+  {
+    id: 'sub_te1_18',
+    student_name: 'Java Kharisma Irawan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+      '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+      '✅ Simbol cetak hasil output sesuai.',
+      '✅ Seluruh garis panah konektor terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(16, 20),
+  },
+  {
+    id: 'sub_te1_19',
+    student_name: 'Kayyis Ahmad Aliyuddin Sholeh',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus luas segitiga sesuai.',
+      '✅ Output hasil luas berhasil dicetak.',
+      '⚠️ Berikan spasi pada teks rumus matematika.',
+    ],
+    created_at: makeSubmissionTime(17, 10),
+  },
+  {
+    id: 'sub_te1_20',
+    student_name: 'Kenzio Tristan Gitara',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 65,
+    feedback: [
+      '✅ Simbol Mulai terpasang.',
+      '✅ Variabel masukan alas dan tinggi terbaca.',
+      '✅ Rumus perhitungan luas segitiga tepat.',
+      '❌ Garis alur panah terputus sebelum mencapai simbol Selesai.',
+      '⚠️ Hubungkan simbol output cetak menuju simbol akhir Selesai.',
+    ],
+    created_at: makeSubmissionTime(18, 0),
+  },
+  {
+    id: 'sub_te1_21',
+    student_name: 'Luthfia Berliana Subekti',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Masukan nilai alas dan tinggi terdefinisi jelas.',
+      '✅ Rumus perhitungan luas segitiga valid.',
+      '✅ Simbol cetak luaran tepat.',
+      '✅ Alur panah mengalir runtut tanpa hambatan.',
+    ],
+    created_at: makeSubmissionTime(18, 50),
+  },
+  {
+    id: 'sub_te1_22',
+    student_name: 'Muhammad Azhar Sulaiman',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi lengkap.',
+      '✅ Rumus perhitungan luas segitiga tepat.',
+      '✅ Hasil luas dicetak dengan benar.',
+      '⚠️ Pastikan anak panah mengarah ke bawah dengan rapi.',
+    ],
+    created_at: makeSubmissionTime(19, 40),
+  },
+  {
+    id: 'sub_te1_23',
+    student_name: 'Muhammad Fadhil Trismantoro',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Terminator Mulai dan Selesai ada.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus luas segitiga sesuai.',
+      '⚠️ Lengkapi teks luaran dengan kata "Cetak".',
+      '✅ Alur panah terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(20, 30),
+  },
+  {
+    id: 'sub_te1_24',
+    student_name: 'Muhammad Fahril Ramadhan',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+      '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+      '✅ Simbol cetak hasil output sesuai.',
+      '✅ Seluruh garis panah konektor terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(21, 20),
+  },
+  {
+    id: 'sub_te1_25',
+    student_name: 'Nandito Rezki Deco Saputro',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 85,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Masukan nilai data terdeteksi.',
+      '✅ Rumus matematika luas segitiga sesuai.',
+      '⚠️ Teks output bisa dibuat lebih deskriptif (contoh: Cetak Luas).',
+      '✅ Garis alir terhubung baik.',
+    ],
+    created_at: makeSubmissionTime(22, 10),
+  },
+  {
+    id: 'sub_te1_26',
+    student_name: 'Naufal Afif Rahmadi',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus luas segitiga tepat.',
+      '✅ Luaran luas tercetak dengan benar.',
+      '⚠️ Berikan sedikit spasi di penulisan rumus.',
+    ],
+    created_at: makeSubmissionTime(23, 0),
+  },
+  {
+    id: 'sub_te1_27',
+    student_name: 'Oscar Arien Prasetya',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai terpasang.',
+      '✅ Masukan alas dan tinggi ada.',
+      '✅ Rumus perhitungan luas segitiga benar.',
+      '⚠️ Berikan instruksi cetak pada output.',
+      '✅ Garis panah alir tersambung runtut.',
+    ],
+    created_at: makeSubmissionTime(23, 50),
+  },
+  {
+    id: 'sub_te1_28',
+    student_name: 'Pramudia Tri Lestari',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Masukan nilai alas dan tinggi terdefinisi jelas.',
+      '✅ Rumus perhitungan luas segitiga valid.',
+      '✅ Simbol cetak luaran tepat.',
+      '✅ Alur panah mengalir runtut tanpa hambatan.',
+    ],
+    created_at: makeSubmissionTime(24, 40),
+  },
+  {
+    id: 'sub_te1_29',
+    student_name: 'Radea Shollahuddin Nurwicaksono Shafa',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi lengkap.',
+      '✅ Rumus perhitungan luas segitiga tepat.',
+      '✅ Hasil luas dicetak dengan benar.',
+      '⚠️ Garis alir dapat dirapikan lebih simetris.',
+    ],
+    created_at: makeSubmissionTime(25, 30),
+  },
+  {
+    id: 'sub_te1_30',
+    student_name: 'Rayhan Nashif',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan alas dan tinggi tepat.',
+      '✅ Rumus matematika luas segitiga akurat.',
+      '✅ Simbol cetak output luas sesuai standar.',
+      '✅ Alur flowchart utuh dan runtut.',
+    ],
+    created_at: makeSubmissionTime(26, 20),
+  },
+  {
+    id: 'sub_te1_31',
+    student_name: 'Rezza Rakha Aryaguna',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 90,
+    feedback: [
+      '✅ Simbol Terminator Mulai dan Selesai ada.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus luas segitiga sesuai.',
+      '⚠️ Berikan label instruksi "Cetak Hasil Luas".',
+      '✅ Alur panah terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(27, 10),
+  },
+  {
+    id: 'sub_te1_32',
+    student_name: 'Rifqi Prada Indrianto',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 95,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Variabel masukan alas dan tinggi terdeteksi.',
+      '✅ Rumus luas segitiga sesuai.',
+      '✅ Output hasil luas berhasil dicetak.',
+      '⚠️ Rapikan tata letak simbol.',
+    ],
+    created_at: makeSubmissionTime(28, 0),
+  },
+  {
+    id: 'sub_te1_33',
+    student_name: 'Rifqi Ramadhan Pratama',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 85,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai lengkap.',
+      '✅ Masukan nilai data terdeteksi.',
+      '✅ Rumus matematika luas segitiga sesuai.',
+      '⚠️ Teks output bisa disederhanakan.',
+      '✅ Garis alir terhubung baik.',
+    ],
+    created_at: makeSubmissionTime(28, 50),
+  },
+  {
+    id: 'sub_te1_34',
+    student_name: 'Soraya Wanda Safarina',
+    class_name: 'X TE 1',
+    case_key: 'luas_segitiga',
+    score: 100,
+    feedback: [
+      '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+      '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+      '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+      '✅ Simbol cetak hasil output sesuai.',
+      '✅ Seluruh garis panah konektor terhubung runtut.',
+    ],
+    created_at: makeSubmissionTime(29, 40),
+  },
+];
+
+// GABUNGAN SELURUH DATA SUBMISSION SISWA DARI KELAS X TO 3 DAN X TE 1
+export const DEFAULT_STUDENT_SUBMISSIONS = [
+  ...DEFAULT_SUBMISSIONS_X_TO3,
+  ...DEFAULT_SUBMISSIONS_X_TE1,
+];
+
 // ============================================================================
 // KOMPONEN HALAMAN LOGIN (UNTUK HOSTING GITHUB PAGES / STANDALONE)
 // ============================================================================
@@ -3417,7 +3935,7 @@ function LoginForm({ onLogin }) {
 // ============================================================================
 function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChanged }) {
   const [activeTab, setActiveTab] = useState('rekap'); // 'rekap' | 'studi_kasus'
-  const [filterClass, setFilterClass] = useState('X TO 3');
+  const [filterClass, setFilterClass] = useState('');
   const [filterCase, setFilterCase] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -3468,14 +3986,14 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     });
   };
 
-  // Ambil riwayat submission dari localStorage (default seluruh siswa kelas X TO 3 termasuk Simulasi Siswa, kasus luas segitiga)
+  // Ambil riwayat submission dari localStorage (default seluruh siswa kelas X TO 3 dan X TE 1)
   const [submissions, setSubmissions] = useState(() => {
     try {
       const v = localStorage.getItem('flowchart_submissions_v');
       const saved = localStorage.getItem('flowchart_submissions_history');
-      if (v === 'v6_purge_dummy' && saved) {
+      if (v === 'v7_rombel_xte1' && saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= 30) {
+        if (Array.isArray(parsed) && parsed.length >= 60) {
           return parsed.filter(
             (s) =>
               !isBlockedStudent(s.student_name) &&
@@ -3486,7 +4004,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
         }
       }
       const initialClean = DEFAULT_STUDENT_SUBMISSIONS.filter((s) => !isBlockedStudent(s.student_name));
-      localStorage.setItem('flowchart_submissions_v', 'v6_purge_dummy');
+      localStorage.setItem('flowchart_submissions_v', 'v7_rombel_xte1');
       localStorage.setItem('flowchart_submissions_history', JSON.stringify(initialClean));
       return initialClean;
     } catch (e) {
@@ -3629,7 +4147,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
     }
 
     const teacherName = currentUser?.name || 'Nur Aditya Romadhon S.Kom';
-    const activeClass = filterClass || 'Semua Kelas (X TO 3)';
+    const activeClass = filterClass || 'Semua Kelas';
     const now = new Date();
     const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -3798,7 +4316,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       nisnMap[st.name.toUpperCase().trim()] = st.nisn;
     });
 
-    const activeClass = filterClass || 'Semua Kelas (X TO 3)';
+    const activeClass = filterClass || 'Semua Kelas';
     const now = new Date();
     const rowsData = listToExport.map((sub, idx) => {
       const studentName = (sub.student_name || 'Siswa').toUpperCase().trim();
@@ -3818,7 +4336,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
       const timeFormatted = sub.created_at
         ? new Date(sub.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
         : '08:15';
-      return [idx + 1, String(nisn), studentName, sub.class_name || 'X TO 3', caseTitle, Number(score), statusText, feedbackClean, timeFormatted];
+      return [idx + 1, String(nisn), studentName, sub.class_name || 'Kelas Umum', caseTitle, Number(score), statusText, feedbackClean, timeFormatted];
     });
 
     const csvLines = [
@@ -4053,9 +4571,13 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
               <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Submission</span>
-                  {filterClass && (
+                  {filterClass ? (
                     <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
                       {filterClass}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                      Semua Rombel
                     </span>
                   )}
                 </div>
@@ -4064,7 +4586,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   <span className="text-xs text-slate-400 font-medium">kali submit</span>
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">
-                  {filterClass ? `Siswa Rombel ${filterClass}` : 'Semua rombel terdata'}
+                  {filterClass ? `Siswa Rombel ${filterClass}` : 'Semua rombel (X TO 3 & X TE 1)'}
                 </div>
               </div>
 
@@ -4075,7 +4597,7 @@ function GuruPortalView({ onOpenCanvas, onLogout, currentUser, onCaseStudiesChan
                   <span className="text-xs text-slate-400 font-medium">/ 100</span>
                 </div>
                 <div className="text-[11px] text-indigo-500 font-semibold mt-1">
-                  {filterClass ? `Nilai Rombel ${filterClass}` : 'Nilai gabungan kelas'}
+                  {filterClass ? `Nilai Rombel ${filterClass}` : 'Nilai gabungan seluruh rombel'}
                 </div>
               </div>
 

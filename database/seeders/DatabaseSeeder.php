@@ -757,5 +757,51 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => $today->copy()->setTime(8, 25, 0),
             ]);
         }
+
+        // Submission 34 Siswa (Rombel X TE 1)
+        foreach ($studentsXTE1 as $idx => $st) {
+            $user = User::where('email', $st['nisn'] . '@sekolah.id')->first();
+            $score = 90 + ($idx % 3) * 5;
+            $diagram = $diagramSequential;
+            $minute = min(29, 2 + (int)floor($idx * 0.8));
+            $second = ($idx * 17) % 60;
+
+            if ($idx === 9) { // Athaya Lingga Mahardika - Remedial
+                $score = 65;
+                $diagram = $diagramRangga;
+            } elseif ($idx === 19) { // Kenzio Tristan Gitara - Remedial
+                $score = 65;
+                $diagram = $diagramTexas;
+            }
+
+            $feedback = [
+                '✅ Simbol Mulai dan Selesai (Terminator) lengkap.',
+                '✅ Variabel masukan (alas, tinggi) sesuai instruksi.',
+                '✅ Rumus perhitungan matematika tepat (luas = 0.5 * alas * tinggi).',
+                '✅ Simbol cetak hasil output sesuai.',
+                '✅ Seluruh garis panah konektor terhubung runtut.',
+            ];
+            if ($score < 75) {
+                $feedback = [
+                    '✅ Simbol Mulai dan Selesai terpasang.',
+                    '✅ Variabel masukan alas dan tinggi ada.',
+                    '⚠️ Rumus perhitungan keliru atau alur panah terputus.',
+                    '❌ Perlu perbaikan diagram pada kanvas.',
+                ];
+            }
+
+            FlowchartSubmission::create([
+                'user_id' => $user ? $user->id : null,
+                'student_name' => $st['name'],
+                'class_name' => 'X TE 1',
+                'case_key' => 'luas_segitiga',
+                'diagram_data' => $diagram,
+                'score' => $score,
+                'feedback' => $feedback,
+                'checked_at' => $today->copy()->setTime(8, $minute, $second),
+                'created_at' => $today->copy()->setTime(8, $minute, $second),
+                'updated_at' => $today->copy()->setTime(8, $minute, $second),
+            ]);
+        }
     }
 }
